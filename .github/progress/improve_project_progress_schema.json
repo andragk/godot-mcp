@@ -1,0 +1,429 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Improve Project Progress",
+  "description": "Progress tracking schema for improve-project-orchestrator pipeline execution",
+  "type": "object",
+  "required": ["pipeline", "project", "execution", "stages"],
+  "properties": {
+    "pipeline": {
+      "type": "object",
+      "required": ["name", "version", "status"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "const": "improve-project-orchestrator"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["initialized", "in_progress", "completed", "failed", "interrupted"]
+        },
+        "lastUpdated": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "project": {
+      "type": "object",
+      "required": ["path"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Absolute path to the project being analyzed"
+        },
+        "goals": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "User-specified improvement goals"
+        },
+        "constraints": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "User-specified constraints (time, budget, technology)"
+        },
+        "painPoints": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Known issues or areas needing attention"
+        }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "required": ["startTime", "currentStage"],
+      "properties": {
+        "startTime": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "endTime": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "currentStage": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8
+        },
+        "lastCheckpoint": {
+          "type": "string",
+          "enum": [
+            "stage_0_initialized",
+            "stage_1_analysis_complete",
+            "stage_2_opportunities_identified",
+            "stage_3_planning_complete",
+            "stage_4_vitepress_configured",
+            "stage_5_en_docs_complete",
+            "stage_6_de_docs_complete",
+            "stage_7_validation_complete",
+            "pipeline_complete"
+          ]
+        },
+        "totalDuration": {
+          "type": "number",
+          "description": "Total execution time in milliseconds"
+        },
+        "interruptions": {
+          "type": "integer",
+          "default": 0,
+          "description": "Number of times pipeline was interrupted and resumed"
+        }
+      }
+    },
+    "stages": {
+      "type": "object",
+      "properties": {
+        "stage_0": {
+          "$ref": "#/definitions/stage",
+          "properties": {
+            "name": {
+              "const": "Initialization & Context Loading"
+            }
+          }
+        },
+        "stage_1": {
+          "$ref": "#/definitions/stage",
+          "properties": {
+            "name": {
+              "const": "Comprehensive Project Analysis"
+            },
+            "outputs": {
+              "type": "object",
+              "properties": {
+                "analysisReport": {
+                  "type": "string",
+                  "description": "Path to project analysis report"
+                },
+                "architectureDocumentation": {
+                  "type": "string",
+                  "description": "Path to current architecture documentation"
+                },
+                "technologyInventory": {
+                  "type": "string",
+                  "description": "Path to technology inventory"
+                }
+              }
+            }
+          }
+        },
+        "stage_2": {
+          "$ref": "#/definitions/stage",
+          "properties": {
+            "name": {
+              "const": "Improvement Opportunity Identification"
+            },
+            "outputs": {
+              "type": "object",
+              "properties": {
+                "performanceOpportunities": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/improvement"
+                  }
+                },
+                "securityEnhancements": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/improvement"
+                  }
+                },
+                "architecturalImprovements": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/improvement"
+                  }
+                },
+                "codeQualityImprovements": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/improvement"
+                  }
+                },
+                "technicalDebtItems": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/improvement"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "stage_3": {
+          "$ref": "#/definitions/stage",
+          "properties": {
+            "name": {
+              "const": "Enhancement Prioritization & Planning"
+            },
+            "outputs": {
+              "type": "object",
+              "properties": {
+                "improvementRoadmap": {
+                  "type": "string",
+                  "description": "Path to prioritized improvement roadmap"
+                },
+                "implementationPhases": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "phase": {
+                        "type": "integer"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "improvements": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "stage_4": {
+          "$ref": "#/definitions/stage",
+          "properties": {
+            "name": {
+              "const": "VitePress Configuration"
+            },
+            "outputs": {
+              "type": "object",
+              "properties": {
+                "configPath": {
+                  "type": "string",
+                  "const": "docs/.vitepress/config.mts"
+                }
+              }
+            }
+          }
+        },
+        "stage_5": {
+          "$ref": "#/definitions/stage",
+          "properties": {
+            "name": {
+              "const": "Documentation Generation (English)"
+            },
+            "outputs": {
+              "type": "object",
+              "properties": {
+                "docsPath": {
+                  "type": "string",
+                  "const": "docs/en/"
+                },
+                "sections": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "stage_6": {
+          "$ref": "#/definitions/stage",
+          "properties": {
+            "name": {
+              "const": "Documentation Translation (German)"
+            },
+            "outputs": {
+              "type": "object",
+              "properties": {
+                "docsPath": {
+                  "type": "string",
+                  "const": "docs/de/"
+                },
+                "sections": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "stage_7": {
+          "$ref": "#/definitions/stage",
+          "properties": {
+            "name": {
+              "const": "Validation & Quality Assurance"
+            },
+            "outputs": {
+              "type": "object",
+              "properties": {
+                "validationReport": {
+                  "type": "string"
+                },
+                "buildStatus": {
+                  "type": "object",
+                  "properties": {
+                    "english": {
+                      "type": "boolean"
+                    },
+                    "german": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "stage_8": {
+          "$ref": "#/definitions/stage",
+          "properties": {
+            "name": {
+              "const": "Finalization & Delivery"
+            },
+            "outputs": {
+              "type": "object",
+              "properties": {
+                "executiveSummary": {
+                  "type": "string"
+                },
+                "nextStepsGuide": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["stage", "timestamp", "message"],
+        "properties": {
+          "stage": {
+            "type": "integer"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recoverable": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "stage": {
+      "type": "object",
+      "required": ["name", "status"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "in_progress", "completed", "failed", "skipped"]
+        },
+        "startTime": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "endTime": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "duration": {
+          "type": "number",
+          "description": "Stage execution time in milliseconds"
+        },
+        "agentsInvoked": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of agents invoked during this stage"
+        },
+        "outputs": {
+          "type": "object",
+          "description": "Stage-specific outputs"
+        }
+      }
+    },
+    "improvement": {
+      "type": "object",
+      "required": ["id", "title", "category", "priority"],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string",
+          "enum": ["performance", "security", "architecture", "code_quality", "technical_debt", "ux", "other"]
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["critical", "high", "medium", "low"]
+        },
+        "effort": {
+          "type": "string",
+          "enum": ["trivial", "small", "medium", "large", "very_large"]
+        },
+        "businessValue": {
+          "type": "string",
+          "enum": ["critical", "high", "medium", "low"]
+        },
+        "justification": {
+          "type": "string"
+        },
+        "implementationPhase": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    }
+  }
+}

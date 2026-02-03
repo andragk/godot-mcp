@@ -1,0 +1,127 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "pipelineId": "plan-project-YYYYMMDD-HHMMSS",
+  "version": "1.0.0",
+  "status": "not_started",
+  "projectDescription": "Your project description will be stored here as provided during invocation.",
+  "stages": [
+    {
+      "stageId": 0,
+      "name": "Initialization & Context Loading",
+      "status": "pending",
+      "checkpoint": "stage_0_initialized",
+      "outputs": [],
+      "agentsInvoked": []
+    },
+    {
+      "stageId": 1,
+      "name": "Requirements Analysis & Vision",
+      "status": "pending",
+      "checkpoint": "stage_1_requirements_complete",
+      "outputs": [],
+      "agentsInvoked": []
+    },
+    {
+      "stageId": 2,
+      "name": "Technical Architecture Design",
+      "status": "pending",
+      "checkpoint": "stage_2_architecture_complete",
+      "outputs": [],
+      "agentsInvoked": []
+    },
+    {
+      "stageId": 3,
+      "name": "API Design & Specification",
+      "status": "pending",
+      "checkpoint": "stage_3_api_complete",
+      "outputs": [],
+      "agentsInvoked": []
+    },
+    {
+      "stageId": 4,
+      "name": "Data Architecture & Storage",
+      "status": "pending",
+      "checkpoint": "stage_4_data_complete",
+      "outputs": [],
+      "agentsInvoked": []
+    },
+    {
+      "stageId": 5,
+      "name": "Security & Compliance Planning",
+      "status": "pending",
+      "checkpoint": "stage_5_security_complete",
+      "outputs": [],
+      "agentsInvoked": []
+    },
+    {
+      "stageId": 6,
+      "name": "Implementation Planning",
+      "status": "pending",
+      "checkpoint": "stage_6_implementation_plan_complete",
+      "outputs": [],
+      "agentsInvoked": []
+    },
+    {
+      "stageId": 7,
+      "name": "Testing & Quality Strategy",
+      "status": "pending",
+      "checkpoint": "stage_7_testing_strategy_complete",
+      "outputs": [],
+      "agentsInvoked": []
+    },
+    {
+      "stageId": 8,
+      "name": "Documentation Synthesis (English)",
+      "status": "pending",
+      "checkpoint": "stage_8_english_docs_complete",
+      "outputs": [],
+      "agentsInvoked": []
+    },
+    {
+      "stageId": 9,
+      "name": "Documentation Translation & Localization (German)",
+      "status": "pending",
+      "checkpoint": "stage_9_german_docs_complete",
+      "outputs": [],
+      "agentsInvoked": []
+    },
+    {
+      "stageId": 10,
+      "name": "VitePress Configuration & Integration",
+      "status": "pending",
+      "checkpoint": "stage_10_vitepress_complete",
+      "outputs": [],
+      "agentsInvoked": []
+    },
+    {
+      "stageId": 11,
+      "name": "Final Validation & Quality Check",
+      "status": "pending",
+      "checkpoint": "stage_11_validation_complete",
+      "outputs": [],
+      "agentsInvoked": []
+    },
+    {
+      "stageId": 12,
+      "name": "Completion & Cleanup",
+      "status": "pending",
+      "checkpoint": "pipeline_complete",
+      "outputs": [],
+      "agentsInvoked": []
+    }
+  ],
+  "metadata": {
+    "createdAt": null,
+    "updatedAt": null,
+    "executionTimeSeconds": 0,
+    "completedStages": 0,
+    "totalStages": 13,
+    "lastCheckpoint": null,
+    "estimatedCompletionPercent": 0
+  },
+  "config": {
+    "retryLimit": 3,
+    "parallelizeStages": false,
+    "skipStages": []
+  }
+}

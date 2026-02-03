@@ -1,0 +1,791 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Implementation Pipeline Progress Schema",
+  "description": "Tracks progress, checkpoints, and resumability for the implementation pipeline orchestrator",
+  "type": "object",
+  "required": [
+    "pipelineVersion",
+    "startedAt",
+    "lastUpdatedAt",
+    "currentStage",
+    "currentCheckpoint",
+    "status",
+    "input",
+    "stages",
+    "errors",
+    "metadata"
+  ],
+  "properties": {
+    "pipelineVersion": {
+      "type": "string",
+      "description": "Semantic version of the pipeline schema",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "examples": ["1.0.0"]
+    },
+    "startedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO8601 timestamp when pipeline started"
+    },
+    "lastUpdatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO8601 timestamp of last progress update"
+    },
+    "currentStage": {
+      "type": "string",
+      "enum": [
+        "inputAnalysis",
+        "issueManagement",
+        "implementationPlanning",
+        "perIssueImplementation",
+        "integration",
+        "documentation",
+        "qualityAssurance",
+        "finalization"
+      ],
+      "description": "Current pipeline stage being executed"
+    },
+    "currentCheckpoint": {
+      "type": "string",
+      "description": "Current checkpoint within the stage for resume purposes",
+      "examples": [
+        "input_analyzed",
+        "issues_managed",
+        "implementation_planned",
+        "issue_1_completed",
+        "all_issues_implemented",
+        "integration_complete",
+        "documentation_integrated",
+        "quality_assured",
+        "pipeline_complete"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": ["running", "paused", "completed", "failed"],
+      "description": "Overall pipeline execution status"
+    },
+    "resumeFrom": {
+      "type": "string",
+      "description": "Checkpoint to resume from after interruption",
+      "examples": ["input_analyzed", "issues_managed"]
+    },
+    "input": {
+      "type": "object",
+      "required": ["type", "source", "hash"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["guide", "task", "issue"],
+          "description": "Type of primary input"
+        },
+        "source": {
+          "type": "string",
+          "description": "File path, issue URL, or input identifier"
+        },
+        "hash": {
+          "type": "string",
+          "description": "Content hash for change detection (SHA-256)"
+        },
+        "additionalInputs": {
+          "type": "object",
+          "description": "Optional user-provided inputs",
+          "properties": {
+            "goals": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "constraints": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "nonFunctionalRequirements": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "assumptions": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "risks": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "stages": {
+      "type": "object",
+      "required": [
+        "inputAnalysis",
+        "issueManagement",
+        "implementationPlanning",
+        "perIssueImplementation",
+        "integration",
+        "documentation",
+        "qualityAssurance",
+        "finalization"
+      ],
+      "properties": {
+        "inputAnalysis": {
+          "$ref": "#/definitions/stageInputAnalysis"
+        },
+        "issueManagement": {
+          "$ref": "#/definitions/stageIssueManagement"
+        },
+        "implementationPlanning": {
+          "$ref": "#/definitions/stageImplementationPlanning"
+        },
+        "perIssueImplementation": {
+          "$ref": "#/definitions/stagePerIssueImplementation"
+        },
+        "integration": {
+          "$ref": "#/definitions/stageIntegration"
+        },
+        "documentation": {
+          "$ref": "#/definitions/stageDocumentation"
+        },
+        "qualityAssurance": {
+          "$ref": "#/definitions/stageQualityAssurance"
+        },
+        "finalization": {
+          "$ref": "#/definitions/stageFinalization"
+        }
+      }
+    },
+    "errors": {
+      "type": "array",
+      "description": "Historical record of errors and resolutions",
+      "items": {
+        "$ref": "#/definitions/errorRecord"
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["orchestrator", "resumeCount"],
+      "properties": {
+        "projectName": {
+          "type": "string",
+          "description": "Name of the project being implemented"
+        },
+        "repository": {
+          "type": "string",
+          "description": "Repository URL or local path"
+        },
+        "orchestrator": {
+          "type": "string",
+          "const": "implementation-pipeline-orchestrator",
+          "description": "Orchestrator agent managing this pipeline"
+        },
+        "resumeCount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of times pipeline has been resumed"
+        },
+        "estimatedCompletion": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Estimated completion timestamp (optional)"
+        }
+      }
+    }
+  },
+  "definitions": {
+    "stageStatus": {
+      "type": "string",
+      "enum": ["pending", "in_progress", "completed", "failed"]
+    },
+    "agentExecution": {
+      "type": "object",
+      "required": ["agent", "action", "startedAt", "status"],
+      "properties": {
+        "agent": {
+          "type": "string",
+          "description": "Name of the delegated agent"
+        },
+        "action": {
+          "type": "string",
+          "description": "Action performed by the agent"
+        },
+        "startedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "completedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["success", "failed"]
+        },
+        "output": {
+          "type": "string",
+          "description": "Summary or path to detailed output"
+        }
+      }
+    },
+    "stageInputAnalysis": {
+      "type": "object",
+      "required": ["status", "checkpoint"],
+      "properties": {
+        "status": {
+          "$ref": "#/definitions/stageStatus"
+        },
+        "checkpoint": {
+          "type": "string",
+          "const": "input_analyzed"
+        },
+        "startedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "completedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "outcomes": {
+          "type": "object",
+          "properties": {
+            "inputType": {
+              "type": "string",
+              "enum": ["guide", "task", "issue"]
+            },
+            "complexity": {
+              "type": "string",
+              "enum": ["low", "medium", "high", "critical"]
+            },
+            "risk": {
+              "type": "string",
+              "enum": ["low", "medium", "high", "critical"]
+            },
+            "securityImpact": {
+              "type": "string",
+              "enum": ["none", "low", "medium", "high", "critical"]
+            },
+            "splitDecision": {
+              "type": "string",
+              "enum": ["single", "multiple"]
+            },
+            "requirementsExtracted": {
+              "type": "boolean"
+            }
+          }
+        },
+        "agentExecutions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/agentExecution"
+          }
+        }
+      }
+    },
+    "stageIssueManagement": {
+      "type": "object",
+      "required": ["status", "checkpoint"],
+      "properties": {
+        "status": {
+          "$ref": "#/definitions/stageStatus"
+        },
+        "checkpoint": {
+          "type": "string",
+          "const": "issues_managed"
+        },
+        "startedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "completedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "issues": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "title", "status", "labels", "executionOrder"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Internal issue identifier"
+              },
+              "githubIssueNumber": {
+                "type": "integer",
+                "description": "GitHub issue number if created"
+              },
+              "title": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "enum": ["created", "updated", "existing"]
+              },
+              "labels": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Standardized labels applied"
+              },
+              "dependencies": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Issue IDs this depends on"
+              },
+              "blockedBy": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Issue IDs that block this"
+              },
+              "executionOrder": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Deterministic execution order"
+              }
+            }
+          }
+        },
+        "dependencyGraph": {
+          "type": "object",
+          "description": "Visual representation of dependencies"
+        },
+        "agentExecutions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/agentExecution"
+          }
+        }
+      }
+    },
+    "stageImplementationPlanning": {
+      "type": "object",
+      "required": ["status", "checkpoint"],
+      "properties": {
+        "status": {
+          "$ref": "#/definitions/stageStatus"
+        },
+        "checkpoint": {
+          "type": "string",
+          "const": "implementation_planned"
+        },
+        "startedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "completedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "plans": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["issueId"],
+            "properties": {
+              "issueId": {
+                "type": "string"
+              },
+              "technicalApproach": {
+                "type": "string",
+                "description": "Summary or path to detailed plan"
+              },
+              "testStrategy": {
+                "type": "string",
+                "description": "Summary or path to test plan"
+              },
+              "documentationImpact": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Documentation areas affected"
+              },
+              "mcpServerRequired": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "agentExecutions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/agentExecution"
+          }
+        }
+      }
+    },
+    "stagePerIssueImplementation": {
+      "type": "object",
+      "required": ["status", "checkpoint"],
+      "properties": {
+        "status": {
+          "$ref": "#/definitions/stageStatus"
+        },
+        "checkpoint": {
+          "type": "string",
+          "const": "all_issues_implemented"
+        },
+        "startedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "completedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "implementations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["issueId", "checkpoint", "status"],
+            "properties": {
+              "issueId": {
+                "type": "string"
+              },
+              "checkpoint": {
+                "type": "string",
+                "pattern": "^issue_.*_completed$"
+              },
+              "branch": {
+                "type": "string"
+              },
+              "status": {
+                "$ref": "#/definitions/stageStatus"
+              },
+              "phases": {
+                "type": "object",
+                "properties": {
+                  "codeImplementation": {
+                    "type": "object",
+                    "properties": {
+                      "status": {
+                        "$ref": "#/definitions/stageStatus"
+                      },
+                      "filesChanged": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "commits": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "testDevelopment": {
+                    "type": "object",
+                    "properties": {
+                      "status": {
+                        "$ref": "#/definitions/stageStatus"
+                      },
+                      "testsAdded": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "coverage": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 100
+                      }
+                    }
+                  },
+                  "codeReview": {
+                    "type": "object",
+                    "properties": {
+                      "status": {
+                        "$ref": "#/definitions/stageStatus"
+                      },
+                      "reviewers": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "approvals": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "iterations": {
+                        "type": "integer",
+                        "minimum": 1
+                      }
+                    }
+                  },
+                  "securityReview": {
+                    "type": "object",
+                    "properties": {
+                      "status": {
+                        "type": "string",
+                        "enum": ["pending", "in_progress", "completed", "failed", "skipped"]
+                      },
+                      "vulnerabilities": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "signOff": {
+                        "type": "boolean"
+                      }
+                    }
+                  },
+                  "fixCycle": {
+                    "type": "object",
+                    "properties": {
+                      "status": {
+                        "$ref": "#/definitions/stageStatus"
+                      },
+                      "iterations": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "allChecksPass": {
+                        "type": "boolean"
+                      }
+                    }
+                  }
+                }
+              },
+              "agentExecutions": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/definitions/agentExecution"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "stageIntegration": {
+      "type": "object",
+      "required": ["status", "checkpoint"],
+      "properties": {
+        "status": {
+          "$ref": "#/definitions/stageStatus"
+        },
+        "checkpoint": {
+          "type": "string",
+          "const": "integration_complete"
+        },
+        "startedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "completedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "integrationBranch": {
+          "type": "string"
+        },
+        "mergedBranches": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "integrationTests": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": ["passed", "failed"]
+            },
+            "results": {
+              "type": "string",
+              "description": "Summary or path to detailed results"
+            }
+          }
+        },
+        "conflicts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "file": {
+                "type": "string"
+              },
+              "resolution": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "agentExecutions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/agentExecution"
+          }
+        }
+      }
+    },
+    "stageDocumentation": {
+      "type": "object",
+      "required": ["status", "checkpoint"],
+      "properties": {
+        "status": {
+          "$ref": "#/definitions/stageStatus"
+        },
+        "checkpoint": {
+          "type": "string",
+          "const": "documentation_integrated"
+        },
+        "startedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "completedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "changesApplied": {
+          "type": "boolean"
+        },
+        "buildStatus": {
+          "type": "string",
+          "enum": ["success", "failed"]
+        },
+        "buildOutput": {
+          "type": "string",
+          "description": "Path to build logs"
+        },
+        "agentExecutions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/agentExecution"
+          }
+        }
+      }
+    },
+    "stageQualityAssurance": {
+      "type": "object",
+      "required": ["status", "checkpoint"],
+      "properties": {
+        "status": {
+          "$ref": "#/definitions/stageStatus"
+        },
+        "checkpoint": {
+          "type": "string",
+          "const": "quality_assured"
+        },
+        "startedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "completedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "manualTestingChecklist": {
+          "type": "string",
+          "description": "Path to manual testing checklist"
+        },
+        "automatedTestsStatus": {
+          "type": "string",
+          "enum": ["passed", "failed"]
+        },
+        "qualityReport": {
+          "type": "string",
+          "description": "Path to quality report"
+        },
+        "agentExecutions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/agentExecution"
+          }
+        }
+      }
+    },
+    "stageFinalization": {
+      "type": "object",
+      "required": ["status", "checkpoint"],
+      "properties": {
+        "status": {
+          "$ref": "#/definitions/stageStatus"
+        },
+        "checkpoint": {
+          "type": "string",
+          "const": "pipeline_complete"
+        },
+        "startedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "completedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "validations": {
+          "type": "object",
+          "required": ["codeQuality", "automatedTests", "documentation", "security"],
+          "properties": {
+            "codeQuality": {
+              "type": "boolean"
+            },
+            "automatedTests": {
+              "type": "boolean"
+            },
+            "documentation": {
+              "type": "boolean"
+            },
+            "security": {
+              "type": "boolean"
+            }
+          }
+        },
+        "finalReport": {
+          "type": "string",
+          "description": "Path to final implementation report"
+        },
+        "nextSteps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "agentExecutions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/agentExecution"
+          }
+        }
+      }
+    },
+    "errorRecord": {
+      "type": "object",
+      "required": ["stage", "checkpoint", "timestamp", "error"],
+      "properties": {
+        "stage": {
+          "type": "string"
+        },
+        "checkpoint": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "error": {
+          "type": "string",
+          "description": "Error description"
+        },
+        "resolution": {
+          "type": "string",
+          "description": "How error was resolved or escalated"
+        }
+      }
+    }
+  }
+}
