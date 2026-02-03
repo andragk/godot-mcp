@@ -2,358 +2,177 @@
 
 ## GitHub CLI Usage
 
-You may and should use the GitHub CLI (gh) whenever it's helpful. Assume gh is available and preferred for interacting with GitHub (repos, issues, PRs, workflows, releases, etc.).
-
-## Branch Naming Conventions
-
-### Standard Branch Types
-- `main` - Production-ready code, protected branch
-- `develop` - Integration branch for features (if using GitFlow)
-- `feature/*` - New features or enhancements
-- `bugfix/*` - Bug fixes for upcoming releases
-- `hotfix/*` - Urgent fixes for production issues
-- `release/*` - Release preparation branches
-- `docs/*` - Documentation-only changes
-- `test/*` - Testing improvements or additions
-- `refactor/*` - Code refactoring without behavior changes
-- `chore/*` - Maintenance tasks, dependency updates
-
-### Naming Format
-```
-<type>/<ticket-id>-<short-description>
-```
-
-### Examples
-- `feature/PROJ-123-user-authentication`
-- `bugfix/PROJ-456-fix-login-timeout`
-- `hotfix/PROJ-789-critical-security-patch`
-- `docs/PROJ-101-update-api-documentation`
-- `refactor/PROJ-202-optimize-database-queries`
-
-### Rules
-- Use lowercase and hyphens, no spaces or underscores
-- Keep descriptions concise (3-5 words maximum)
-- Include ticket/issue ID when available
-- Delete branches after merging
-
-## Commit Message Standards
-
-### Conventional Commits Format
-```
-<type>(<scope>): <subject>
-
-<body>
-
-<footer>
-```
-
-### Commit Types
-- `feat` - New feature for users
-- `fix` - Bug fix for users
-- `docs` - Documentation changes
-- `style` - Code formatting, no logic changes
-- `refactor` - Code restructuring, no behavior change
-- `perf` - Performance improvements
-- `test` - Adding or updating tests
-- `build` - Build system or external dependencies
-- `ci` - CI/CD configuration changes
-- `chore` - Maintenance tasks
-- `revert` - Revert previous commit
-
-### Subject Line Rules
-- Use imperative mood: "add" not "added" or "adds"
-- No period at the end
-- Capitalize first letter
-- Maximum 50 characters
-- Describe WHAT changed, not HOW
-
-### Body Guidelines
-- Wrap at 72 characters
-- Explain WHY and WHAT, not HOW
-- Separate from subject with blank line
-- Use bullet points for multiple changes
-- Reference issues and PRs
-
-### Footer Guidelines
-- Breaking changes: `BREAKING CHANGE: description`
-- Issue references: `Closes #123`, `Fixes #456`, `Relates to #789`
-- Co-authors: `Co-authored-by: Name <email>`
-
-### Examples
-```
-feat(auth): Add OAuth2 authentication support
-
-Implement OAuth2 flow for third-party authentication.
-Supports Google, GitHub, and Microsoft providers.
-
-- Add OAuth2 client configuration
-- Implement callback handlers
-- Add user session management
-
-Closes #234
-```
-
-```
-fix(api): Prevent race condition in user creation
-
-Multiple simultaneous requests could create duplicate users.
-Added database constraint and request deduplication.
-
-Fixes #567
-```
-
-```
-docs: Update API authentication guide
-
-BREAKING CHANGE: API v1 authentication is deprecated.
-All clients must migrate to v2 by 2026-06-01.
-```
-
-### Commit Size
-- Keep commits atomic and focused
-- One logical change per commit
-- Split large changes into multiple commits
-- Each commit should build and pass tests
-
-## Pull Request Labels
-
-### Status Labels
-- `status: draft` - Work in progress, not ready for review
-- `status: ready` - Ready for review
-- `status: in-review` - Currently under review
-- `status: changes-requested` - Reviewer requested changes
-- `status: approved` - Approved, ready to merge
-- `status: blocked` - Blocked by external dependency
-
-### Type Labels
-- `type: feature` - New feature implementation
-- `type: bugfix` - Bug fix
-- `type: hotfix` - Critical production fix
-- `type: documentation` - Documentation updates
-- `type: refactor` - Code refactoring
-- `type: test` - Test additions or improvements
-- `type: performance` - Performance optimization
-- `type: security` - Security-related changes
-
-### Priority Labels
-- `priority: critical` - Must be addressed immediately
-- `priority: high` - Important, schedule soon
-- `priority: medium` - Normal priority
-- `priority: low` - Nice to have
-
-### Size Labels
-- `size: xs` - < 10 lines changed
-- `size: s` - 10-50 lines changed
-- `size: m` - 50-200 lines changed
-- `size: l` - 200-500 lines changed
-- `size: xl` - > 500 lines changed
-
-### Impact Labels
-- `breaking-change` - Contains breaking changes
-- `needs-migration` - Requires data or code migration
-- `dependencies` - Updates dependencies
-- `backwards-compatible` - Fully backwards compatible
-
-## Issue Management
-
-### Issue Titles
-- Be specific and descriptive
-- Use imperative mood for bugs: "Fix login timeout"
-- Use present tense for features: "Add user profile page"
-- Include component/area prefix when relevant
-- Maximum 80 characters
-
-### Issue Labels
-- `bug` - Something isn't working
-- `feature` - New feature or enhancement
-- `enhancement` - Improvement to existing feature
-- `documentation` - Documentation improvements
-- `question` - General questions
-- `help-wanted` - Open for community contributions
-- `good-first-issue` - Good for newcomers
-- `duplicate` - Duplicate of existing issue
-- `invalid` - Not a valid issue
-- `wontfix` - Will not be addressed
-
-### Issue Templates
-Issues should include:
-- **Description**: Clear explanation of the issue or feature
-- **Steps to Reproduce**: For bugs, exact steps to reproduce
-- **Expected Behavior**: What should happen
-- **Actual Behavior**: What actually happens
-- **Environment**: OS, browser, version numbers
-- **Screenshots**: Visual evidence when applicable
-- **Acceptance Criteria**: For features, definition of done
-
-### Issue Assignment
-- Assign to yourself when starting work
-- Add to relevant project or milestone
-- Link to related PRs using keywords
-- Update status labels as work progresses
-- Close with reference to fixing PR
-
-## Code Review Guidelines
-
-### Reviewer Responsibilities
-- Review within 24 hours of request
-- Provide constructive, specific feedback
-- Verify tests exist and pass
-- Check for security vulnerabilities
-- Ensure code follows project standards
-- Approve only when confident in quality
-
-### Author Responsibilities
-- Keep PRs small and focused (< 400 lines)
-- Write clear PR description with context
-- Self-review before requesting review
-- Respond to feedback promptly
-- Update PR based on feedback
-- Resolve all conversations before merge
-
-### Review Comments
-- Use "Request Changes" for blocking issues
-- Use "Comment" for non-blocking suggestions
-- Use "Approve" only when ready to merge
-- Be specific: cite line numbers and examples
-- Explain the "why" behind suggestions
-
-## Merge Requirements
-
-### Before Merging
-- ✅ All CI checks pass
-- ✅ At least one approval (or per team policy)
-- ✅ All conversations resolved
-- ✅ Branch up to date with base branch
-- ✅ No merge conflicts
-- ✅ Documentation updated
-- ✅ Tests added for new features
-- ✅ Breaking changes documented
-
-### Merge Methods
-- **Squash and Merge**: Preferred for feature branches, creates clean history
-- **Merge Commit**: Use for release branches to preserve history
-- **Rebase and Merge**: Use when commit history is clean and meaningful
-
-### After Merging
-- Delete the source branch
-- Close related issues with keywords
-- Update project boards
-- Notify stakeholders if breaking changes
-- Tag release if applicable
-
-## Release Management
-
-### Version Numbers
-Follow Semantic Versioning (SemVer): `MAJOR.MINOR.PATCH`
-- **MAJOR**: Breaking changes
-- **MINOR**: New features, backwards compatible
-- **PATCH**: Bug fixes, backwards compatible
-
-### Pre-release Tags
-- `alpha` - Early development, unstable
-- `beta` - Feature complete, testing phase
-- `rc` - Release candidate, final testing
-
-### Release Process
-1. Create release branch: `release/v1.2.0`
-2. Update version numbers
-3. Update CHANGELOG.md
-4. Run full test suite
-5. Create release PR to main
-6. Tag release after merge: `v1.2.0`
-7. Create GitHub release with notes
-8. Deploy to production
-
-### Changelog Format
-```markdown
-## [1.2.0] - 2026-02-01
-
-### Added
-- User authentication with OAuth2
-- Export functionality for reports
-
-### Changed
-- Improved performance of search queries
-- Updated dependencies to latest versions
-
-### Deprecated
-- API v1 endpoints (removal in v2.0.0)
-
-### Removed
-- Legacy user import system
-
-### Fixed
-- Race condition in user creation
-- Memory leak in background workers
-
-### Security
-- Updated crypto library to patch CVE-2026-1234
-```
-
-## Documentation Standards
-
-### Code Comments
-- Explain WHY, not WHAT (code should be self-explanatory)
-- Document complex algorithms and business logic
-- Add TODO/FIXME/HACK comments with ticket references
-- Keep comments up to date with code changes
-
-### README Requirements
-- Project description and purpose
-- Installation instructions
-- Usage examples
-- Configuration options
-- Contributing guidelines
-- License information
-
-### API Documentation
-- Document all public APIs
-- Include request/response examples
-- Document error codes and messages
-- Keep in sync with implementation
-- Version documentation with API
-
-## Testing Standards
-
-### Coverage Requirements
-- Minimum 80% code coverage
-- 100% coverage for critical paths
-- All public APIs have tests
-- All bug fixes include regression tests
-
-### Test Types
-- **Unit Tests**: Test individual functions/methods
-- **Integration Tests**: Test component interactions
-- **E2E Tests**: Test complete user workflows
-- **Performance Tests**: Verify performance benchmarks
-
-### Test Naming
-```
-test_<function>_<scenario>_<expected_result>
-```
-
-Example: `test_user_login_with_invalid_password_returns_error`
-
-## Security Practices
-
-### Never Commit
-- API keys, tokens, passwords
-- Private keys or certificates
-- Database credentials
-- Personal identifiable information (PII)
-- Internal URLs or IP addresses
-
-### Security Review Required For
-- Authentication/authorization changes
-- Data encryption/decryption
-- External API integrations
-- File upload/download functionality
-- SQL query construction
-- User input processing
-
-### Dependency Management
-- Review security advisories weekly
-- Update dependencies monthly
-- Pin production dependencies
-- Use lock files (package-lock.json, requirements.txt)
-- Scan for vulnerabilities in CI/CD
+Use GitHub CLI (gh) for all GitHub interactions (repos, issues, PRs, workflows, releases).
+
+## Branch Naming
+
+Format: `<type>/<ticket-id>-<short-description>` (lowercase, hyphens only)
+- `feature/*` - New features
+- `bugfix/*` - Bug fixes
+- `hotfix/*` - Critical production fixes
+- `release/*` - Release preparation
+- `docs/*` - Documentation only
+- `test/*` - Test improvements
+- `refactor/*` - Code restructuring
+- `chore/*` - Maintenance tasks
+
+## Commit Messages
+
+Format: `<type>(<scope>): <subject>` (imperative, ≤50 chars, capitalized, no period)
+
+Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`
+
+Body (optional): Wrap at 72 chars, explain WHY/WHAT
+
+Footer: `BREAKING CHANGE:`, `Closes #123`, `Co-authored-by:`
+
+Keep commits atomic, focused, and passing tests.
+
+## Labels & Issues
+
+**PR Status**: `draft`, `ready`, `in-review`, `changes-requested`, `approved`, `blocked`
+**Types**: `feature`, `bugfix`, `hotfix`, `docs`, `refactor`, `test`, `performance`, `security`
+**Priority**: `critical`, `high`, `medium`, `low`
+**Size**: `xs` (<10), `s` (10-50), `m` (50-200), `l` (200-500), `xl` (>500 lines)
+**Impact**: `breaking-change`, `needs-migration`, `dependencies`, `backwards-compatible`
+
+**Issue Titles**: Specific, imperative (bugs) or present tense (features), ≤80 chars
+**Issue Labels**: `bug`, `feature`, `enhancement`, `docs`, `question`, `help-wanted`, `good-first-issue`
+**Issue Content**: Description, steps to reproduce, expected/actual behavior, environment, screenshots, acceptance criteria
+
+## Code Review & Merge
+
+**Review**: Within 24h, constructive, verify tests/security, cite specifics
+**PR Size**: <400 lines, focused, clear description, self-reviewed
+**Comments**: "Request Changes" (blocking), "Comment" (non-blocking), "Approve" (ready)
+
+**Merge Checklist**: ✅ CI passing ✅ Approved ✅ Conversations resolved ✅ Up to date ✅ Tests added ✅ Docs updated
+**Methods**: Squash (features), Merge Commit (releases), Rebase (clean history)
+**Post-Merge**: Delete branch, close issues, update boards, notify stakeholders
+
+## Releases & Documentation
+
+**SemVer**: `MAJOR.MINOR.PATCH` (breaking.feature.fix)
+**Pre-release**: `alpha` (unstable), `beta` (testing), `rc` (final)
+**Process**: Branch → version bump → CHANGELOG → tests → PR → tag → deploy
+**Changelog**: Sections: Added, Changed, Deprecated, Removed, Fixed, Security
+
+**Comments**: Explain WHY, not WHAT; document complex logic; use TODO/FIXME with tickets
+**README**: Description, install, usage, config, contributing, license
+**API Docs**: All public APIs, examples, errors, versioned
+
+## Testing & Security
+
+**Coverage**: ≥80% overall, 100% critical paths, all public APIs, regression tests for bugs
+**Test Types**: Unit (functions), Integration (components), E2E (workflows), Performance (benchmarks)
+**Naming**: `test_<function>_<scenario>_<expected_result>`
+
+**Never Commit**: Secrets, keys, tokens, credentials, PII, internal URLs
+**Security Review**: Auth, encryption, APIs, file I/O, SQL, user input
+**Dependencies**: Weekly advisories, monthly updates, pin versions, use lock files, CI/CD scanning
+
+## TypeScript Standards
+
+**Type Safety**: `strict: true`, never `any` (use `unknown`), `interface` for objects, `type` for unions, `readonly` for immutability
+**Naming**: Interfaces/Types (PascalCase, no `I` prefix), functions (camelCase), constants (UPPER_SNAKE_CASE), private (`#prefix`)
+**Organization**: One class/interface per file, group imports (external/internal/types), barrel exports cautiously, <300 lines/file
+**Patterns**: Discriminated unions, mapped/conditional types, function overloads, template literals, `satisfies` operator, `as const`
+**Async**: Always `await` or handle, `Promise.all()` for parallel, timeouts, explicit `Promise<T>` returns
+**Docs**: JSDoc for public APIs, `@throws`, `@deprecated`, usage examples
+**Anti-patterns**: ❌ `!`, ❌ `as Type`, ❌ `@ts-ignore` without reason, ❌ `Function` type, ❌ `?.` as suppression
+
+## Node.js Standards
+
+**Structure**: `src/` → config, controllers, services, models, middleware, routes, utils, types, index.ts
+**Environment**: `dotenv`, never commit `.env`, validate at startup, typed config objects, access via config module
+**Errors**: Centralized middleware, error hierarchy, structured logging (Winston/Pino), never expose internals, graceful shutdown
+**Async**: async/await, `Promise.allSettled()`, timeouts, AbortController, global rejection handling, exponential backoff
+**Performance**: Streams for large files, compression, HTTP/2, connection pooling, caching (Redis), worker threads for CPU tasks
+**Security**: Helmet.js, rate limiting, input validation/sanitization, parameterized queries, strict CORS, CSRF protection, `npm audit`
+**Logging**: Correlation IDs, appropriate levels, never log secrets, log rotation, JSON format (prod)
+**Testing**: Jest/Vitest, mock dependencies, supertest for APIs, test factories, separate test DB, `NODE_ENV=test`
+**Anti-patterns**: ❌ Sync I/O in handlers, ❌ blocking event loop, ❌ callbacks, ❌ mutating req/res, ❌ `process.exit()` without cleanup
+
+## MCP SDK Standards
+
+**Architecture**: Tool versioning, typed schemas (Zod), logical modules, per-tool error handling, verb-noun names, clear docs
+**Tools**: Single-purpose, explicit contracts, JSON Schema validation, meaningful errors, structured results, execution metadata
+**Resources**: Lifecycle management, URI RFC standards, subscription support, pagination, caching, metadata (MIME, size, timestamps)
+**Prompts**: Clear schemas, typed variables, defaults, version templates, validate arguments
+**Transport**: stdio (CLI), SSE (web), lifecycle handling, heartbeat/keepalive, graceful shutdown
+**Security**: Validate requests, rate limiting, sanitize outputs, hide system paths, auth when needed, audit invocations
+**Testing**: Unit test tools, mock dependencies, test errors, validate schemas, integration with client, monitor timing
+**Anti-patterns**: ❌ Side effects without indication, ❌ raw errors to clients, ❌ stateful without session, ❌ no timeouts, ❌ missing validation
+
+## Godot 4.6 Standards
+
+**Structure**: scenes/, scripts/, resources/, assets/ (textures/models/audio/fonts), addons/, autoload/
+**Scenes**: Max 4-5 levels deep, use inheritance, separate UI/gameplay, PascalCase names, use groups, split complex scenes
+**Nodes**: PascalCase, descriptive (`JumpSoundPlayer` not `AudioStreamPlayer`), match script class names, suffixes (Manager/Controller/System)
+**Signals**: Prefer over calls, past tense (`health_changed`), connect in `_ready()`, document params, `subject_action_verb` format
+**Resources**: Preload always-needed, load() for optional, custom Resource classes, ResourceUID for cross-scene, cache, free unused
+**Performance**: Object pooling, collision layers/masks, VisibleOnScreenNotifier, MultiMesh, optimize shaders, profile, low-precision types
+**Physics**: Layers/masks, Area2D/3D for triggers, `_physics_process()` for fixed timestep, avoid moving kinematic in `_process()`
+**Input**: Input Maps not hardcoded keys, `event.is_action_pressed()` in `_input()`, `Input.is_action_pressed()` in `_process()`, buffer inputs
+**Exports**: `@export` for tweakable values, defaults, `@export_range()`, `@export_enum()`, `@export_group()`, `@export_file()`
+**Anti-patterns**: ❌ `get_node()` every frame, ❌ creating nodes in loops, ❌ deep hierarchies, ❌ `yield` (use `await`), ❌ hardcoded values
+
+## GDScript Standards
+
+**Naming**: Classes (PascalCase), functions (snake_case), variables (snake_case), constants (UPPER_SNAKE_CASE), signals (snake_case, past tense), private (_prefix)
+
+**Structure Order**: class_name, extends, docs, signals, enums, constants, @export vars, public vars, private vars, @onready vars, lifecycle (_init/_ready/_process/_physics_process), public methods, private methods
+
+**Types**: Always static type (`var name: Type = value` or `:=`), annotate functions, typed arrays (`Array[Item]`), avoid `Variant`
+**Functions**: <30 lines, verb-based, return early, defaults, ≤4-5 params, document complex logic
+**Control**: Guard clauses, `match` over if-elif, avoid else after return, ternary for simple, max 3 nesting levels
+**Errors**: Validate inputs, `assert()` for invariants, return null/errors for expected failures, `push_error()` for unexpected
+**Performance**: `@onready` for refs, cache results, avoid string concat in loops, object pooling, built-ins over custom, `is` not `typeof()`
+**Modern 4.6**: `await` not `yield`, lambdas (`array.map(func(x): return x * 2)`), null coalescing (`??`), annotations, static functions
+**Anti-patterns**: ❌ `setget` (use properties), ❌ `yield`, ❌ untyped vars, ❌ long functions, ❌ global state without encapsulation
+
+## GDExtension Standards
+
+**Structure**: src/ (register_types, classes/), include/, gdextension/ (SConstruct), demo/
+**Classes**: Inherit Godot base, register in register_types.cpp, `GDCLASS()` macro, `_bind_methods()`, `ClassDB::bind_method()`, `ClassDB::add_property()`
+**Naming**: Classes (PascalCase, project-prefixed), methods (snake_case), private (_prefix), constants (UPPER_SNAKE_CASE), enums (PascalCase)
+**Memory**: Reference counting, inherit `RefCounted`, proper constructors/destructors, `memnew()`/`memdelete()`, no raw pointers, RAII
+**Performance**: Minimize virtual calls, inline hot paths, stack > heap, cache refs, `TypedArray<T>`, custom pools, profile, optimize loops
+**Threading**: Main thread default, mutexes for shared state, atomics, document safety, `call_deferred()` from workers
+**Errors**: `ERR_FAIL_COND()`, `ERR_PRINT()`, validate params, return defaults on error, `CRASH_COND()` sparingly
+**Variant**: Validate types, prefer typed methods, `Variant::get_type()`, handle null
+**Build**: SCons cross-platform, debug/release configs, optimize release, debug symbols (dev), document requirements
+**Testing**: Unit tests, GDScript integration tests, validate memory (no leaks), test errors, profile, test all platforms
+**Anti-patterns**: ❌ STL for Godot objects, ❌ raw pointers, ❌ APIs from non-main threads, ❌ ignore refcounting, ❌ `static_cast` not `cast_to<>()`
+
+## Tailwind CSS Standards
+
+**Config**: Customize `tailwind.config.js` (colors, spacing, breakpoints), `content` array, JIT mode, purge options, plugins for custom utilities
+**Class Order**: layout → spacing → sizing → typography → colors → effects (use `prettier-plugin-tailwindcss`)
+**Naming**: Semantic component names, prefix custom utilities, kebab-case for custom CSS, `@layer components/utilities`
+**Responsive**: Mobile-first (base then `sm:`/`md:`/etc), consistent breakpoints, test all sizes, container queries
+**Components**: Extract repeated patterns, `@apply` sparingly, prefer composition, dedicated CSS file, document variants
+**States**: hover:/focus:/active:, focus-visible, group-*, peer-*, disabled:
+**Dark Mode**: Configure strategy (class/media), `dark:` variant, define colors in theme, test both modes, CSS variables for complex
+**Performance**: Purge unused (prod), minimize custom CSS, safelist dynamic classes, lazy load non-critical, analyze bundle, CSS layers
+**Accessibility**: WCAG AA contrast, semantic HTML, focus indicators (ring/outline), don't rely on color alone, sr-only, test screen readers
+**Typography**: Define scale in config, consistent sizes, appropriate line heights, meaningful weights, responsive type, sufficient contrast
+**Layout**: Consistent spacing scale, `gap` over margin for flex/grid, negative margins sparingly, max-w-* for readability
+**Anti-patterns**: ❌ Overusing `@apply`, ❌ utility classes in custom CSS, ❌ hardcoded values, ❌ ignoring responsive, ❌ not testing dark mode
+
+## Alpine.js Standards
+
+**Structure**: `<div x-data="componentName()" x-init="init()">`
+**State**: `x-data` functions, minimal focused state, `$store` for global, computed as methods, avoid deep nesting, `Alpine.reactive()` for complex
+**Naming**: Properties (camelCase: `isOpen`), methods (camelCase, verb-based: `toggleMenu`), handlers (handle/on prefix), stores (camelCase)
+**Directives**: `x-data` (init), `x-show` (CSS toggle), `x-if` (DOM add/remove), `x-for` (lists with `:key`), `x-model` (two-way), `x-bind` (`:` attrs), `x-on` (`@` events)
+**Component Organization**: State, lifecycle (init), computed (getters), methods, async methods
+**Store Pattern**: Register in `alpine:init`, methods for mutations
+**Magic Properties**: `$el` (element), `$refs` (refs), `$store` (global), `$watch` (reactivity), `$dispatch` (events), `$nextTick` (after DOM), `$root` (root)
+**Plugins**: Register in `alpine:init`, reusable directives, extend magics, document thoroughly
+**Performance**: `x-show` (frequent toggle), `x-if` (conditional render), virtual scroll (long lists), debounce expensive ops, `x-cloak` (FOUC), `x-ignore` (static)
+**Forms**: `x-model` with modifiers, validation, feedback, loading states, `x-model.debounce` (search), error patterns
+**Accessibility**: Keyboard nav, ARIA with `x-bind`, focus management, semantic HTML, screen reader feedback, focus trapping (modals)
+**Testing**: Init, state changes, handlers, store interactions, progressive enhancement (no JS), E2E for critical flows
+**Tailwind Integration**: `x-bind:class` for dynamic, `x-transition`, combine utilities, `x-show` with display, JIT for dynamic values
+**Anti-patterns**: ❌ Complex logic (extract services), ❌ direct DOM manipulation, ❌ ignoring a11y, ❌ no `x-cloak`, ❌ mixing jQuery, ❌ business logic in templates
