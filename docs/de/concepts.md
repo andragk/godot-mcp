@@ -60,10 +60,23 @@ Das **Model Context Protocol** ist ein von Anthropic entwickelter offener Standa
 }
 ```
 
-**Godot MCP Server Werkzeuge** (12+):
-- Lesen: `list_scenes`, `read_scene`, `list_scripts`, `read_script`, `get_project_structure`, `search_nodes`
-- Schreiben: `create_scene`, `modify_scene`, `create_script`, `modify_script`, `rename_node`
-- Hilfsprogramme: `get_node_properties`, `validate_scene`
+**Godot MCP Server Werkzeuge** (60+):
+- **Leseoperationen**: `list_scenes`, `read_scene`, `list_scripts`, `read_script`, `get_project_structure`, `search_nodes`
+- **Schreiboperationen**: `create_scene`, `modify_scene`, `create_script`, `modify_script`
+- **Editorkontrolle**: `launch_godot_editor`, `run_godot_project`, `stop_godot_execution`, `get_godot_version`, `list_godot_projects`, `analyze_project`
+- **Ressourcenverwaltung**: `import_asset`, `create_resource`, `list_project_assets`, `configure_import_settings`
+- **Signalsystem**: `create_signal`, `connect_signal`, `list_node_signals`, `disconnect_signal`
+- **Physikoperationen** (Godot 4.5+): `add_physics_body`, `configure_physics_properties`, `setup_collision_layers`, `create_area`
+- **UI-Operationen**: `create_ui_element`, `apply_theme`, `setup_container_layout`, `create_menu`
+- **Animationssystem**: `create_animation_player`, `add_animation_keyframe`, `setup_animation_tree`, `add_particle_system`
+- **Debug-Operationen**: `run_project_debug`, `capture_debug_output`, `get_error_context`, `analyze_error`, `get_debug_documentation`
+- **Dokumentation** (Godot 4.5+): `get_class_documentation`, `search_documentation`, `get_method_documentation`, `get_best_practices`, `check_deprecated_features`
+- **UID-Verwaltung** (Godot 4.4+): `get_file_uid`, `update_uid_references`
+- **Validierung**: `get_node_properties`, `validate_scene`
+
+::: tip Werkzeugkategorien
+Werkzeuge sind in 12 Kategorien organisiert, die den gesamten Godot-Entwicklungslebenszyklus abdecken: vom Starten des Editors und Ausführen von Projekten bis hin zu Szenenverwaltung, Skripting, Physik, UI, Animation, Debugging und Zugriff auf offizielle Dokumentation.
+:::
 
 #### 2. Ressourcen
 

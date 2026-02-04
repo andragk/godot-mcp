@@ -90,23 +90,75 @@ In Claude Desktop:
 
 ## Hauptfunktionen
 
-### 🔍 Leseoperationen
+### 🔍 Szenen- & Skriptoperationen
 
-- **`list_scenes`** - Durchsucht Projekt nach allen .tscn-Dateien
-- **`read_scene`** - Analysiert Szenenstruktur, Nodes, Eigenschaften
-- **`list_scripts`** - Findet alle GDScript- und C#-Skripte
-- **`read_script`** - Liest Skriptinhalte mit Metadaten
-- **`get_project_structure`** - Vollständiger Verzeichnisbaum
-- **`search_nodes`** - Findet Nodes nach Name, Typ oder Eigenschaft
-- **`get_node_properties`** - Inspiziert spezifische Node-Konfiguration
+- **`list_scenes`** / **`read_scene`** - Durchsuchen und Analysieren von Szenenstrukturen
+- **`create_scene`** / **`modify_scene`** - Szenen mit Node-Hierarchien generieren und modifizieren
+- **`list_scripts`** / **`read_script`** - GDScript/C#-Skripte finden und analysieren
+- **`create_script`** / **`modify_script`** - Skripte aus Vorlagen erstellen und bearbeiten
+- **`search_nodes`** - Nodes nach Name, Typ, Eigenschaft oder Gruppe finden
+- **`get_node_properties`** / **`validate_scene`** - Konfigurationen inspizieren und validieren
 
-### ✏️ Schreiboperationen
+### 🎮 Editor- & Projektkontrolle
 
-- **`create_scene`** - Generiert neue Szenen aus Vorlagen
-- **`modify_scene`** - Fügt Nodes hinzu/entfernt sie, aktualisiert Eigenschaften
-- **`create_script`** - Erstellt neue GDScript-Klassen
-- **`modify_script`** - Bearbeitet Skriptinhalt mit Validierung
-- **`rename_node`** - Benennt Nodes sicher über Szenen hinweg um
+- **`launch_godot_editor`** - Godot-Editor programmatisch öffnen
+- **`run_godot_project`** - Projekte im Debug-Modus mit Ausgabeerfassung ausführen
+- **`stop_godot_execution`** - Laufende Instanzen steuern
+- **`get_godot_version`** - Installierte Godot-Version prüfen
+- **`list_godot_projects`** - Projekte in Verzeichnissen entdecken
+- **`analyze_project`** - Tiefenanalyse von Projektstruktur und Abhängigkeiten
+
+### 🎨 Ressourcen- & Asset-Management
+
+- **`import_asset`** - Texturen, Audio, Modelle mit benutzerdefinierten Einstellungen importieren
+- **`create_resource`** - Materialien, Shader und andere Ressourcen generieren
+- **`list_project_assets`** - Alle Assets mit Metadaten katalogisieren
+- **`configure_import_settings`** - Import-Konfigurationen aktualisieren
+
+### 📡 Signal- & Event-System
+
+- **`create_signal`** - Benutzerdefinierte Signale in Skripten definieren
+- **`connect_signal`** - Signalverbindungen mit Validierung einrichten
+- **`list_node_signals`** - Verfügbare Signale entdecken
+- **`disconnect_signal`** - Signalverbindungen entfernen
+
+### ⚡ Physiksystem (Godot 4.5+)
+
+- **`add_physics_body`** - CharacterBody-, RigidBody-, StaticBody-Nodes erstellen
+- **`configure_physics_properties`** - Masse, Reibung, Sprungkraft, Dämpfung einstellen
+- **`setup_collision_layers`** - Kollisionsebenen-Masken konfigurieren
+- **`create_area`** - Area2D/3D mit automatischer Signalverbindung erstellen
+
+### 🖼️ UI & Animation
+
+- **`create_ui_element`** - Buttons, Labels, Panels, Container generieren
+- **`apply_theme`** - Benutzerdefinierte Themes auf UI-Elemente anwenden
+- **`setup_container_layout`** - VBox/HBox/Grid-Layouts erstellen
+- **`create_menu`** - Komplette Menüs mit Navigation erstellen
+- **`create_animation_player`** - AnimationPlayer mit Keyframe-Tracks einrichten
+- **`add_animation_keyframe`** - Animations-Keyframes programmatisch hinzufügen
+- **`setup_animation_tree`** - AnimationTree-Zustandsmaschinen konfigurieren
+- **`add_particle_system`** - GPUParticles2D/3D-Effekte erstellen
+
+### 🐛 Debug & Dokumentation (Godot 4.5+)
+
+- **`run_project_debug`** - Mit vollständiger Ausgabeerfassung und Leistungsmetriken ausführen
+- **`capture_debug_output`** / **`get_error_context`** - Logs und Stack-Traces abrufen
+- **`analyze_error`** - KI-gestützte Fehleranalyse mit Lösungen
+- **`get_class_documentation`** - Auf offizielle Godot-Dokumentation für Klassen zugreifen
+- **`search_documentation`** - Methoden, Eigenschaften, Signale, Tutorials durchsuchen
+- **`get_method_documentation`** - Detaillierte Methodensignaturen mit Beispielen
+- **`get_best_practices`** - Kuratierte Best Practices für Physik, Signale, GDScript, etc.
+- **`check_deprecated_features`** - Veraltete APIs und Migrationspfade identifizieren
+
+### 🔑 UID-Verwaltung (Godot 4.4+)
+
+- **`get_file_uid`** - Datei-UIDs abrufen
+- **`update_uid_references`** - UID-Referenzen durch erneutes Speichern von Ressourcen aktualisieren
+
+::: tip 60+ Werkzeuge verfügbar
+Der MCP Server bietet umfassende Abdeckung des Godot-Entwicklungslebenszyklus mit 60+ spezialisierten Werkzeugen. Siehe die vollständige [API-Werkzeug-Referenz](/en/api/tools) für detaillierte Schemas und Beispiele.
+:::
 
 ### 📦 MCP-Ressourcen
 
@@ -118,13 +170,51 @@ Zugriff auf Godot-Dateien über URI-Schema:
 
 ### 🖥️ Sidecar Web UI
 
-Besuchen Sie `http://localhost:8080` um:
+Besuchen Sie `http://localhost:8080` für umfassende Überwachung und Steuerung:
 
-- Serverstatus und Verbindungsgesundheit zu überwachen
-- Echtzeit-Request/Response-Logs anzuzeigen
-- Verfügbare Werkzeuge und Schemas zu durchsuchen
-- Werkzeuge mit interaktiven Formularen zu testen
-- Leistungsmetriken zu verfolgen (Latenz, Fehlerraten)
+#### 🔍 **Werkzeug-Exploration & -Aufruf**
+- Interaktiver Werkzeugkatalog mit JSON-Schema-Viewer
+- Dynamische Formulargenerierung aus Werkzeug-Schemas
+- Echtzeit-Werkzeug-Tests mit Ergebnisvorschau
+- Ausführungszeiten-Tracking
+
+#### 📚 **Ressourcenverwaltung**
+- Alle MCP-Ressourcen durchsuchen (Szenen, Skripte, Assets)
+- Volltext-Inhaltsvorschau
+- Erweiterte Filterung nach Typ, Größe und Datum
+- Schnellsuche über Ressourcen-URIs
+
+#### 📊 **Echtzeit-Logging & Monitoring**
+- Live-JSON-RPC-Traffic-Inspektion (Split-View)
+- Performance-Metriken (p50/p95/p99 Latenz)
+- Fehler-Konsole mit Stack-Traces
+- Event-Kategorisierung (debug/info/warn/error)
+
+#### ⚙️ **Konfiguration & Sicherheit**
+- Umgebungsvariablen-Editor (mit Neustart-Erkennung)
+- Aktive Client-Zugriffskontrolle
+- Prompt-Vorlagen-Galerie mit Testing
+- Rate-Limiting und Rechteverwaltung
+
+#### 🔌 **Verbindungs- & Session-Management**
+- Aktive Client-Liste mit Verbindungsmetadaten
+- Session-Dauer und Leerlaufzeit-Tracking
+- Anfrage-Erfolgs-/Fehlerquoten pro Client
+- Zwangsverbindungstrennung (Kill-Switch) für hängende Clients
+
+#### 🏥 **Service-Status & Lebenszyklus-Steuerung**
+- Visuelle Statusanzeigen (🟢 gesund, 🟡 degradiert, 🔴 fehler)
+- Umfassende Gesundheitschecks (Godot, Event-Loop, Speicher, Festplatte)
+- Prozesssteuerung (starten/stoppen/neustarten/neu laden)
+- Zustandsübergangs-Historie
+
+#### 🧰 **Erweiterte Protokollierung & Observability**
+- Split-View Traffic-Inspektor (Client ↔ Server)
+- Auto-Scroll und Einfrieren-Steuerungen für Log-Inspektion
+- Mehrstufige Filterung (debug/info/warn/error)
+- Logs exportieren (JSON/CSV/TXT) mit Zeitbereichsfilterung
+
+**Zugriff:** Browser öffnen unter `http://localhost:8080`, während der MCP-Server läuft.
 
 ---
 

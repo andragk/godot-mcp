@@ -179,6 +179,95 @@ I found 8 scenes in your project:
 
 ---
 
+## What You Can Do
+
+Once installed, AI assistants can help you with a comprehensive set of Godot development tasks organized into 12 feature categories:
+
+### 🎮 Editor Control
+- Launch the Godot editor programmatically
+- Run Godot projects in debug mode
+- Capture console output and error messages
+- Stop running projects
+- Get Godot version information
+- List and analyze Godot projects in directories
+
+### 🎬 Scene Management
+- Create new scenes with specified root node types
+- Add, remove, modify, and duplicate nodes
+- Query node information and properties
+- Load sprites and textures into Sprite2D nodes
+- Export 3D scenes as MeshLibrary resources for GridMap
+- Save scenes with options for creating variants
+
+### 📜 Script Management
+- Create GDScript files with templates (node, resource, custom)
+- Attach scripts to nodes
+- Validate script syntax with detailed error reporting
+- Get node methods and properties
+- Modify existing scripts
+
+### 🎨 Resource Management
+- Import assets with custom settings
+- Create resources (materials, shaders, etc.)
+- List project assets with metadata
+- Configure import settings for textures, audio, and models
+
+### 📡 Signal System
+- Create custom signals in scripts
+- Connect signals between nodes with validation
+- List available signals on nodes
+- Disconnect signal connections
+
+### ⚡ Physics System (Godot 4.5+)
+- Add physics bodies (CharacterBody2D/3D, RigidBody2D/3D, etc.)
+- Configure physics properties and materials
+- Setup collision layers and masks
+- Create Area2D/Area3D with signal connections
+
+### 🖼️ UI System
+- Create UI elements (Button, Label, TextEdit, Panel, etc.)
+- Apply themes to UI elements
+- Setup container layouts (VBox, HBox, Grid, Margin)
+- Create menus with buttons and navigation
+
+### 🎞️ Animation System
+- Create AnimationPlayer nodes with animations
+- Add keyframes to animation tracks
+- Setup AnimationTree with state machines
+- Add particle systems (GPUParticles2D/3D)
+
+### 📦 Project Management
+- Get complete project structure
+- Search for nodes across scenes by criteria
+- Update project settings
+- Configure input action mappings
+- Setup autoload singletons
+- Manage editor plugins (list, enable, disable)
+
+### 🐛 Debug Module
+- Run projects with full debug output capture
+- Get error context with stack traces
+- Intelligent error analysis with solutions
+- Integration with documentation for contextual help
+
+### 📚 Documentation Module (Godot 4.5+)
+- Get detailed class information from official Godot documentation
+- Search documentation for classes, methods, properties, and signals
+- Get method information with parameters and examples
+- Access best practices for common Godot topics
+- Automatic caching for improved performance
+- Support for Godot 4.5+ features and deprecated feature warnings
+
+### 🔑 UID Management (Godot 4.4+)
+- Get UID for specific files
+- Update UID references by resaving resources
+
+::: tip Over 60 Tools Available
+The MCP Server provides 60+ specialized tools covering the complete Godot development lifecycle. See the [API Tools Reference](/en/api/tools) for complete documentation.
+:::
+
+---
+
 ## Your First Workflows
 
 ### Read a Scene

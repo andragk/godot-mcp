@@ -10,6 +10,7 @@ This guide covers packaging, publishing, and deploying the Godot MCP Server for 
 
 ## Pre-Deployment Checklist
 
+### Core Requirements
 - [ ] All tests passing (unit, integration, E2E)
 - [ ] Code coverage ≥80%
 - [ ] Documentation up to date
@@ -18,6 +19,22 @@ This guide covers packaging, publishing, and deploying the Godot MCP Server for 
 - [ ] Security audit clean (`npm audit`)
 - [ ] Performance benchmarks met
 - [ ] License headers present
+
+### Feature Module Validation
+- [ ] **Physics Module**: Test all 32 collision layers, validate physics materials
+- [ ] **UI Module**: Verify Control node creation, theme loading, anchor presets
+- [ ] **Animation Module**: Test animation creation, keyframe insertion, method tracks
+- [ ] **Settings Module**: Validate project.godot writes, autoload prevention
+- [ ] **Debug Module**: Test log capture, profiling, output filtering
+- [ ] **Documentation Module**: Verify GDScript parsing, Markdown generation
+- [ ] **UID Module**: Test UID assignment, uniqueness validation, cache integrity
+
+### Production Hardening
+- [ ] Feature modules respect security boundaries (no autoload/plugin access)
+- [ ] All module operations logged for audit trail
+- [ ] Rate limits configured per module (if applicable)
+- [ ] Module-specific error handling implemented
+- [ ] Feature flags tested (enable/disable individual modules)
 
 ## NPM Package Deployment
 

@@ -177,7 +177,49 @@ cd mcp-server
 # Initialize npm project
 npm init -y
 
-# Install dependencies
+# Install core dependencies
+npm install @modelcontextprotocol/sdk zod undici pino dotenv
+
+# Install development dependencies
+npm install -D typescript @types/node ts-node vitest @vitest/ui tsx
+
+# Create .env file for feature module configuration
+echo "# Godot Project
+PROJECT_PATH=../godot-bridge
+GODOT_PORT=7777
+
+# Feature Modules
+ENABLE_PHYSICS_MODULE=true
+ENABLE_UI_MODULE=true
+ENABLE_ANIMATION_MODULE=true
+ENABLE_SETTINGS_MODULE=true
+ENABLE_DEBUG_MODULE=true
+ENABLE_DOCS_MODULE=true
+ENABLE_UID_MODULE=true
+
+# Physics Module Settings
+PHYSICS_MAX_LAYERS=32
+PHYSICS_VALIDATE_MATERIALS=true
+
+# UI Module Settings
+UI_MAX_HIERARCHY_DEPTH=10
+UI_VALIDATE_THEMES=true
+
+# Animation Module Settings
+ANIMATION_MAX_TRACKS=100
+ANIMATION_MAX_KEYFRAMES=1000
+
+# Debug Module Settings
+DEBUG_LOG_BUFFER_SIZE=10000
+DEBUG_ENABLE_PROFILING=true
+
+# Documentation Module Settings
+DOCS_OUTPUT_FORMAT=markdown
+DOCS_INCLUDE_PRIVATE=false
+
+# UID Module Settings
+UID_CACHE_PATH=.godot/uid_cache.bin
+UID_VALIDATE_UNIQUENESS=true" > .env
 npm install @modelcontextprotocol/sdk undici zod pino lru-cache
 npm install express
 

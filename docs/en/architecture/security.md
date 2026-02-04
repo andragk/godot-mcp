@@ -74,6 +74,24 @@ The Godot MCP Server security architecture prioritizes **defense in depth**, **l
 
 **Mitigations**: Input validation, path sanitization, operation allowlisting, rate limiting
 
+**Feature Module-Specific Threats**:
+- **Physics**: Collision layer name injection, invalid layer indices (>32), physics material exploitation
+- **UI**: Control hierarchy injection, theme file tampering, anchor manipulation attacks
+- **Animation**: Method track code execution, keyframe timing attacks, AnimationPlayer corruption
+- **Settings**: Project.godot tampering, autoload injection, plugin activation attacks
+- **Debug**: Log injection attacks, performance profiler DoS, output buffer overflow
+- **Documentation**: Path traversal via doc generation, AST parser exploits, output file overwrites
+- **UID**: UID collision attacks, cache poisoning, resource hijacking via UID manipulation
+
+**Feature Module-Specific Threats**:
+- **Physics**: Collision layer name injection, invalid layer indices, physics material exploitation
+- **UI**: Control hierarchy injection, theme file tampering, anchor manipulation attacks
+- **Animation**: Method track code execution, keyframe timing attacks, AnimationPlayer corruption
+- **Settings**: Project.godot tampering, autoload injection, plugin activation attacks
+- **Debug**: Log injection attacks, performance profiler DoS, output buffer overflow
+- **Documentation**: Path traversal via doc generation, AST parser exploits, output file overwrites
+- **UID**: UID collision attacks, cache poisoning, resource hijacking via UID manipulation
+
 ### Attack Vectors
 
 #### Path Traversal (CWE-22)
@@ -116,6 +134,17 @@ write_scene({
   path: "res://autoload/backdoor.gd",
   content: "OS.execute('malicious_command', [])"
 })
+
+// Physics module abuse - malicious collision layers
+configurePhysicsLayers({
+  layers: [{ index: 1, name: "../../../autoload/backdoor" }]  // Path injection
+})
+
+// Settings module abuse - project.godot tampering
+updateProjectSettings({
+  category: "autoload",
+  settings: { "malicious": "res://backdoor.gd" }  // Autoload injection
+})
 ```
 
 **Mitigations**:
@@ -124,16 +153,45 @@ write_scene({
 - File extension validation (only `.gd`, `.tscn`, `.tres`)
 - Backup/restore capability
 - Dry-run mode for destructive operations
+- **Physics Module**: Validate layer names (no path separators, max 32 chars)
+- **Settings Module**: Block autoload/plugin modification via MCP
+- **UID Module**: Prevent UID tampering (read-only after assignment)
 
 #### Code Injection via GDScript (CWE-94)
 
 **Severity**: High
+
+**Attack Scenarios**:
+```typescript
+// UI module - malicious Control script injection
+createUIElement({
+  type: "Button",
+  script: "extends Button\nfunc _ready(): OS.execute('rm', ['-rf', '/'])"
+})
+
+// Animation module - method track code execution
+createAnimation({
+  tracks: [{
+    type: "method",
+    path: ".",
+    keyframes: [{ time: 0, method: "queue_free" }]  // Malicious deletion
+  }]
+})
+
+// Documentation module - script parsing exploitation
+generateDocumentation({
+  paths: ["res://../../../etc/passwd"]  // Path traversal via doc generation
+})
+```
 
 **Mitigations**:
 - Static analysis of generated GDScript (detect `OS.execute`, `HTTPRequest`)
 - Developer review requirement for all script creation
 - Sandbox Godot process (no network access by default)
 - Content Security Policy for generated code
+- **UI Module**: Validate Control node types against ClassDB allowlist
+- **Animation Module**: Restrict method track targets (no OS/File/HTTP methods)
+- **Debug Module**: Sanitize log output (prevent log injection attacks)
 
 #### Resource Exhaustion (CWE-400)
 

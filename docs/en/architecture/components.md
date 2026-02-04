@@ -488,38 +488,84 @@ static func safe_write(path: String, content: String) -> Error:
 
 ## Sidecar Web UI
 
-The Web UI is a lightweight dashboard built with Alpine.js and Tailwind CSS.
+The Web UI is a comprehensive monitoring and control dashboard built with Alpine.js and Tailwind CSS, providing **seven core feature modules** for complete server observability and management.
+
+### Feature Modules Architecture
+
+```
+Web UI Feature Modules
+├── 1. Tool Exploration & Invocation
+│   ├── Tool Catalog (dynamic listing)
+│   ├── Interactive Testing (form generation from JSON Schema)
+│   └── Schema Viewer (input validation preview)
+│
+├── 2. Resource Management
+│   ├── Resource Browser (scenes/scripts/assets)
+│   ├── Content Preview (full-text display)
+│   └── Search & Filter (type, size, date)
+│
+├── 3. Real-Time Logging & Monitoring
+│   ├── Traffic Log (JSON-RPC message stream)
+│   ├── Error Console (stack traces)
+│   └── Performance Metrics (p50/p95/p99 latency)
+│
+├── 4. Configuration & Security
+│   ├── Environment Variables (editor with validation)
+│   ├── Access Control (client permissions)
+│   └── Prompts Gallery (template testing)
+│
+├── 5. Connection & Session Management
+│   ├── Active Client List (connection metadata)
+│   ├── Session Duration Tracking (idle detection)
+│   └── Kill Switch (force disconnect)
+│
+├── 6. Service State & Lifecycle Control
+│   ├── State Indicators (🟢/🟡/🔴 health badges)
+│   ├── Health Checks (Godot, event loop, memory)
+│   └── Process Control (start/stop/restart)
+│
+└── 7. Advanced Logging & Observability
+    ├── Traffic Inspector (split-view client ↔ server)
+    ├── Log Levels (debug/info/warn/error filtering)
+    ├── Auto-Scroll & Freeze (inspection controls)
+    └── Export Logs (JSON/CSV/TXT with time ranges)
+```
 
 ### Frontend Architecture
 
 ```
 public/
-├── index.html          # Main dashboard
+├── index.html          # Main dashboard with navigation
 ├── css/
-│   └── app.css         # Tailwind CSS
+│   └── app.css         # Tailwind CSS (customized)
 └── js/
-    └── app.js          # Alpine.js components
+    ├── app.js          # Alpine.js global state stores
+    ├── components/
+    │   ├── tool-catalog.js        # Tool exploration
+    │   ├── resource-browser.js    # Resource management
+    │   ├── traffic-inspector.js   # Split-view logger
+    │   ├── connection-manager.js  # Session management
+    │   ├── health-monitor.js      # Health dashboard
+    │   └── log-viewer.js          # Advanced logging
+    └── utils/
+        ├── api-client.js          # Fetch wrappers
+        └── sse-connection.js      # SSE with reconnection
 ```
 
-### Alpine.js Components
+### Alpine.js State Management
 
-```html
-<!-- Status Dashboard -->
-<div x-data="statusWidget()">
-  <div class="status-badge" :class="statusColor">
-    <span x-text="status"></span>
-  </div>
-  <p>Uptime: <span x-text="uptime"></span></p>
-</div>
-
-<script>
-function statusWidget() {
-  return {
+**Global Stores Pattern:**
+```javascript
+document.addEventListener('alpine:init', () => {
+  // Server status store
+  Alpine.store('server', {
     status: 'connecting',
-    uptime: 0,
+    metrics: {},
+    health: {},
+    connections: [],
     
-    init() {
-      this.pollStatus();
+    async init() {
+      await this.pollStatus();
       setInterval(() => this.pollStatus(), 1000);
     },
     
@@ -527,24 +573,119 @@ function statusWidget() {
       const res = await fetch('/api/status');
       const data = await res.json();
       this.status = data.status;
-      this.uptime = data.uptime_ms;
+      this.metrics = data.mcp;
+      this.health = data.health;
+    }
+  });
+  
+  // Tools store
+  Alpine.store('tools', {
+    catalog: [],
+    selectedTool: null,
+    
+    async loadCatalog() {
+      const res = await fetch('/api/tools');
+      const data = await res.json();
+      this.catalog = data.tools;
+    }
+  });
+  
+  // Logs store with bounded buffer
+  Alpine.store('logs', {
+    entries: [],
+    maxEntries: 1000,
+    
+    add(log) {
+      this.entries.push(log);
+      if (this.entries.length > this.maxEntries) {
+        this.entries.shift();
+      }
     },
     
-    get statusColor() {
-      return {
-        'bg-green-500': this.status === 'ok',
-        'bg-yellow-500': this.status === 'connecting',
-        'bg-red-500': this.status === 'error'
-      };
+    clear() {
+      this.entries = [];
+    }
+  });
+});
+```
+
+**Component Usage:**
+```html
+<div x-data>
+  <!-- Access global stores -->
+  <span x-text="$store.server.status"></span>
+  <span x-text="$store.server.metrics.requests_total"></span>
+  <span x-text="$store.tools.catalog.length + ' tools available'"></span>
+</div>
+```
+
+### Server-Sent Events Architecture
+
+**Multi-Stream SSE with Reconnection:**
+```javascript
+// SSE connection manager with exponential backoff
+function createSSEConnection(url, onMessage, maxRetries = 5) {
+  let retries = 0;
+  let eventSource = null;
+  
+  function connect() {
+    eventSource = new EventSource(url);
+    
+    eventSource.onopen = () => {
+      retries = 0; // Reset on successful connection
+      console.log(`SSE connected: ${url}`);
+    };
+    
+    eventSource.onmessage = (event) => {
+      onMessage(JSON.parse(event.data));
+    };
+    
+    eventSource.onerror = () => {
+      eventSource.close();
+      
+      if (retries < maxRetries) {
+        const delay = Math.min(1000 * Math.pow(2, retries), 30000);
+        console.log(`SSE reconnecting in ${delay}ms...`);
+        setTimeout(connect, delay);
+        retries++;
+      } else {
+        console.error('SSE max retries reached');
+      }
+    };
+  }
+  
+  connect();
+  
+  return {
+    close: () => eventSource?.close(),
+    reconnect: () => connect()
+  };
+}
+
+// Usage in Alpine component
+function logViewer() {
+  return {
+    logs: [],
+    sseConnection: null,
+    
+    init() {
+      this.sseConnection = createSSEConnection(
+        '/api/logs/stream',
+        (log) => {
+          this.logs.push(log);
+          if (this.logs.length > 1000) this.logs.shift();
+        }
+      );
+    },
+    
+    destroy() {
+      this.sseConnection?.close();
     }
   };
 }
-</script>
 ```
 
-### Server-Sent Events
-
-Real-time log streaming without WebSockets:
+### Real-Time Log Streaming
 
 ```javascript
 // Log viewer component

@@ -179,6 +179,95 @@ Ich habe 8 Szenen in Ihrem Projekt gefunden:
 
 ---
 
+## Was Sie tun können
+
+Nach der Installation können KI-Assistenten Ihnen bei einer umfassenden Reihe von Godot-Entwicklungsaufgaben helfen, die in 12 Funktionskategorien organisiert sind:
+
+### 🎮 Editorkontrolle
+- Godot-Editor programmatisch starten
+- Godot-Projekte im Debug-Modus ausführen
+- Konsolenausgaben und Fehlermeldungen erfassen
+- Laufende Projekte stoppen
+- Godot-Versionsinformationen abrufen
+- Godot-Projekte in Verzeichnissen auflisten und analysieren
+
+### 🎬 Szenenverwaltung
+- Neue Szenen mit angegebenen Root-Node-Typen erstellen
+- Nodes hinzufügen, entfernen, modifizieren und duplizieren
+- Node-Informationen und Eigenschaften abfragen
+- Sprites und Texturen in Sprite2D-Nodes laden
+- 3D-Szenen als MeshLibrary-Ressourcen für GridMap exportieren
+- Szenen mit Optionen zum Erstellen von Varianten speichern
+
+### 📜 Skriptverwaltung
+- GDScript-Dateien mit Vorlagen erstellen (Node, Ressource, benutzerdefiniert)
+- Skripte an Nodes anhängen
+- Skript-Syntax mit detaillierter Fehlerberichterstattung validieren
+- Node-Methoden und Eigenschaften abrufen
+- Vorhandene Skripte modifizieren
+
+### 🎨 Ressourcenverwaltung
+- Assets mit benutzerdefinierten Einstellungen importieren
+- Ressourcen erstellen (Materialien, Shader, etc.)
+- Projekt-Assets mit Metadaten auflisten
+- Import-Einstellungen für Texturen, Audio und Modelle konfigurieren
+
+### 📡 Signalsystem
+- Benutzerdefinierte Signale in Skripten erstellen
+- Signale zwischen Nodes mit Validierung verbinden
+- Verfügbare Signale auf Nodes auflisten
+- Signalverbindungen trennen
+
+### ⚡ Physiksystem (Godot 4.5+)
+- Physikobjekte hinzufügen (CharacterBody2D/3D, RigidBody2D/3D, etc.)
+- Physikeigenschaften und Materialien konfigurieren
+- Kollisionsebenen und Masken einrichten
+- Area2D/Area3D mit Signalverbindungen erstellen
+
+### 🖼️ UI-System
+- UI-Elemente erstellen (Button, Label, TextEdit, Panel, etc.)
+- Themes auf UI-Elemente anwenden
+- Container-Layouts einrichten (VBox, HBox, Grid, Margin)
+- Menüs mit Buttons und Navigation erstellen
+
+### 🎞️ Animationssystem
+- AnimationPlayer-Nodes mit Animationen erstellen
+- Keyframes zu Animationsspuren hinzufügen
+- AnimationTree mit Zustandsmaschinen einrichten
+- Partikelsysteme hinzufügen (GPUParticles2D/3D)
+
+### 📦 Projektverwaltung
+- Vollständige Projektstruktur abrufen
+- Nodes in Szenen nach Kriterien durchsuchen
+- Projekteinstellungen aktualisieren
+- Input-Action-Mappings konfigurieren
+- Autoload-Singletons einrichten
+- Editor-Plugins verwalten (auflisten, aktivieren, deaktivieren)
+
+### 🐛 Debug-Modul
+- Projekte mit vollständiger Debug-Ausgabeerfassung ausführen
+- Fehlerkontext mit Stack-Traces abrufen
+- Intelligente Fehleranalyse mit Lösungen
+- Integration mit Dokumentation für kontextuelle Hilfe
+
+### 📚 Dokumentationsmodul (Godot 4.5+)
+- Detaillierte Klasseninformationen aus offizieller Godot-Dokumentation abrufen
+- Dokumentation nach Klassen, Methoden, Eigenschaften und Signalen durchsuchen
+- Methodeninformationen mit Parametern und Beispielen abrufen
+- Zugriff auf Best Practices für gängige Godot-Themen
+- Automatisches Caching für verbesserte Performance
+- Unterstützung für Godot 4.5+ Funktionen und veraltete Feature-Warnungen
+
+### 🔑 UID-Verwaltung (Godot 4.4+)
+- UID für spezifische Dateien abrufen
+- UID-Referenzen durch erneutes Speichern von Ressourcen aktualisieren
+
+::: tip Über 60 Werkzeuge verfügbar
+Der MCP Server bietet 60+ spezialisierte Werkzeuge, die den gesamten Godot-Entwicklungslebenszyklus abdecken. Siehe die [API-Werkzeug-Referenz](/de/api/tools) für vollständige Dokumentation.
+:::
+
+---
+
 ## Ihre ersten Workflows
 
 ### Eine Szene lesen

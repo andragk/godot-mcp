@@ -60,10 +60,23 @@ The **Model Context Protocol** is an open standard developed by Anthropic that e
 }
 ```
 
-**Godot MCP Server Tools** (12+):
-- Read: `list_scenes`, `read_scene`, `list_scripts`, `read_script`, `get_project_structure`, `search_nodes`
-- Write: `create_scene`, `modify_scene`, `create_script`, `modify_script`, `rename_node`
-- Utility: `get_node_properties`, `validate_scene`
+**Godot MCP Server Tools** (60+):
+- **Read Operations**: `list_scenes`, `read_scene`, `list_scripts`, `read_script`, `get_project_structure`, `search_nodes`
+- **Write Operations**: `create_scene`, `modify_scene`, `create_script`, `modify_script`
+- **Editor Control**: `launch_godot_editor`, `run_godot_project`, `stop_godot_execution`, `get_godot_version`, `list_godot_projects`, `analyze_project`
+- **Resource Management**: `import_asset`, `create_resource`, `list_project_assets`, `configure_import_settings`
+- **Signal System**: `create_signal`, `connect_signal`, `list_node_signals`, `disconnect_signal`
+- **Physics Operations** (Godot 4.5+): `add_physics_body`, `configure_physics_properties`, `setup_collision_layers`, `create_area`
+- **UI Operations**: `create_ui_element`, `apply_theme`, `setup_container_layout`, `create_menu`
+- **Animation System**: `create_animation_player`, `add_animation_keyframe`, `setup_animation_tree`, `add_particle_system`
+- **Debug Operations**: `run_project_debug`, `capture_debug_output`, `get_error_context`, `analyze_error`, `get_debug_documentation`
+- **Documentation** (Godot 4.5+): `get_class_documentation`, `search_documentation`, `get_method_documentation`, `get_best_practices`, `check_deprecated_features`
+- **UID Management** (Godot 4.4+): `get_file_uid`, `update_uid_references`
+- **Validation**: `get_node_properties`, `validate_scene`
+
+::: tip Tool Categories
+Tools are organized into 12 categories covering the complete Godot development lifecycle: from launching the editor and running projects, to scene management, scripting, physics, UI, animation, debugging, and accessing official documentation.
+:::
 
 #### 2. Resources
 

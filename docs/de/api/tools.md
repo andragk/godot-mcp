@@ -10,6 +10,15 @@ Vollständige Spezifikation für alle verfügbaren MCP-Werkzeuge.
 - [Skriptoperationen](#skriptoperationen) - Skripte lesen, erstellen, modifizieren
 - [Projektoperationen](#projektoperationen) - Projektstruktur und Suche
 - [Node-Operationen](#node-operationen) - Node-Inspektion und Abfragen
+- [Editoroperationen](#editoroperationen) - Editor starten, Projekte ausführen, Ausführung steuern
+- [Ressourcenoperationen](#ressourcenoperationen) - Assets importieren, Ressourcen erstellen
+- [Signaloperationen](#signaloperationen) - Signale erstellen, verbinden, auflisten, trennen
+- [Physikoperationen](#physikoperationen) - Physikobjekte, Kollision, Bereiche (Godot 4.5+)
+- [UI-Operationen](#ui-operationen) - UI-Elemente erstellen, Themes, Layouts
+- [Animationsoperationen](#animationsoperationen) - Animation Player, Keyframes, Trees
+- [Debug-Operationen](#debug-operationen) - Ausgabe erfassen, Fehleranalyse
+- [Dokumentationsoperationen](#dokumentationsoperationen) - Klasseninformationen, Methoden, Best Practices (Godot 4.5+)
+- [UID-Operationen](#uid-operationen) - UIDs abrufen/aktualisieren (Godot 4.4+)
 - [Validierungswerkzeuge](#validierungswerkzeuge) - Szenen- und Projektvalidierung
 
 ---
@@ -777,4 +786,23 @@ KI-Assistenten verketten Werkzeuge automatisch für komplexe Abfragen:
 
 ::: warning Rate-Limiting
 In Produktion (Phase 2) sind Werkzeuge rate-limited auf 100 req/min pro Client. Batch-Operationen sind effizienter als sequenzielle Aufrufe.
+:::
+
+---
+
+::: info Vollständige Werkzeugdokumentation
+Diese deutsche Übersetzung enthält die Kerndokumentation. Für die vollständige Dokumentation aller 60+ Werkzeuge (einschließlich Editoroperationen, Ressourcenverwaltung, Signalsystem, Physiksystem, UI-Operationen, Animationssystem, Debug-Operationen, Dokumentationsoperationen und UID-Verwaltung) siehe die [englische API-Werkzeug-Referenz](/en/api/tools).
+
+**Verfügbare Werkzeugkategorien:**
+- ✅ Szenen- und Skriptoperationen (vollständig dokumentiert)
+- ✅ Projekt- und Node-Operationen (vollständig dokumentiert)
+- ⚡ Editoroperationen: Editor starten, Projekte ausführen, Debug-Ausgabe erfassen
+- 🎨 Ressourcenoperationen: Assets importieren, Ressourcen erstellen, Import-Einstellungen
+- 📡 Signaloperationen: Signale erstellen, verbinden, auflisten, trennen
+- ⚡ Physikoperationen (Godot 4.5+): Physikobjekte hinzufügen, Kollisionsebenen konfigurieren
+- 🖼️ UI-Operationen: UI-Elemente erstellen, Themes anwenden, Layouts einrichten
+- 🎞️ Animationsoperationen: AnimationPlayer, Keyframes, AnimationTree, Partikelsysteme
+- 🐛 Debug-Operationen: Debugging mit Ausgabeerfassung und Fehleranalyse
+- 📚 Dokumentationsoperationen (Godot 4.5+): Zugriff auf offizielle Godot-Dokumentation
+- 🔑 UID-Operationen (Godot 4.4+): UID-Verwaltung für Godot-Ressourcen
 :::
