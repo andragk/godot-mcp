@@ -6,6 +6,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { CallToolRequestSchema, ListToolsRequestSchema, } from '@modelcontextprotocol/sdk/types.js';
 import { logger, logError } from '../utils/logger.js';
 import { GodotClient } from '../bridge/index.js';
+import { EditorControlTools, editorControlTools } from '../tools/index.js';
 /**
  * MCP Server for Godot Engine
  * Provides tool execution and resource management via the MCP protocol
@@ -13,6 +14,7 @@ import { GodotClient } from '../bridge/index.js';
 export class GodotMCPServer {
     server;
     godotClient;
+    editorTools;
     startTime;
     constructor() {
         this.startTime = new Date();
@@ -21,6 +23,7 @@ export class GodotMCPServer {
             timeout: 5000,
             maxRetries: 3,
         });
+        this.editorTools = new EditorControlTools(this.godotClient);
         this.server = new Server({
             name: 'godot-mcp',
             version: '0.1.0',
@@ -41,6 +44,7 @@ export class GodotMCPServer {
             logger.debug('Received list_tools request');
             return {
                 tools: [
+                    // Basic connectivity tools
                     {
                         name: 'ping',
                         description: 'Test connectivity with the Godot bridge',
@@ -65,51 +69,67 @@ export class GodotMCPServer {
                             properties: {},
                         },
                     },
+                    // Editor control tools
+                    ...editorControlTools,
                 ],
             };
         });
         // Execute tool calls
         this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
             logger.debug('Received call_tool request', { tool: request.params.name });
-            const { name } = request.params;
+            const { name, arguments: args = {} } = request.params;
             try {
+                let result;
                 switch (name) {
+                    // Basic connectivity tools
                     case 'ping': {
-                        const result = await this.godotClient.sendRequest('ping');
-                        return {
-                            content: [
-                                {
-                                    type: 'text',
-                                    text: JSON.stringify(result, null, 2),
-                                },
-                            ],
-                        };
+                        result = await this.godotClient.sendRequest('ping');
+                        break;
                     }
                     case 'get_version': {
-                        const version = await this.godotClient.getVersion();
-                        return {
-                            content: [
-                                {
-                                    type: 'text',
-                                    text: version,
-                                },
-                            ],
-                        };
+                        result = await this.godotClient.getVersion();
+                        break;
                     }
                     case 'health_check': {
-                        const health = await this.godotClient.healthCheck();
-                        return {
-                            content: [
-                                {
-                                    type: 'text',
-                                    text: JSON.stringify(health, null, 2),
-                                },
-                            ],
-                        };
+                        result = await this.godotClient.healthCheck();
+                        break;
+                    }
+                    // Editor control tools
+                    case 'launch_godot_editor': {
+                        result = await this.editorTools.launchEditor(args);
+                        break;
+                    }
+                    case 'run_godot_project': {
+                        result = await this.editorTools.runProject(args);
+                        break;
+                    }
+                    case 'stop_godot_execution': {
+                        result = await this.editorTools.stopExecution(args);
+                        break;
+                    }
+                    case 'get_godot_version': {
+                        result = await this.editorTools.getVersion(args);
+                        break;
+                    }
+                    case 'list_godot_projects': {
+                        result = await this.editorTools.listProjects(args);
+                        break;
+                    }
+                    case 'analyze_project': {
+                        result = await this.editorTools.analyzeProject(args);
+                        break;
                     }
                     default:
                         throw new Error(`Unknown tool: ${name}`);
                 }
+                return {
+                    content: [
+                        {
+                            type: 'text',
+                            text: JSON.stringify(result, null, 2),
+                        },
+                    ],
+                };
             }
             catch (error) {
                 logError(error instanceof Error ? error : new Error(String(error)), `Tool ${name} failed`);

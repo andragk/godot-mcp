@@ -20,8 +20,20 @@
     <div class="container mx-auto px-4 py-8">
         <!-- Header -->
         <header class="mb-8">
-            <h1 class="text-4xl font-bold text-gray-900 mb-2">Godot MCP Dashboard</h1>
-            <p class="text-gray-600">Monitor your Godot MCP server and bridge connection</p>
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-4xl font-bold text-gray-900 mb-2">Godot MCP Dashboard</h1>
+                    <p class="text-gray-600">Monitor your Godot MCP server and bridge connection</p>
+                </div>
+                <button 
+                    @click="refreshStatus()"
+                    class="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition shadow-md">
+                    <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Refresh
+                </button>
+            </div>
         </header>
 
         <!-- Status Cards -->
@@ -89,8 +101,21 @@
         <!-- Log Viewer -->
         <div class="bg-white rounded-lg shadow-md p-6">
             <div class="flex items-center justify-between mb-4">
-                <h2 class="text-xl font-semibold text-gray-900">Server Logs</h2>
+                <div class="flex items-center gap-4">
+                    <h2 class="text-xl font-semibold text-gray-900">Server Logs</h2>
+                    <span 
+                        class="px-2 py-1 rounded-full text-xs font-medium"
+                        :class="getConnectionStatusColor()"
+                        x-text="connectionStatus">
+                    </span>
+                </div>
                 <div class="flex gap-2">
+                    <button 
+                        @click="exportLogs()"
+                        class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition"
+                        :disabled="logs.length === 0">
+                        Export
+                    </button>
                     <button 
                         @click="clearLogs()"
                         class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition">
@@ -146,6 +171,9 @@
                 autoScroll: true,
                 eventSource: null,
                 logIdCounter: 0,
+                connectionStatus: 'connecting',
+                reconnectAttempts: 0,
+                maxReconnectAttempts: 10,
 
                 async init() {
                     await this.fetchStatus();
@@ -160,25 +188,44 @@
                 async fetchStatus() {
                     try {
                         const response = await fetch('/api/status');
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}`);
+                        }
                         this.status = await response.json();
                         this.lastUpdate = new Date();
                     } catch (error) {
                         console.error('Failed to fetch status:', error);
+                        this.status.bridgeConnected = false;
                     }
                 },
 
                 async fetchBridgeHealth() {
                     try {
                         const response = await fetch('/api/bridge/health');
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}`);
+                        }
                         this.bridgeHealth = await response.json();
                     } catch (error) {
                         console.error('Failed to fetch bridge health:', error);
+                        this.bridgeHealth.status = 'unknown';
                     }
                 },
 
                 connectToLogStream() {
+                    if (this.eventSource) {
+                        this.eventSource.close();
+                    }
+
+                    this.connectionStatus = 'connecting';
                     this.eventSource = new EventSource('/api/logs/stream');
                     
+                    this.eventSource.onopen = () => {
+                        this.connectionStatus = 'connected';
+                        this.reconnectAttempts = 0;
+                        console.log('SSE connection established');
+                    };
+
                     this.eventSource.onmessage = (event) => {
                         const log = JSON.parse(event.data);
                         log.id = ++this.logIdCounter;
@@ -192,22 +239,57 @@
                         if (this.autoScroll) {
                             this.$nextTick(() => {
                                 const container = this.$refs.logContainer;
-                                container.scrollTop = container.scrollHeight;
+                                if (container) {
+                                    container.scrollTop = container.scrollHeight;
+                                }
                             });
                         }
                     };
 
                     this.eventSource.onerror = (error) => {
                         console.error('SSE connection error:', error);
+                        this.connectionStatus = 'error';
+                        
+                        // Attempt to reconnect
+                        if (this.reconnectAttempts < this.maxReconnectAttempts) {
+                            this.reconnectAttempts++;
+                            const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
+                            console.log(`Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})`);
+                            setTimeout(() => this.connectToLogStream(), delay);
+                        }
                     };
                 },
 
                 clearLogs() {
                     this.logs = [];
+                    this.logIdCounter = 0;
                 },
 
                 toggleAutoScroll() {
                     this.autoScroll = !this.autoScroll;
+                },
+
+                exportLogs() {
+                    const logText = this.logs.map(log => 
+                        `[${log.timestamp}] ${log.level.toUpperCase()}: ${log.message}`
+                    ).join('\n');
+                    
+                    const blob = new Blob([logText], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `godot-mcp-logs-${new Date().toISOString()}.txt`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                },
+
+                async refreshStatus() {
+                    await Promise.all([
+                        this.fetchStatus(),
+                        this.fetchBridgeHealth()
+                    ]);
                 },
 
                 formatUptime(seconds) {
@@ -243,6 +325,15 @@
                         unknown: 'bg-gray-100 text-gray-800'
                     };
                     return colors[status] || 'bg-gray-100 text-gray-800';
+                },
+
+                getConnectionStatusColor() {
+                    const colors = {
+                        connected: 'bg-green-100 text-green-800',
+                        connecting: 'bg-yellow-100 text-yellow-800',
+                        error: 'bg-red-100 text-red-800'
+                    };
+                    return colors[this.connectionStatus] || 'bg-gray-100 text-gray-800';
                 }
             };
         }
