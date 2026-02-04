@@ -14,6 +14,10 @@ export declare class GodotMCPServer {
      */
     private registerTools;
     /**
+     * Register MCP resources with godot:// URI scheme
+     */
+    private registerResources;
+    /**
      * Setup request handlers for the MCP server
      */
     private setupHandlers;

@@ -54,8 +54,8 @@ export declare const ListProjectsSchema: z.ZodObject<{
     searchPaths: z.ZodArray<z.ZodString, "many">;
     recursive: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
 }, "strip", z.ZodTypeAny, {
-    searchPaths: string[];
     recursive: boolean;
+    searchPaths: string[];
 }, {
     searchPaths: string[];
     recursive?: boolean | undefined;

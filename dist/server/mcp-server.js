@@ -3,11 +3,12 @@
  */
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { CallToolRequestSchema, ListToolsRequestSchema, } from '@modelcontextprotocol/sdk/types.js';
+import { CallToolRequestSchema, ListToolsRequestSchema, ListResourcesRequestSchema, ReadResourceRequestSchema, } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { logger, logError } from '../utils/logger.js';
 import { generateCorrelationId } from '../utils/correlation-id.js';
 import { GodotClient } from '../bridge/index.js';
+import { readGodotResource } from '../resources/index.js';
 import { EditorControlTools, LaunchEditorSchema, RunProjectSchema, StopExecutionSchema, GetVersionSchema, ListProjectsSchema, AnalyzeProjectSchema, } from '../tools/index.js';
 import { listScenes, readScene, listScripts, readScript, getProjectStructure, ListScenesInputSchema, ReadSceneInputSchema, ListScriptsInputSchema, ReadScriptInputSchema, GetProjectStructureInputSchema, getCacheMetrics, } from '../tools/read-tools.js';
 import { searchNodes, getNodeProperties, } from '../tools/node-operations.js';
@@ -63,9 +64,11 @@ export class GodotMCPServer {
         }, {
             capabilities: {
                 tools: {},
+                resources: {},
             },
         });
         this.registerTools();
+        this.registerResources();
         this.setupHandlers();
         logger.info('GodotMCPServer initialized');
     }
@@ -599,6 +602,14 @@ export class GodotMCPServer {
         logger.info('Registered tools', { count: this.toolRegistry.getToolNames().length });
     }
     /**
+     * Register MCP resources with godot:// URI scheme
+     */
+    registerResources() {
+        // Register resource URI template for godot:// scheme
+        // The SDK will handle listing and reading via our callbacks
+        logger.info('Registered Godot resources with godot:// URI scheme');
+    }
+    /**
      * Setup request handlers for the MCP server
      */
     setupHandlers() {
@@ -675,6 +686,82 @@ export class GodotMCPServer {
                     ],
                     isError: true,
                 };
+            }
+        });
+        // List available resources
+        this.server.setRequestHandler(ListResourcesRequestSchema, async () => {
+            const correlationId = generateCorrelationId();
+            logger.debug('Received list_resources request', { correlationId });
+            // Return static list of resource URI templates
+            return {
+                resources: [
+                    {
+                        uri: 'godot://{projectPath}/project',
+                        name: 'Project Configuration',
+                        description: 'Read project.godot configuration file',
+                        mimeType: 'text/plain',
+                    },
+                    {
+                        uri: 'godot://{projectPath}/scenes/',
+                        name: 'Scene List',
+                        description: 'List all scene files in the project',
+                        mimeType: 'application/json',
+                    },
+                    {
+                        uri: 'godot://{projectPath}/scenes/{scenePath}',
+                        name: 'Scene File',
+                        description: 'Read a specific scene file',
+                        mimeType: 'application/x-godot-scene',
+                    },
+                    {
+                        uri: 'godot://{projectPath}/scripts/',
+                        name: 'Script List',
+                        description: 'List all script files in the project',
+                        mimeType: 'application/json',
+                    },
+                    {
+                        uri: 'godot://{projectPath}/scripts/{scriptPath}',
+                        name: 'Script File',
+                        description: 'Read a specific GDScript file',
+                        mimeType: 'text/x-gdscript',
+                    },
+                    {
+                        uri: 'godot://{projectPath}/nodes/{scenePath}/{nodePath}',
+                        name: 'Scene Node',
+                        description: 'Read properties of a specific node in a scene',
+                        mimeType: 'application/json',
+                    },
+                ],
+            };
+        });
+        // Read resource content
+        this.server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+            const correlationId = generateCorrelationId();
+            const { uri } = request.params;
+            logger.debug('Received read_resource request', {
+                uri,
+                correlationId
+            });
+            try {
+                logger.info('Reading resource', { uri, correlationId });
+                const content = await readGodotResource(uri);
+                logger.info('Resource read successfully', {
+                    correlationId,
+                    uri,
+                    mimeType: content.mimeType,
+                });
+                return {
+                    contents: [
+                        content.text
+                            ? { uri: content.uri, mimeType: content.mimeType, text: content.text }
+                            : { uri: content.uri, mimeType: content.mimeType, blob: content.blob }
+                    ],
+                };
+            }
+            catch (error) {
+                const mcpError = toMCPError(error, correlationId);
+                logError(mcpError, `Resource read failed for ${uri}`, { correlationId, uri });
+                throw mcpError;
             }
         });
     }

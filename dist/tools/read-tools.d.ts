@@ -138,8 +138,8 @@ export declare const GetProjectStructureInputSchema: z.ZodObject<{
     maxDepth: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
     includeStats: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
 }, "strip", z.ZodTypeAny, {
-    projectPath: string;
     maxDepth: number;
+    projectPath: string;
     includeStats: boolean;
 }, {
     projectPath: string;

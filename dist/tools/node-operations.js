@@ -46,7 +46,7 @@ export async function searchNodes(projectPath, query) {
             await validatePath(scenePath, {
                 mustExist: true,
                 baseDir: projectPath,
-                allowedExtensions: ['.tscn', '.scn'],
+                allowedExtensions: ['tscn', 'scn'],
                 allowAbsolute: true
             });
         }
@@ -77,7 +77,8 @@ export async function searchNodes(projectPath, query) {
             // Build hierarchy and search
             const hierarchy = buildNodeHierarchy(parsed);
             if (hierarchy) {
-                const sceneRelativePath = path.relative(projectPath, scenePath);
+                // Use forward slashes for cross-platform consistency
+                const sceneRelativePath = path.relative(projectPath, scenePath).replace(/\\/g, '/');
                 searchNodesRecursive(hierarchy, query, mode, operator, sceneRelativePath, results, parsed.nodes);
             }
         }
@@ -247,7 +248,7 @@ export async function getNodeProperties(projectPath, scenePath, nodePath) {
     await validatePath(fullScenePath, {
         mustExist: true,
         baseDir: projectPath,
-        allowedExtensions: ['.tscn', '.scn'],
+        allowedExtensions: ['tscn', 'scn'],
         allowAbsolute: true
     });
     logger.info('Getting node properties', { projectPath, scenePath, nodePath });
@@ -366,8 +367,17 @@ function getPropertyType(value) {
     if (Array.isArray(value))
         return 'Array';
     const type = typeof value;
+    // Check for Godot type strings like "Vector2(100, 200)"
+    if (type === 'string') {
+        const str = value;
+        const godotTypeMatch = str.match(/^(Vector2|Vector3|Vector2i|Vector3i|Color|Rect2|Transform2D|Transform3D|Basis|Quaternion|Plane|AABB)\(/);
+        if (godotTypeMatch) {
+            return godotTypeMatch[1];
+        }
+        return 'String';
+    }
     if (type === 'object') {
-        // Try to determine Godot type
+        // Try to determine Godot type from object structure
         const obj = value;
         if (obj.x !== undefined && obj.y !== undefined) {
             return obj.z !== undefined ? 'Vector3' : 'Vector2';
