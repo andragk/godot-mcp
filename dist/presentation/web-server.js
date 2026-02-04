@@ -85,30 +85,39 @@ export class WebServer {
         this.app.use(express.json({ limit: MAX_BODY_SIZE }));
         // Request validation middleware
         this.app.use(this.validateRequest.bind(this));
-        // Request logging (only log non-debug routes)
+        // Request logging with detailed information
         this.app.use((req, res, next) => {
-            // Skip logging for health checks, status polls, and other noisy endpoints
-            const skipPaths = [
-                '/api/health',
-                '/api/status',
-                '/api/bridge/health',
-                '/api/logs/stream',
-                '/.well-known/',
-                '/favicon.ico',
-            ];
-            if (skipPaths.some((path) => req.path.includes(path))) {
-                return next();
-            }
             const startTime = Date.now();
             res.on('finish', () => {
                 const duration = Date.now() - startTime;
-                logger.info('HTTP request', {
+                // Build comprehensive log context
+                const logContext = {
                     method: req.method,
                     path: req.path,
                     status: res.statusCode,
                     duration: `${duration}ms`,
                     ip: req.ip,
-                });
+                };
+                // Add query parameters if present
+                if (Object.keys(req.query).length > 0) {
+                    logContext.query = req.query;
+                }
+                // Add request body summary for non-GET requests (first 100 chars)
+                if (req.method !== 'GET' && req.body && Object.keys(req.body).length > 0) {
+                    const bodyStr = JSON.stringify(req.body);
+                    logContext.body = bodyStr.length > 100 ? bodyStr.substring(0, 100) + '...' : bodyStr;
+                }
+                // Add user agent
+                const userAgent = req.get('user-agent');
+                if (userAgent) {
+                    logContext.userAgent = userAgent;
+                }
+                // Add content type for POST/PUT requests
+                const contentType = req.get('content-type');
+                if (contentType && req.method !== 'GET') {
+                    logContext.contentType = contentType;
+                }
+                logger.info('HTTP request', logContext);
             });
             next();
         });

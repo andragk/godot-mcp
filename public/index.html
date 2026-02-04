@@ -110,6 +110,10 @@
                     </span>
                 </div>
                 <div class="flex gap-2">
+                    <label class="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded cursor-pointer hover:bg-gray-300 transition">
+                        <input type="checkbox" x-model="showHealthChecks" class="rounded">
+                        <span>Show health checks</span>
+                    </label>
                     <button 
                         @click="exportLogs()"
                         class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition"
@@ -134,18 +138,30 @@
             <div 
                 x-ref="logContainer"
                 class="bg-gray-50 rounded border border-gray-200 p-4 font-mono text-sm max-h-96 overflow-y-auto">
-                <template x-if="logs.length === 0">
+                <template x-if="filteredLogs().length === 0">
                     <p class="text-gray-500 italic">No logs yet...</p>
                 </template>
-                <template x-for="log in logs" :key="log.id">
-                    <div class="log-entry py-1 px-2 rounded">
-                        <span class="text-gray-500" x-text="formatLogTime(log.timestamp)"></span>
-                        <span 
-                            class="font-semibold ml-2"
-                            :class="getLogLevelColor(log.level)"
-                            x-text="log.level.toUpperCase()">
-                        </span>
-                        <span class="ml-2" x-text="log.message"></span>
+                <template x-for="log in filteredLogs()" :key="log.id">
+                    <div class="log-entry py-1 px-2 rounded hover:bg-gray-100">
+                        <div class="flex items-start">
+                            <span class="text-gray-500 flex-shrink-0" x-text="formatLogTime(log.timestamp)"></span>
+                            <span 
+                                class="font-semibold ml-2 flex-shrink-0"
+                                :class="getLogLevelColor(log.level)"
+                                x-text="log.level.toUpperCase()">
+                            </span>
+                            <span class="ml-2 flex-grow" x-text="log.message"></span>
+                        </div>
+                        <template x-if="log.context && Object.keys(log.context).length > 0">
+                            <div class="ml-20 mt-1 text-xs text-gray-600">
+                                <template x-for="(value, key) in log.context" :key="key">
+                                    <span class="inline-block mr-4">
+                                        <span class="font-semibold" x-text="key + ':'"></span>
+                                        <span x-text="value"></span>
+                                    </span>
+                                </template>
+                            </div>
+                        </template>
                     </div>
                 </template>
             </div>
@@ -169,6 +185,7 @@
                 logs: [],
                 lastUpdate: new Date(),
                 autoScroll: true,
+                showHealthChecks: false,
                 eventSource: null,
                 logIdCounter: 0,
                 connectionStatus: 'connecting',
@@ -180,9 +197,23 @@
                     await this.fetchBridgeHealth();
                     this.connectToLogStream();
                     
-                    // Poll status every 5 seconds
-                    setInterval(() => this.fetchStatus(), 5000);
-                    setInterval(() => this.fetchBridgeHealth(), 10000);
+                    // Poll status every 10 seconds (reduced frequency)
+                    setInterval(() => this.fetchStatus(), 10000);
+                    setInterval(() => this.fetchBridgeHealth(), 15000);
+                },
+
+                filteredLogs() {
+                    if (this.showHealthChecks) {
+                        return this.logs;
+                    }
+                    // Filter out health check and status requests
+                    return this.logs.filter(log => {
+                        if (!log.context || !log.context.path) return true;
+                        const path = log.context.path;
+                        return !path.includes('/api/status') && 
+                               !path.includes('/api/health') && 
+                               !path.includes('/api/bridge/health');
+                    });
                 },
 
                 async fetchStatus() {
