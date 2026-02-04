@@ -243,9 +243,20 @@ export function buildNodeHierarchy(sceneData: SceneData): NodeHierarchy | null {
     const hierarchyNode = nodeMap.get(node.name);
     if (!hierarchyNode) continue;
 
-    if (!node.parent || node.parent === '.') {
+    if (!node.parent) {
+      // No parent means this is the root node
       root = hierarchyNode;
+    } else if (node.parent === '.') {
+      // parent="." means child of root node
+      if (!root && sceneData.nodes.length > 0) {
+        // First node without parent is the root
+        root = nodeMap.get(sceneData.nodes[0]!.name) || null;
+      }
+      if (root) {
+        root.children.push(hierarchyNode);
+      }
     } else {
+      // Named parent
       const parent = nodeMap.get(node.parent);
       if (parent) {
         parent.children.push(hierarchyNode);

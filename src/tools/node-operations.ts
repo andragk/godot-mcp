@@ -137,7 +137,8 @@ export async function searchNodes(
       await validatePath(scenePath, { 
         mustExist: true, 
         baseDir: projectPath,
-        allowedExtensions: ['.tscn', '.scn']
+        allowedExtensions: ['tscn', 'scn'],
+        allowAbsolute: true
       });
     }
   } else {
@@ -171,7 +172,8 @@ export async function searchNodes(
       // Build hierarchy and search
       const hierarchy = buildNodeHierarchy(parsed);
       if (hierarchy) {
-        const sceneRelativePath = path.relative(projectPath, scenePath);
+        // Use forward slashes for cross-platform consistency
+        const sceneRelativePath = path.relative(projectPath, scenePath).replace(/\\/g, '/');
         searchNodesRecursive(
           hierarchy,
           query,
@@ -404,7 +406,8 @@ export async function getNodeProperties(
   await validatePath(fullScenePath, { 
     mustExist: true,
     baseDir: projectPath,
-    allowedExtensions: ['.tscn', '.scn']
+    allowedExtensions: ['tscn', 'scn'],
+    allowAbsolute: true
   });
 
   logger.info('Getting node properties', { projectPath, scenePath, nodePath });
@@ -548,8 +551,19 @@ function getPropertyType(value: unknown): string {
   if (Array.isArray(value)) return 'Array';
   
   const type = typeof value;
+  
+  // Check for Godot type strings like "Vector2(100, 200)"
+  if (type === 'string') {
+    const str = value as string;
+    const godotTypeMatch = str.match(/^(Vector2|Vector3|Vector2i|Vector3i|Color|Rect2|Transform2D|Transform3D|Basis|Quaternion|Plane|AABB)\(/);
+    if (godotTypeMatch) {
+      return godotTypeMatch[1];
+    }
+    return 'String';
+  }
+  
   if (type === 'object') {
-    // Try to determine Godot type
+    // Try to determine Godot type from object structure
     const obj = value as Record<string, unknown>;
     if (obj.x !== undefined && obj.y !== undefined) {
       return obj.z !== undefined ? 'Vector3' : 'Vector2';

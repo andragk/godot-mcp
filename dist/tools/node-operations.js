@@ -18,7 +18,7 @@ const sceneCache = new LRUCache({
 export async function searchNodes(projectPath, query) {
     const startTime = Date.now();
     // Validate project path
-    await validatePath(projectPath, { mustExist: true });
+    await validatePath(projectPath, { mustExist: true, allowAbsolute: true });
     const projectStat = await stat(projectPath);
     if (!projectStat.isDirectory()) {
         throw new Error(`Project path must be a directory: ${projectPath}`);
@@ -46,7 +46,8 @@ export async function searchNodes(projectPath, query) {
             await validatePath(scenePath, {
                 mustExist: true,
                 baseDir: projectPath,
-                allowedExtensions: ['.tscn', '.scn']
+                allowedExtensions: ['.tscn', '.scn'],
+                allowAbsolute: true
             });
         }
     }
@@ -237,7 +238,7 @@ function calculateMatchScore(node, _sceneNode, query, mode) {
  */
 export async function getNodeProperties(projectPath, scenePath, nodePath) {
     // Validate paths
-    await validatePath(projectPath, { mustExist: true });
+    await validatePath(projectPath, { mustExist: true, allowAbsolute: true });
     const projectStat = await stat(projectPath);
     if (!projectStat.isDirectory()) {
         throw new Error(`Project path must be a directory: ${projectPath}`);
@@ -246,7 +247,8 @@ export async function getNodeProperties(projectPath, scenePath, nodePath) {
     await validatePath(fullScenePath, {
         mustExist: true,
         baseDir: projectPath,
-        allowedExtensions: ['.tscn', '.scn']
+        allowedExtensions: ['.tscn', '.scn'],
+        allowAbsolute: true
     });
     logger.info('Getting node properties', { projectPath, scenePath, nodePath });
     // Parse scene
