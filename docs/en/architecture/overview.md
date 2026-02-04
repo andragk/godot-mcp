@@ -6,7 +6,7 @@ High-level system design and component interactions.
 
 ## System Architecture
 
-The Godot MCP Server uses a **layered architecture** with clear separation of concerns:
+The Godot MCP Server uses a **layered architecture** with clear separation of concerns and **sidecar deployment** support:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -29,29 +29,57 @@ The Godot MCP Server uses a **layered architecture** with clear separation of co
 │  │  Infrastructure      (HTTP Client, Cache, Logging)       │  │
 │  └──────────────────────────────────────────────────────────┘  │
 └────────────────────────┬────────────────────────────────────────┘
+                         │
                          │ HTTP POST (JSON-RPC 2.0)
                          │ localhost:7777
-┌────────────────────────▼────────────────────────────────────────┐
-│                  Godot Bridge (Addon)                           │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │  HTTPServer          (Port 7777)                         │  │
-│  └────────────────────────┬─────────────────────────────────┘  │
-│  ┌────────────────────────▼─────────────────────────────────┐  │
-│  │  Request Router      (JSON-RPC Dispatcher)               │  │
-│  └────────────────────────┬─────────────────────────────────┘  │
-│  ┌────────────────────────▼─────────────────────────────────┐  │
-│  │  Tool Manager        (Scene, Script, Project Operations) │  │
-│  └────────────────────────┬─────────────────────────────────┘  │
-│  ┌────────────────────────▼─────────────────────────────────┐  │
-│  │  Godot API           (FileAccess, DirAccess, SceneTree)  │  │
-│  └──────────────────────────────────────────────────────────┘  │
-└────────────────────────┬────────────────────────────────────────┘
-                         │ File I/O
-┌────────────────────────▼────────────────────────────────────────┐
-│                  File System                                    │
-│  project.godot, *.tscn, *.gd, *.tres, *.res                    │
-└─────────────────────────────────────────────────────────────────┘
+                         │
+       ┌─────────────────┴──────────────────────────┐
+       │                                            │
+       ▼                                            ▼
+┌──────────────────────────────┐   ┌──────────────────────────────────┐
+│  Web UI (Sidecar, Optional)  │   │  Godot Bridge (Addon)            │
+│  ┌────────────────────────┐  │   │  ┌────────────────────────────┐ │
+│  │  Express Server       │  │   │  │  HTTPServer    (Port 7777) │ │
+│  │  (Port 3000)          │  │   │  └────────────┬───────────────┘ │
+│  └──────────┬─────────────┘  │   │  ┌────────────▼───────────────┐ │
+│  ┌──────────▼─────────────┐  │   │  │  Request Router           │ │
+│  │  Dashboard (Alpine.js)│  │   │  └────────────┬───────────────┘ │
+│  └──────────┬─────────────┘  │   │  ┌────────────▼───────────────┐ │
+│  ┌──────────▼─────────────┐  │   │  │  Tool Manager             │ │
+│  │  SSE Log Streaming    │  │   │  └────────────┬───────────────┘ │
+│  └──────────┬─────────────┘  │   │  ┌────────────▼───────────────┐ │
+│             │                 │   │  │  Godot API                │ │
+│             ├─────────────────┼───┤  └───────────────────────────┘ │
+│             │ HTTP Requests   │   │                                │
+│             └─────────────────┘   └────────────┬───────────────────┘
+└──────────────────────────────────┘             │ File I/O
+                                   ┌─────────────▼───────────────────┐
+                                   │  File System                    │
+                                   │  *.tscn, *.gd, *.tres, *.res    │
+                                   └─────────────────────────────────┘
 ```
+
+---
+
+## Deployment Modes
+
+### 1. MCP Only (Production)
+**Entry Point**: `index.ts`  
+**Command**: `npm start`  
+**Use Case**: AI assistant integration (Claude Desktop, VS Code)  
+**Components**: MCP Server (stdio) ↔ Godot Bridge
+
+### 2. Web UI Only (Sidecar)
+**Entry Point**: `web-ui.ts`  
+**Command**: `npm run web-ui`  
+**Use Case**: Standalone monitoring, separate deployment  
+**Components**: Web Dashboard (HTTP 3000) ↔ Godot Bridge
+
+### 3. Combined (Development)
+**Entry Points**: Both `index.ts` + `web-ui.ts`  
+**Commands**: `npm start` + `npm run web-ui` (separate terminals)  
+**Use Case**: Local development with full observability  
+**Components**: MCP Server + Web UI + Godot Bridge
 
 ---
 

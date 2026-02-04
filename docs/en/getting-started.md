@@ -69,11 +69,61 @@ your-godot-project/
 
 4. **Restart Godot** to activate the HTTP server
 
-### Step 3: Environment Variable Configuration
+---
+
+## Deployment Modes
+
+Godot MCP Server supports three deployment architectures:
+
+### Mode 1: MCP Only (Default)
+
+Runs only the MCP server for stdio communication with AI assistants.
+
+```bash
+npm start
+```
+
+**Use Case**: Claude Desktop, VS Code Copilot integration
+
+**Ports**: None (stdio communication)
+
+### Mode 2: Web UI Only (Sidecar)
+
+Runs only the web dashboard independently.
+
+```bash
+npm run web-ui
+```
+
+**Use Case**: Standalone monitoring, separate deployment, debugging
+
+**Ports**: HTTP 3000 (configurable via `WEB_PORT`)
+
+**Requirements**: Godot bridge must be running on port 7777
+
+### Mode 3: Combined (Development)
+
+For development, run both in separate terminals:
+
+```bash
+# Terminal 1: MCP Server
+npm start
+
+# Terminal 2: Web UI Dashboard
+npm run web-ui
+```
+
+**Use Case**: Local development, full-stack testing
+
+**Ports**: stdio (MCP) + HTTP 3000 (Web UI)
+
+---
+
+## Environment Variable Configuration
 
 Configure security and connection settings via environment variables.
 
-#### Create Environment File
+### Create Environment File
 
 Create a `.env` file in your project directory (where you run `godot-mcp-server`):
 

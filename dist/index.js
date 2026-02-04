@@ -1,38 +1,25 @@
 /**
- * Main entry point for the Godot MCP application
- * Starts both the MCP server (stdio) and web UI server
+ * Main entry point for the Godot MCP server (stdio mode)
+ * For standalone Web UI, use web-ui.ts instead
  */
 import { GodotMCPServer } from './server/index.js';
-import { WebServer } from './presentation/web-server.js';
-import { GodotClient } from './bridge/index.js';
 import { logger, logError } from './utils/logger.js';
-const WEB_PORT = parseInt(process.env.WEB_PORT || '3000');
 /**
  * Main application entry point
  */
 async function main() {
-    logger.info('Starting Godot MCP application');
-    // Initialize Godot client
-    const godotClient = new GodotClient({
-        port: 7777,
-        timeout: 5000,
-    });
-    // Initialize web server
-    const webServer = new WebServer(godotClient);
+    logger.info('Starting Godot MCP Server (stdio mode)');
     // Initialize MCP server
     const mcpServer = new GodotMCPServer();
-    // Start web server
-    await webServer.start(WEB_PORT);
-    logger.info(`Dashboard available at http://localhost:${WEB_PORT}`);
     // Start MCP server (stdio)
     await mcpServer.start();
+    logger.info('MCP server started successfully');
+    logger.info('Note: For Web UI dashboard, run "npm run web-ui" in a separate terminal');
     // Setup graceful shutdown
     const shutdown = async () => {
-        logger.info('Shutting down application...');
+        logger.info('Shutting down MCP server...');
         try {
-            await webServer.stop();
             await mcpServer.stop();
-            await godotClient.close();
             process.exit(0);
         }
         catch (error) {
@@ -46,7 +33,6 @@ async function main() {
     process.on('SIGTERM', () => {
         void shutdown();
     });
-    logger.info('Application started successfully');
 }
 // Run the application
 main().catch((error) => {
