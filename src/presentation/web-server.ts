@@ -112,8 +112,17 @@ export class WebServer {
 
     // Request logging (only log non-debug routes)
     this.app.use((req: Request, res: Response, next: NextFunction) => {
-      // Skip logging for health checks and other noisy endpoints
-      if (req.path === '/api/health') {
+      // Skip logging for health checks, status polls, and other noisy endpoints
+      const skipPaths = [
+        '/api/health',
+        '/api/status',
+        '/api/bridge/health',
+        '/api/logs/stream',
+        '/.well-known/',
+        '/favicon.ico',
+      ];
+
+      if (skipPaths.some((path) => req.path.includes(path))) {
         return next();
       }
 
