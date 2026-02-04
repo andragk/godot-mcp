@@ -46,6 +46,7 @@ export interface BridgeHealth {
   uptime: number;
   lastCheck: Date;
   version?: string;
+  error?: string; // Preserved error message when status is 'unhealthy'
 }
 
 /**

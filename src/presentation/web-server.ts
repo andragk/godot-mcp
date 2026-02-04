@@ -7,6 +7,8 @@ import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import { logger, logError } from '../utils/logger.js';
 import { GodotClient } from '../bridge/index.js';
+import { MCPServerProcessManager } from '../utils/server-process-manager.js';
+import { getCacheMetrics } from '../tools/read-tools.js';
 import type { ServerStatus, LogEntry } from '../types/index.js';
 
 /**
@@ -42,18 +44,22 @@ interface SSEClient {
 export class WebServer {
   private readonly app: express.Application;
   private readonly godotClient: GodotClient;
+  private readonly serverManager: MCPServerProcessManager;
   private readonly sseClients: Set<SSEClient> = new Set();
   private readonly startTime: Date;
   private server: ReturnType<typeof this.app.listen> | null = null;
+  private heartbeatInterval: NodeJS.Timeout | null = null;
 
   constructor(godotClient: GodotClient) {
     this.app = express();
     this.godotClient = godotClient;
+    this.serverManager = new MCPServerProcessManager();
     this.startTime = new Date();
 
     this.setupMiddleware();
     this.setupRoutes();
     this.setupLogStreaming();
+    this.setupHeartbeat();
   }
 
   /**
@@ -243,14 +249,14 @@ export class WebServer {
       message: { error: 'Too many requests, please try again later' },
     });
 
-    // Write limiter for future POST/PUT/DELETE endpoints
-    // const writeLimiter = rateLimit({
-    //   windowMs: 15 * 60 * 1000, // 15 minutes
-    //   max: 20, // 20 requests per window
-    //   standardHeaders: true,
-    //   legacyHeaders: false,
-    //   message: { error: 'Too many requests, please try again later' },
-    // });
+    // Write limiter for POST/PUT/DELETE endpoints
+    const writeLimiter = rateLimit({
+      windowMs: 15 * 60 * 1000, // 15 minutes
+      max: 20, // 20 requests per window
+      standardHeaders: true,
+      legacyHeaders: false,
+      message: { error: 'Too many requests, please try again later' },
+    });
 
     // Static file serving
     this.app.use(express.static('public'));
@@ -337,6 +343,52 @@ export class WebServer {
       }
     });
 
+    // MCP Server lifecycle endpoints
+    this.app.post('/api/server/start', writeLimiter, this.authenticateRequest.bind(this), async (_req: Request, res: Response) => {
+      try {
+        await this.serverManager.start();
+        const info = this.serverManager.getInfo();
+        res.json({ success: true, message: 'MCP server started', info });
+      } catch (error) {
+        logError(error instanceof Error ? error : new Error(String(error)), 'Failed to start MCP server');
+        res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Failed to start server' });
+      }
+    });
+
+    this.app.post('/api/server/stop', writeLimiter, this.authenticateRequest.bind(this), async (req: Request, res: Response) => {
+      try {
+        const force = req.body?.force === true;
+        await this.serverManager.stop(force);
+        const info = this.serverManager.getInfo();
+        res.json({ success: true, message: 'MCP server stopped', info });
+      } catch (error) {
+        logError(error instanceof Error ? error : new Error(String(error)), 'Failed to stop MCP server');
+        res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Failed to stop server' });
+      }
+    });
+
+    this.app.post('/api/server/restart', writeLimiter, this.authenticateRequest.bind(this), async (_req: Request, res: Response) => {
+      try {
+        await this.serverManager.restart();
+        const info = this.serverManager.getInfo();
+        res.json({ success: true, message: 'MCP server restarted', info });
+      } catch (error) {
+        logError(error instanceof Error ? error : new Error(String(error)), 'Failed to restart MCP server');
+        res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Failed to restart server' });
+      }
+    });
+
+    this.app.get('/api/server/status', readLimiter, (_req: Request, res: Response) => {
+      const info = this.serverManager.getInfo();
+      res.json(info);
+    });
+
+    // Cache metrics endpoint
+    this.app.get('/api/cache/metrics', readLimiter, (_req: Request, res: Response) => {
+      const metrics = getCacheMetrics();
+      res.json(metrics);
+    });
+
     // Error handling middleware
     this.app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
       // Log full error details server-side
@@ -408,6 +460,21 @@ export class WebServer {
   }
 
   /**
+   * Setup heartbeat for SSE connections
+   */
+  private setupHeartbeat(): void {
+    this.heartbeatInterval = setInterval(() => {
+      for (const client of this.sseClients) {
+        try {
+          client.response.write(': heartbeat\n\n');
+        } catch {
+          this.sseClients.delete(client);
+        }
+      }
+    }, 30000);
+  }
+
+  /**
    * Get server uptime in seconds
    */
   private getUptime(): number {
@@ -431,6 +498,20 @@ export class WebServer {
    * Stop the web server
    */
   async stop(): Promise<void> {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+    }
+
+    for (const client of this.sseClients) {
+      try {
+        client.response.end();
+      } catch {
+        // Ignore errors
+      }
+    }
+    this.sseClients.clear();
+
     if (this.server) {
       return new Promise((resolve, reject) => {
         this.server!.close((error) => {

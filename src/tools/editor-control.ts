@@ -5,6 +5,8 @@
 import { z } from 'zod';
 import type { GodotClient } from '../bridge/index.js';
 import { logger, logError } from '../utils/logger.js';
+import { validatePath, validatePaths } from '../utils/path-validator.js';
+import { validateGodotArguments } from '../utils/argument-validator.js';
 
 /**
  * Tool input schemas
@@ -171,10 +173,28 @@ export class EditorControlTools {
       const validated = LaunchEditorSchema.parse(args);
       logger.info('Launching Godot editor', { projectPath: validated.projectPath });
 
+      // Validate project path for security (no existence check - handled by Godot bridge)
+      const validatedProjectPath = await validatePath(validated.projectPath, {
+        allowAbsolute: true,
+      });
+
+      // Validate editor path if provided
+      let validatedEditorPath: string | undefined;
+      if (validated.editorPath) {
+        validatedEditorPath = await validatePath(validated.editorPath, {
+          allowAbsolute: true,
+        });
+      }
+
+      // Validate additional arguments for security
+      const validatedArgs = validated.additionalArgs
+        ? validateGodotArguments(validated.additionalArgs)
+        : [];
+
       const result = await this.godotClient.sendRequest('launch_editor', {
-        project_path: validated.projectPath,
-        editor_path: validated.editorPath,
-        additional_args: validated.additionalArgs || [],
+        project_path: validatedProjectPath,
+        editor_path: validatedEditorPath,
+        additional_args: validatedArgs,
       });
 
       logger.info('Godot editor launched successfully', { result });
@@ -199,9 +219,23 @@ export class EditorControlTools {
         debug: validated.debug,
       });
 
+      // Validate project path for security (no existence check - handled by Godot bridge)
+      const validatedProjectPath = await validatePath(validated.projectPath, {
+        allowAbsolute: true,
+      });
+
+      // Validate scene path if provided
+      let validatedScene: string | undefined;
+      if (validated.scene) {
+        validatedScene = await validatePath(validated.scene, {
+          baseDir: validatedProjectPath,
+          allowedExtensions: ['tscn', 'scn'],
+        });
+      }
+
       const result = await this.godotClient.sendRequest('run_project', {
-        project_path: validated.projectPath,
-        scene: validated.scene,
+        project_path: validatedProjectPath,
+        scene: validatedScene,
         debug: validated.debug,
       });
 
@@ -248,8 +282,16 @@ export class EditorControlTools {
       const validated = GetVersionSchema.parse(args);
       logger.debug('Getting Godot version');
 
+      // Validate editor path if provided
+      let validatedEditorPath: string | undefined;
+      if (validated.editorPath) {
+        validatedEditorPath = await validatePath(validated.editorPath, {
+          allowAbsolute: true,
+        });
+      }
+
       const result = await this.godotClient.sendRequest('get_godot_version', {
-        editor_path: validated.editorPath,
+        editor_path: validatedEditorPath,
       });
 
       logger.debug('Got Godot version', { result });
@@ -271,8 +313,13 @@ export class EditorControlTools {
       const validated = ListProjectsSchema.parse(args);
       logger.info('Listing Godot projects', { searchPaths: validated.searchPaths });
 
+      // Validate all search paths for security (no existence check - handled by Godot bridge)
+      const validatedSearchPaths = await validatePaths(validated.searchPaths, {
+        allowAbsolute: true,
+      });
+
       const result = await this.godotClient.sendRequest('list_projects', {
-        search_paths: validated.searchPaths,
+        search_paths: validatedSearchPaths,
         recursive: validated.recursive,
       });
 
@@ -295,8 +342,13 @@ export class EditorControlTools {
       const validated = AnalyzeProjectSchema.parse(args);
       logger.info('Analyzing Godot project', { projectPath: validated.projectPath });
 
+      // Validate project path for security (no existence check - handled by Godot bridge)
+      const validatedProjectPath = await validatePath(validated.projectPath, {
+        allowAbsolute: true,
+      });
+
       const result = await this.godotClient.sendRequest('analyze_project', {
-        project_path: validated.projectPath,
+        project_path: validatedProjectPath,
       });
 
       logger.info('Project analysis complete', { result });

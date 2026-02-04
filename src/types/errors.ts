@@ -156,6 +156,30 @@ export class CircuitBreakerError extends MCPError {
 }
 
 /**
+ * JSON-RPC error - structured error from Godot bridge
+ */
+export class RpcError extends MCPError {
+  readonly code = 'RPC_ERROR';
+  readonly statusCode = 500;
+  readonly rpcCode: number;
+  readonly rpcData?: unknown;
+
+  constructor(rpcCode: number, message: string, correlationId?: string, rpcData?: unknown) {
+    super(`RPC error ${rpcCode}: ${message}`, correlationId);
+    this.rpcCode = rpcCode;
+    this.rpcData = rpcData;
+  }
+
+  override toClientError() {
+    return {
+      ...super.toClientError(),
+      rpcCode: this.rpcCode,
+      rpcData: this.rpcData,
+    };
+  }
+}
+
+/**
  * Convert unknown error to MCPError
  */
 export function toMCPError(error: unknown, correlationId?: string): MCPError {

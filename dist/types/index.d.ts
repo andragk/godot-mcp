@@ -38,6 +38,7 @@ export interface BridgeHealth {
     uptime: number;
     lastCheck: Date;
     version?: string;
+    error?: string;
 }
 /**
  * Server configuration

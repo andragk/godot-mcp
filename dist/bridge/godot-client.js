@@ -5,7 +5,7 @@ import { Pool, request } from 'undici';
 import { z } from 'zod';
 import { logger, logError } from '../utils/logger.js';
 import { generateCorrelationId } from '../utils/correlation-id.js';
-import { TimeoutError, NetworkError, CircuitBreakerError } from '../types/errors.js';
+import { TimeoutError, NetworkError, CircuitBreakerError, RpcError } from '../types/errors.js';
 import { EventEmitter } from 'node:events';
 /**
  * Circuit breaker states
@@ -252,7 +252,7 @@ export class GodotClient extends EventEmitter {
             const jsonResponse = JSON.parse(responseText);
             const validatedResponse = JsonRpcResponseSchema.parse(jsonResponse);
             if (validatedResponse.error) {
-                throw new Error(`RPC error ${validatedResponse.error.code}: ${validatedResponse.error.message}`);
+                throw new RpcError(validatedResponse.error.code, validatedResponse.error.message, correlationId, validatedResponse.error.data);
             }
             return validatedResponse.result;
         }
@@ -304,6 +304,7 @@ export class GodotClient extends EventEmitter {
                     port: this.config.port,
                     uptime: 0,
                     lastCheck: new Date(),
+                    error: `HTTP error ${statusCode}`,
                 };
             }
             const health = (await body.json());
@@ -313,12 +314,14 @@ export class GodotClient extends EventEmitter {
             };
         }
         catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
             logError(error instanceof Error ? error : new Error(String(error)), 'Health check failed', { correlationId });
             return {
                 status: 'unhealthy',
                 port: this.config.port,
                 uptime: 0,
                 lastCheck: new Date(),
+                error: errorMessage,
             };
         }
     }
@@ -344,7 +347,7 @@ export class GodotClient extends EventEmitter {
         }
         catch (error) {
             logError(error instanceof Error ? error : new Error(String(error)), 'Version check failed', { correlationId });
-            return 'unknown';
+            throw error instanceof Error ? error : new Error(String(error));
         }
     }
     /**
@@ -549,20 +552,30 @@ export class GodotClient extends EventEmitter {
             metrics: this.getCircuitMetrics(),
             poolMetrics: this.getPoolMetrics(),
         });
-        // Wait for active connections to complete (with timeout)
-        const closeTimeout = 5000;
-        const startTime = Date.now();
-        while (this.poolMetrics.activeConnections > 0 && Date.now() - startTime < closeTimeout) {
-            await this.sleep(100);
+        try {
+            // Wait for active connections to complete (with timeout)
+            const closeTimeout = 5000;
+            const startTime = Date.now();
+            while (this.poolMetrics.activeConnections > 0 && Date.now() - startTime < closeTimeout) {
+                await this.sleep(100);
+            }
+            if (this.poolMetrics.activeConnections > 0) {
+                logger.warn('Forcing pool close with active connections', {
+                    activeConnections: this.poolMetrics.activeConnections,
+                });
+            }
+            await this.pool.close();
+            this.removeAllListeners();
+            logger.info('GodotClient closed');
         }
-        if (this.poolMetrics.activeConnections > 0) {
-            logger.warn('Forcing pool close with active connections', {
+        catch (error) {
+            logError(error instanceof Error ? error : new Error(String(error)), 'Error while closing GodotClient', {
                 activeConnections: this.poolMetrics.activeConnections,
             });
+            // Still try to remove listeners even if pool close failed
+            this.removeAllListeners();
+            throw error;
         }
-        await this.pool.close();
-        this.removeAllListeners();
-        logger.info('GodotClient closed');
     }
 }
 //# sourceMappingURL=godot-client.js.map

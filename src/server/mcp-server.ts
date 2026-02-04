@@ -21,6 +21,19 @@ import {
   AnalyzeProjectSchema,
 } from '../tools/index.js';
 import {
+  listScenes,
+  readScene,
+  listScripts,
+  readScript,
+  getProjectStructure,
+  ListScenesInputSchema,
+  ReadSceneInputSchema,
+  ListScriptsInputSchema,
+  ReadScriptInputSchema,
+  GetProjectStructureInputSchema,
+  getCacheMetrics,
+} from '../tools/read-tools.js';
+import {
   ValidationError,
   ToolNotFoundError,
   toMCPError,
@@ -310,6 +323,203 @@ export class GodotMCPServer {
       handler: async (args, correlationId) => {
         logger.info('Executing analyze_project', { correlationId, projectPath: args.projectPath });
         return await this.editorTools.analyzeProject(args);
+      },
+    });
+
+    // Read tools for project introspection
+    this.toolRegistry.register({
+      metadata: {
+        name: 'list_scenes',
+        version: '1.0.0',
+        category: 'project',
+        securityLevel: 'safe',
+        description: 'List all scene files (.tscn) in the project',
+      },
+      schema: ListScenesInputSchema,
+      inputSchema: {
+        type: 'object',
+        properties: {
+          projectPath: {
+            type: 'string',
+            description: 'Absolute path to Godot project directory',
+          },
+          directory: {
+            type: 'string',
+            description: 'Subdirectory to search within (relative to project)',
+          },
+          sortBy: {
+            type: 'string',
+            enum: ['path', 'size', 'modified'],
+            description: 'Sort criteria',
+            default: 'path',
+          },
+          ascending: {
+            type: 'boolean',
+            description: 'Sort order',
+            default: true,
+          },
+        },
+        required: ['projectPath'],
+      },
+      handler: async (args, correlationId) => {
+        logger.info('Executing list_scenes', { correlationId, projectPath: args.projectPath });
+        return await listScenes(args);
+      },
+    });
+
+    this.toolRegistry.register({
+      metadata: {
+        name: 'read_scene',
+        version: '1.0.0',
+        category: 'project',
+        securityLevel: 'safe',
+        description: 'Read and parse a Godot scene file (.tscn)',
+      },
+      schema: ReadSceneInputSchema,
+      inputSchema: {
+        type: 'object',
+        properties: {
+          projectPath: {
+            type: 'string',
+            description: 'Absolute path to Godot project directory',
+          },
+          scenePath: {
+            type: 'string',
+            description: 'Path to scene file (relative to project or absolute)',
+          },
+        },
+        required: ['projectPath', 'scenePath'],
+      },
+      handler: async (args, correlationId) => {
+        logger.info('Executing read_scene', { correlationId, scenePath: args.scenePath });
+        return await readScene(args);
+      },
+    });
+
+    this.toolRegistry.register({
+      metadata: {
+        name: 'list_scripts',
+        version: '1.0.0',
+        category: 'project',
+        securityLevel: 'safe',
+        description: 'List all GDScript files (.gd) in the project',
+      },
+      schema: ListScriptsInputSchema,
+      inputSchema: {
+        type: 'object',
+        properties: {
+          projectPath: {
+            type: 'string',
+            description: 'Absolute path to Godot project directory',
+          },
+          directory: {
+            type: 'string',
+            description: 'Subdirectory to search within',
+          },
+          pattern: {
+            type: 'string',
+            description: 'Filename pattern to match (regex)',
+          },
+          sortBy: {
+            type: 'string',
+            enum: ['path', 'size', 'modified', 'lines'],
+            description: 'Sort criteria',
+            default: 'path',
+          },
+        },
+        required: ['projectPath'],
+      },
+      handler: async (args, correlationId) => {
+        logger.info('Executing list_scripts', { correlationId, projectPath: args.projectPath });
+        return await listScripts(args);
+      },
+    });
+
+    this.toolRegistry.register({
+      metadata: {
+        name: 'read_script',
+        version: '1.0.0',
+        category: 'project',
+        securityLevel: 'safe',
+        description: 'Read and analyze a GDScript file (.gd)',
+      },
+      schema: ReadScriptInputSchema,
+      inputSchema: {
+        type: 'object',
+        properties: {
+          projectPath: {
+            type: 'string',
+            description: 'Absolute path to Godot project directory',
+          },
+          scriptPath: {
+            type: 'string',
+            description: 'Path to script file (relative to project or absolute)',
+          },
+          includeAnalysis: {
+            type: 'boolean',
+            description: 'Include code analysis metadata',
+            default: true,
+          },
+        },
+        required: ['projectPath', 'scriptPath'],
+      },
+      handler: async (args, correlationId) => {
+        logger.info('Executing read_script', { correlationId, scriptPath: args.scriptPath });
+        return await readScript(args);
+      },
+    });
+
+    this.toolRegistry.register({
+      metadata: {
+        name: 'get_project_structure',
+        version: '1.0.0',
+        category: 'project',
+        securityLevel: 'safe',
+        description: 'Get complete project directory structure and statistics',
+      },
+      schema: GetProjectStructureInputSchema,
+      inputSchema: {
+        type: 'object',
+        properties: {
+          projectPath: {
+            type: 'string',
+            description: 'Absolute path to Godot project directory',
+          },
+          maxDepth: {
+            type: 'number',
+            description: 'Maximum directory depth to traverse',
+            default: 5,
+          },
+          includeStats: {
+            type: 'boolean',
+            description: 'Include file statistics',
+            default: true,
+          },
+        },
+        required: ['projectPath'],
+      },
+      handler: async (args, correlationId) => {
+        logger.info('Executing get_project_structure', { correlationId, projectPath: args.projectPath });
+        return await getProjectStructure(args);
+      },
+    });
+
+    this.toolRegistry.register({
+      metadata: {
+        name: 'get_cache_metrics',
+        version: '1.0.0',
+        category: 'system',
+        securityLevel: 'safe',
+        description: 'Get cache performance metrics (hit ratio, size, evictions)',
+      },
+      schema: EmptySchema,
+      inputSchema: {
+        type: 'object',
+        properties: {},
+      },
+      handler: async (_args, correlationId) => {
+        logger.debug('Executing get_cache_metrics', { correlationId });
+        return getCacheMetrics();
       },
     });
 

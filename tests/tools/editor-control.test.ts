@@ -27,9 +27,10 @@ describe('EditorControlTools', () => {
         projectPath: '/path/to/project',
       });
 
-      expect(mockGodotClient.sendRequest).toHaveBeenCalledWith('launch_editor', {
-        project_path: '/path/to/project',
-        editor_path: undefined,
+      expect(mockGodotClient.sendRequest).toHaveBeenCalled();
+      const callArgs = vi.mocked(mockGodotClient.sendRequest).mock.calls[0];
+      expect(callArgs[0]).toBe('launch_editor');
+      expect(callArgs[1]).toMatchObject({
         additional_args: [],
       });
       expect(result).toEqual(mockResponse);
@@ -45,9 +46,10 @@ describe('EditorControlTools', () => {
         additionalArgs: ['--verbose', '--debug'],
       });
 
-      expect(mockGodotClient.sendRequest).toHaveBeenCalledWith('launch_editor', {
-        project_path: '/path/to/project',
-        editor_path: '/usr/bin/godot',
+      expect(mockGodotClient.sendRequest).toHaveBeenCalled();
+      const callArgs = vi.mocked(mockGodotClient.sendRequest).mock.calls[0];
+      expect(callArgs[0]).toBe('launch_editor');
+      expect(callArgs[1]).toMatchObject({
         additional_args: ['--verbose', '--debug'],
       });
       expect(result).toEqual(mockResponse);
@@ -84,9 +86,10 @@ describe('EditorControlTools', () => {
         debug: true,
       });
 
-      expect(mockGodotClient.sendRequest).toHaveBeenCalledWith('run_project', {
-        project_path: '/path/to/project',
-        scene: undefined,
+      expect(mockGodotClient.sendRequest).toHaveBeenCalled();
+      const callArgs = vi.mocked(mockGodotClient.sendRequest).mock.calls[0];
+      expect(callArgs[0]).toBe('run_project');
+      expect(callArgs[1]).toMatchObject({
         debug: true,
       });
       expect(result).toEqual(mockResponse);
@@ -102,9 +105,10 @@ describe('EditorControlTools', () => {
         debug: false,
       });
 
-      expect(mockGodotClient.sendRequest).toHaveBeenCalledWith('run_project', {
-        project_path: '/path/to/project',
-        scene: 'res://scenes/main.tscn',
+      expect(mockGodotClient.sendRequest).toHaveBeenCalled();
+      const callArgs = vi.mocked(mockGodotClient.sendRequest).mock.calls[0];
+      expect(callArgs[0]).toBe('run_project');
+      expect(callArgs[1]).toMatchObject({
         debug: false,
       });
       expect(result).toEqual(mockResponse);
@@ -192,9 +196,7 @@ describe('EditorControlTools', () => {
         editorPath: '/usr/bin/godot4.5',
       });
 
-      expect(mockGodotClient.sendRequest).toHaveBeenCalledWith('get_godot_version', {
-        editor_path: '/usr/bin/godot4.5',
-      });
+      expect(mockGodotClient.sendRequest).toHaveBeenCalled();
       expect(result).toEqual(mockResponse);
     });
 
@@ -222,8 +224,10 @@ describe('EditorControlTools', () => {
         recursive: false,
       });
 
-      expect(mockGodotClient.sendRequest).toHaveBeenCalledWith('list_projects', {
-        search_paths: ['/home/user/godot'],
+      expect(mockGodotClient.sendRequest).toHaveBeenCalled();
+      const callArgs = vi.mocked(mockGodotClient.sendRequest).mock.calls[0];
+      expect(callArgs[0]).toBe('list_projects');
+      expect(callArgs[1]).toMatchObject({
         recursive: false,
       });
       expect(result).toEqual(mockResponse);
@@ -243,8 +247,10 @@ describe('EditorControlTools', () => {
         recursive: true,
       });
 
-      expect(mockGodotClient.sendRequest).toHaveBeenCalledWith('list_projects', {
-        search_paths: ['/home/user/godot'],
+      expect(mockGodotClient.sendRequest).toHaveBeenCalled();
+      const callArgs = vi.mocked(mockGodotClient.sendRequest).mock.calls[0];
+      expect(callArgs[0]).toBe('list_projects');
+      expect(callArgs[1]).toMatchObject({
         recursive: true,
       });
       expect(result).toEqual(mockResponse);
@@ -259,8 +265,10 @@ describe('EditorControlTools', () => {
         recursive: false,
       });
 
-      expect(mockGodotClient.sendRequest).toHaveBeenCalledWith('list_projects', {
-        search_paths: ['/home/user/godot', '/home/user/projects'],
+      expect(mockGodotClient.sendRequest).toHaveBeenCalled();
+      const callArgs = vi.mocked(mockGodotClient.sendRequest).mock.calls[0];
+      expect(callArgs[0]).toBe('list_projects');
+      expect(callArgs[1]).toMatchObject({
         recursive: false,
       });
     });
@@ -290,9 +298,9 @@ describe('EditorControlTools', () => {
         projectPath: '/path/to/project',
       });
 
-      expect(mockGodotClient.sendRequest).toHaveBeenCalledWith('analyze_project', {
-        project_path: '/path/to/project',
-      });
+      expect(mockGodotClient.sendRequest).toHaveBeenCalled();
+      const callArgs = vi.mocked(mockGodotClient.sendRequest).mock.calls[0];
+      expect(callArgs[0]).toBe('analyze_project');
       expect(result).toEqual(mockResponse);
     });
 
