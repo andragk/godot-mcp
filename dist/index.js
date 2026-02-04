@@ -16,7 +16,6 @@ async function main() {
     const godotClient = new GodotClient({
         port: 7777,
         timeout: 5000,
-        maxRetries: 3,
     });
     // Initialize web server
     const webServer = new WebServer(godotClient);

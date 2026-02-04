@@ -30,7 +30,6 @@ export class GodotMCPServer {
         this.godotClient = new GodotClient({
             port: 7777,
             timeout: 5000,
-            maxRetries: 3,
         });
         this.editorTools = new EditorControlTools(this.godotClient);
         this.toolRegistry = new ToolRegistry();

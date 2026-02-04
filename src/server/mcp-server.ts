@@ -22,13 +22,10 @@ import {
 } from '../tools/index.js';
 import {
   ValidationError,
-  NetworkError,
   ToolNotFoundError,
-  InternalError,
   toMCPError,
-  type MCPError,
 } from '../types/errors.js';
-import { ToolRegistry, type ToolDefinition } from '../types/tool-registry.js';
+import { ToolRegistry } from '../types/tool-registry.js';
 
 /**
  * Empty schema for tools with no arguments
@@ -51,7 +48,6 @@ export class GodotMCPServer {
     this.godotClient = new GodotClient({
       port: 7777,
       timeout: 5000,
-      maxRetries: 3,
     });
     this.editorTools = new EditorControlTools(this.godotClient);
     this.toolRegistry = new ToolRegistry();
