@@ -81,6 +81,7 @@ describe('EditorControlTools', () => {
 
       const result = await editorTools.runProject({
         projectPath: '/path/to/project',
+        debug: true,
       });
 
       expect(mockGodotClient.sendRequest).toHaveBeenCalledWith('run_project', {
@@ -117,6 +118,7 @@ describe('EditorControlTools', () => {
       await expect(
         editorTools.runProject({
           projectPath: '/path/to/project',
+          debug: true,
         })
       ).rejects.toThrow('Project not found');
     });
@@ -129,6 +131,7 @@ describe('EditorControlTools', () => {
 
       const result = await editorTools.stopExecution({
         processId: 12345,
+        force: false,
       });
 
       expect(mockGodotClient.sendRequest).toHaveBeenCalledWith('stop_execution', {
@@ -162,6 +165,7 @@ describe('EditorControlTools', () => {
       await expect(
         editorTools.stopExecution({
           processId: 99999,
+          force: false,
         })
       ).rejects.toThrow('Process not found');
     });
@@ -215,6 +219,7 @@ describe('EditorControlTools', () => {
 
       const result = await editorTools.listProjects({
         searchPaths: ['/home/user/godot'],
+        recursive: false,
       });
 
       expect(mockGodotClient.sendRequest).toHaveBeenCalledWith('list_projects', {
@@ -251,6 +256,7 @@ describe('EditorControlTools', () => {
 
       await editorTools.listProjects({
         searchPaths: ['/home/user/godot', '/home/user/projects'],
+        recursive: false,
       });
 
       expect(mockGodotClient.sendRequest).toHaveBeenCalledWith('list_projects', {
@@ -263,6 +269,7 @@ describe('EditorControlTools', () => {
       await expect(
         editorTools.listProjects({
           searchPaths: undefined as any,
+          recursive: false,
         })
       ).rejects.toThrow();
     });
