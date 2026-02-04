@@ -69,7 +69,94 @@ your-godot-project/
 
 4. **Restart Godot** to activate the HTTP server
 
-### Step 3: Configure Your MCP Client
+### Step 3: Environment Variable Configuration
+
+Configure security and connection settings via environment variables.
+
+#### Create Environment File
+
+Create a `.env` file in your project directory (where you run `godot-mcp-server`):
+
+```bash
+# .env
+
+# Server Configuration
+PORT=8080                     # Web UI server port
+HOST=127.0.0.1                # Bind address (localhost only)
+NODE_ENV=development          # Environment: development | production
+
+# Godot Bridge
+GODOT_PORT=7777               # Godot HTTP server port
+BRIDGE_TIMEOUT=5000           # Request timeout in milliseconds
+
+# Security (Optional but Recommended)
+MCP_API_KEY=                  # API key for Web UI authentication
+ALLOWED_ORIGINS=              # Comma-separated CORS origins
+
+# Rate Limiting
+RATE_LIMIT_WINDOW=900000      # Window in ms (15 minutes)
+RATE_LIMIT_MAX_READS=100      # Max read requests per window
+RATE_LIMIT_MAX_WRITES=20      # Max write requests per window
+
+# Logging
+LOG_LEVEL=info                # Logging level: debug | info | warn | error
+LOG_FORMAT=pretty             # Log format: json | pretty
+```
+
+#### Security Configuration Examples
+
+**Development Setup** (Minimal Security):
+```bash
+# .env.development
+PORT=8080
+HOST=127.0.0.1
+NODE_ENV=development
+GODOT_PORT=7777
+LOG_LEVEL=debug
+LOG_FORMAT=pretty
+```
+
+**Production Setup** (Enhanced Security):
+```bash
+# .env.production
+PORT=8080
+HOST=127.0.0.1
+NODE_ENV=production
+GODOT_PORT=7777
+
+# Security
+MCP_API_KEY=your-secure-random-key-here  # Generate with: openssl rand -hex 32
+ALLOWED_ORIGINS=http://localhost:8080,http://127.0.0.1:8080
+
+# Logging
+LOG_LEVEL=warn
+LOG_FORMAT=json
+```
+
+#### Environment Variable Reference
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PORT` | `8080` | Web UI HTTP server port |
+| `HOST` | `127.0.0.1` | Server bind address (MUST be localhost) |
+| `NODE_ENV` | `development` | Environment mode (affects logging/errors) |
+| `GODOT_PORT` | `7777` | Godot bridge HTTP server port |
+| `BRIDGE_TIMEOUT` | `5000` | Bridge request timeout (ms) |
+| `MCP_API_KEY` | (optional) | Authentication token for Web UI |
+| `ALLOWED_ORIGINS` | `localhost:8080` | CORS allowed origins (comma-separated) |
+| `RATE_LIMIT_WINDOW` | `900000` | Rate limit window (15 minutes) |
+| `RATE_LIMIT_MAX_READS` | `100` | Max read requests per window |
+| `RATE_LIMIT_MAX_WRITES` | `20` | Max write requests per window |
+| `LOG_LEVEL` | `info` | Logging verbosity (debug/info/warn/error) |
+| `LOG_FORMAT` | `pretty` | Log format (pretty/json) |
+
+**Security Notes**:
+- **Never** set `HOST=0.0.0.0` - this exposes the server to your network
+- Generate strong API keys: `openssl rand -hex 32` or `uuidgen`
+- Use separate `.env` files for development and production
+- Add `.env` to `.gitignore` to avoid committing secrets
+
+### Step 4: Configure Your MCP Client
 
 #### For Claude Desktop (Recommended)
 

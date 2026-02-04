@@ -70,6 +70,29 @@ The Godot MCP Server uses a three-layer architecture:
 - `method` (string, required): Dot-notation method name (e.g., `"scene.read"`)
 - `params` (object, optional): Method parameters as key-value object
 
+**Correlation ID Header:**
+
+All requests include a correlation ID for request tracing:
+
+```http
+POST /rpc HTTP/1.1
+Host: localhost:7777
+Content-Type: application/json
+X-Correlation-ID: 550e8400-e29b-41d4-a716-446655440000
+
+{
+  "jsonrpc": "2.0",
+  "id": "req-001",
+  "method": "scene.read",
+  "params": { "path": "res://main.tscn" }
+}
+```
+
+**Correlation ID Format**: UUIDs (v4) generated per request
+- Used for distributed tracing across Node.js → Godot bridge
+- Included in all log entries for troubleshooting
+- Returned in error responses for support reference
+
 ### Response Format
 
 **Successful Response:**
@@ -86,19 +109,20 @@ The Godot MCP Server uses a three-layer architecture:
 }
 ```
 
-**Error Response:**
+**Error Response (Enterprise Format):**
 
 ```json
 {
   "jsonrpc": "2.0",
   "id": "req-001",
   "error": {
-    "code": -32602,
-    "message": "Invalid params",
-    "data": {
-      "field": "path",
-      "reason": "Path traversal detected"
-    }
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid scene path: path traversal detected",
+    "correlationId": "550e8400-e29b-41d4-a716-446655440000",
+    "field": "path",
+    "issues": [
+      { "path": ["path"], "message": "Must start with res://" }
+    ]
   }
 }
 ```
@@ -107,9 +131,81 @@ The Godot MCP Server uses a three-layer architecture:
 
 - `result` (any, mutually exclusive with `error`): Method result on success
 - `error` (object, mutually exclusive with `result`): Error object on failure
-  - `code` (number): Standard or custom error code
+  - `code` (string): **Structured error code** (e.g., `VALIDATION_ERROR`, `NETWORK_ERROR`)
   - `message` (string): Human-readable error message
-  - `data` (any, optional): Additional error context
+  - `correlationId` (string, optional): Request correlation ID for tracing
+  - Additional type-specific fields (see Error Handling Architecture)
+
+**Response Headers:**
+
+```http
+HTTP/1.1 400 Bad Request
+Content-Type: application/json
+X-Correlation-ID: 550e8400-e29b-41d4-a716-446655440000
+
+{...error response...}
+```
+
+### Error Response Types
+
+The Godot MCP Server uses a **structured error classification system** with typed error codes:
+
+| Error Type | Code | HTTP Status | Description |
+|-----------|------|-------------|-------------|
+| ValidationError | `VALIDATION_ERROR` | 400 | Invalid client input |
+| ToolNotFoundError | `TOOL_NOT_FOUND` | 404 | Unknown tool name |
+| NetworkError | `NETWORK_ERROR` | 503 | Bridge communication failure |
+| TimeoutError | `TIMEOUT_ERROR` | 504 | Operation exceeded timeout |
+| InternalError | `INTERNAL_ERROR` | 500 | Unexpected server error |
+| CircuitBreakerError | `CIRCUIT_BREAKER_OPEN` | 503 | Service temporarily unavailable |
+
+**See**: [Error Handling Architecture](../architecture/error-handling.md) for complete error documentation
+
+**Example Error Responses:**
+
+**NetworkError** (Bridge Unreachable):
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "req-002",
+  "error": {
+    "code": "NETWORK_ERROR",
+    "message": "Failed to connect to Godot bridge on port 7777",
+    "correlationId": "550e8400-e29b-41d4-a716-446655440001",
+    "retryable": true
+  }
+}
+```
+
+**TimeoutError** (Operation Too Slow):
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "req-003",
+  "error": {
+    "code": "TIMEOUT_ERROR",
+    "message": "Operation timed out after 5000ms: scene.read",
+    "correlationId": "550e8400-e29b-41d4-a716-446655440002",
+    "timeoutMs": 5000,
+    "operation": "scene.read"
+  }
+}
+```
+
+**InternalError** (Sanitized):
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "req-004",
+  "error": {
+    "code": "INTERNAL_ERROR",
+    "message": "An internal error occurred. Please contact support with the correlation ID.",
+    "correlationId": "550e8400-e29b-41d4-a716-446655440003"
+  }
+}
+```
+
+**Note**: Internal error messages are **always sanitized** to prevent leakage of implementation details. Full error details are logged server-side with the correlation ID for troubleshooting.
 
 ---
 

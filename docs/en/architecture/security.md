@@ -220,6 +220,306 @@ generateDocumentation({
 
 ---
 
+## Enterprise Security Features (Phase 1) ✅
+
+### Rate Limiting
+
+**Implementation**: Express middleware with sliding window algorithm
+
+**Configuration**:
+```typescript
+// Read operations: 100 requests per 15 minutes
+const readLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: 'Too many read requests, please try again later',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Write operations: 20 requests per 15 minutes
+const writeLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: 'Too many write requests, please try again later',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Apply per route
+app.get('/api/*', readLimiter);
+app.post('/api/*', writeLimiter);
+```
+
+**Headers**:
+```http
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 87
+X-RateLimit-Reset: 1643990400
+```
+
+**Rate Limit Exceeded Response**:
+```json
+{
+  "error": {
+    "code": "RATE_LIMIT_EXCEEDED",
+    "message": "Too many requests, please try again later",
+    "retryAfter": 900
+  }
+}
+```
+
+---
+
+### CORS Configuration
+
+**Implementation**: Origin validation with environment-based allowlist
+
+**Default Allowed Origins**:
+```typescript
+const ALLOWED_ORIGINS = [
+  'http://localhost:8080',
+  'http://127.0.0.1:8080',
+  ...process.env.ALLOWED_ORIGINS?.split(',') ?? []
+];
+```
+
+**CORS Setup**:
+```typescript
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (Postman, curl)
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+
+    if (ALLOWED_ORIGINS.includes(origin)) {
+      callback(null, true);
+    } else {
+      logger.warn('CORS: Origin not allowed', { origin });
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
+  maxAge: 86400 // 24 hours
+}));
+```
+
+**Environment Configuration**:
+```bash
+# .env
+ALLOWED_ORIGINS=http://localhost:3000,https://myapp.com
+```
+
+---
+
+### Authentication for SSE Endpoints
+
+**Implementation**: Token-based authentication with IP validation
+
+**Middleware**:
+```typescript
+function authenticateRequest(req: Request, res: Response, next: NextFunction): void {
+  // 1. Verify localhost (MVP requirement)
+  const clientIp = req.ip || req.socket.remoteAddress || '';
+  const isLocalhost = 
+    clientIp === '127.0.0.1' || 
+    clientIp === '::1' || 
+    clientIp === '::ffff:127.0.0.1';
+
+  if (!isLocalhost) {
+    logger.warn('Unauthorized access attempt to SSE endpoint', {
+      ip: clientIp,
+      userAgent: req.get('user-agent')
+    });
+    res.status(403).json({ error: 'Access denied' });
+    return;
+  }
+
+  // 2. Optional API key verification
+  if (process.env.MCP_API_KEY) {
+    const providedKey = 
+      req.headers['x-api-key'] || 
+      req.headers.authorization?.replace('Bearer ', '');
+    
+    if (providedKey !== process.env.MCP_API_KEY) {
+      logger.warn('Invalid API key provided', { ip: clientIp });
+      res.status(401).json({ error: 'Authentication required' });
+      return;
+    }
+  }
+
+  next();
+}
+
+// Apply to SSE endpoints
+app.get('/api/logs/stream', authenticateRequest, handleSSE);
+```
+
+**API Key Configuration**:
+```bash
+# .env
+MCP_API_KEY=your-secure-random-key-here
+```
+
+**Client Authentication**:
+```typescript
+// Using X-API-Key header
+const eventSource = new EventSource('/api/logs/stream', {
+  headers: {
+    'X-API-Key': 'your-secure-random-key-here'
+  }
+});
+
+// Using Authorization header
+fetch('/api/status', {
+  headers: {
+    'Authorization': 'Bearer your-secure-random-key-here'
+  }
+});
+```
+
+---
+
+### Security Headers (Helmet)
+
+**Implementation**: Helmet middleware with Content Security Policy
+
+**Configuration**:
+```typescript
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", 'data:', 'https:'],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["'none'"],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+}));
+```
+
+**Response Headers**:
+```http
+Content-Security-Policy: default-src 'self'; script-src 'self'; ...
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+X-XSS-Protection: 0
+Strict-Transport-Security: max-age=15552000; includeSubDomains
+```
+
+**Benefits**:
+- **XSS Protection**: Prevents inline script execution
+- **Clickjacking Prevention**: Blocks iframe embedding
+- **MIME Sniffing**: Forces correct content type
+- **HTTPS Enforcement**: HSTS header (Phase 2)
+
+---
+
+### Request Validation & Sanitization
+
+**Implementation**: JSON validation and XSS prevention
+
+**Middleware**:
+```typescript
+function validateRequest(req: Request, res: Response, next: NextFunction): void {
+  // 1. Validate JSON structure
+  if (req.method === 'POST' && req.body) {
+    if (typeof req.body !== 'object' || Array.isArray(req.body)) {
+      res.status(400).json({ error: 'Invalid request format' });
+      return;
+    }
+
+    // 2. Sanitize string inputs
+    sanitizeObject(req.body);
+  }
+
+  next();
+}
+
+function sanitizeObject(obj: Record<string, unknown>): void {
+  for (const key in obj) {
+    if (typeof obj[key] === 'string') {
+      // Remove dangerous characters
+      obj[key] = (obj[key] as string)
+        .replace(/[<>'"]/g, '')
+        .trim();
+    } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+      sanitizeObject(obj[key] as Record<string, unknown>);
+    }
+  }
+}
+```
+
+**Body Size Limits**:
+```typescript
+app.use(express.json({ limit: '100kb' }));
+```
+
+---
+
+### Environment Variables Reference
+
+**Required Variables**:
+```bash
+# Server Configuration
+PORT=8080                     # Web UI server port (default: 8080)
+HOST=127.0.0.1                # Bind address (MUST be localhost for MVP)
+NODE_ENV=development          # Environment: development | production
+
+# Godot Bridge
+GODOT_PORT=7777               # Godot HTTP server port (default: 7777)
+BRIDGE_TIMEOUT=5000           # Request timeout in milliseconds
+
+# Security (Optional)
+MCP_API_KEY=                  # API key for authentication (optional for MVP)
+ALLOWED_ORIGINS=              # Comma-separated CORS origins
+
+# Rate Limiting
+RATE_LIMIT_WINDOW=900000      # Window in ms (default: 15 minutes)
+RATE_LIMIT_MAX_READS=100      # Max read requests per window
+RATE_LIMIT_MAX_WRITES=20      # Max write requests per window
+
+# Logging
+LOG_LEVEL=info                # Logging level: debug | info | warn | error
+LOG_FORMAT=json               # Log format: json | pretty
+```
+
+**Production Example**:
+```bash
+# .env.production
+PORT=8080
+HOST=127.0.0.1
+NODE_ENV=production
+GODOT_PORT=7777
+MCP_API_KEY=prod-key-abc123xyz789
+ALLOWED_ORIGINS=https://myapp.com
+LOG_LEVEL=warn
+LOG_FORMAT=json
+```
+
+**Development Example**:
+```bash
+# .env.development
+PORT=8080
+HOST=127.0.0.1
+NODE_ENV=development
+GODOT_PORT=7777
+LOG_LEVEL=debug
+LOG_FORMAT=pretty
+```
+
+---
+
 ## Security Controls (MVP - Phase 1)
 
 ### Network Binding Restrictions
