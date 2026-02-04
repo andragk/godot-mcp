@@ -17,6 +17,7 @@ export declare function log(level: 'debug' | 'info' | 'warn' | 'error', message:
  * Log an error with full stack trace
  * @param error - Error object
  * @param message - Optional context message
+ * @param context - Additional context data (e.g., correlationId)
  */
-export declare function logError(error: Error, message?: string): void;
+export declare function logError(error: Error, message?: string, context?: Record<string, unknown>): void;
 //# sourceMappingURL=logger.d.ts.map

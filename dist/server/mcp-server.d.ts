@@ -6,8 +6,13 @@ export declare class GodotMCPServer {
     private readonly server;
     private readonly godotClient;
     private readonly editorTools;
+    private readonly toolRegistry;
     private readonly startTime;
     constructor();
+    /**
+     * Register all available tools in the registry
+     */
+    private registerTools;
     /**
      * Setup request handlers for the MCP server
      */

@@ -40,11 +40,14 @@ export function log(level, message, context) {
  * Log an error with full stack trace
  * @param error - Error object
  * @param message - Optional context message
+ * @param context - Additional context data (e.g., correlationId)
  */
-export function logError(error, message) {
+export function logError(error, message, context) {
     logger.error(message || error.message, {
+        ...context,
         error: error.message,
         stack: error.stack,
+        name: error.name,
     });
 }
 //# sourceMappingURL=logger.js.map

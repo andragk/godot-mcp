@@ -1,6 +1,6 @@
 /**
  * MCP Tools Module
- * Exports all MCP tool definitions and handlers
+ * Exports all MCP tool definitions, schemas, and handlers
  */
-export * from './editor-control.js';
+export { LaunchEditorSchema, RunProjectSchema, StopExecutionSchema, GetVersionSchema, ListProjectsSchema, AnalyzeProjectSchema, editorControlTools, EditorControlTools, } from './editor-control.js';
 //# sourceMappingURL=index.d.ts.map

@@ -1,6 +1,8 @@
 /**
  * Core type definitions for the Godot MCP server
  */
+export * from './errors.js';
+export * from './tool-registry.js';
 /**
  * JSON-RPC 2.0 request structure
  */

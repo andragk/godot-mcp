@@ -360,7 +360,7 @@ describe('GodotClient', () => {
         } as never);
       });
 
-      const result = await client.sendRequest('test_method');
+      const result = await client.sendRequest('test_method', {}, { retryable: true });
       expect(result).toBe('success');
       // Should have retried and succeeded on 2nd attempt
       expect(attemptCount).toBe(2);
@@ -395,7 +395,7 @@ describe('GodotClient', () => {
         } as never);
       });
 
-      await client.sendRequest('test_method');
+      await client.sendRequest('test_method', {}, { retryable: true });
 
       // Should have made 3 attempts
       expect(attemptTimes.length).toBe(3);
