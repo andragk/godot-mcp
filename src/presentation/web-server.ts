@@ -389,6 +389,37 @@ export class WebServer {
       res.json(metrics);
     });
 
+    // Tool Explorer API endpoints
+    this.app.get('/api/tools', readLimiter, (_req: Request, res: Response) => {
+      // Return list of available MCP tools
+      // This will be populated by the MCP server's tool registry
+      res.json({ 
+        tools: [] // Placeholder - will be populated from MCP server  
+      });
+    });
+
+    this.app.post('/api/execute', writeLimiter, async (req: Request, res: Response) => {
+      try {
+        const { tool, arguments: args } = req.body;
+        
+        if (!tool) {
+          res.status(400).json({ error: 'Tool name is required' });
+          return;
+        }
+
+        // Execute tool via MCP server (placeholder)
+        // In production, this would call the MCP server's tool execution
+        res.json({ 
+          result: 'Tool execution not yet implemented',
+          tool,
+          arguments: args
+        });
+      } catch (error) {
+        logError(error instanceof Error ? error : new Error(String(error)), 'Tool execution failed');
+        res.status(500).json({ error: error instanceof Error ? error.message : 'Tool execution failed' });
+      }
+    });
+
     // Error handling middleware
     this.app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
       // Log full error details server-side
