@@ -1,0 +1,417 @@
+# Getting Started
+
+Get up and running with Godot MCP Server in under 10 minutes.
+
+---
+
+## Prerequisites
+
+### Required Software
+
+- **Node.js 20+** ([download](https://nodejs.org/))
+- **Godot 4.6+** ([download](https://godotengine.org/download))
+- **VS Code** or **Claude Desktop** (MCP client)
+
+### Knowledge Requirements
+
+- Basic familiarity with Godot Engine
+- Command-line proficiency (npm, terminal navigation)
+- Understanding of JSON and REST APIs (helpful but not required)
+
+---
+
+## Installation
+
+### Step 1: Install Node.js MCP Server
+
+Install globally via npm:
+
+```bash
+npm install -g godot-mcp-server
+```
+
+Or use npx (no installation):
+
+```bash
+npx godot-mcp-server --version
+```
+
+Verify installation:
+
+```bash
+godot-mcp-server --version
+# Output: godot-mcp-server v1.0.0
+```
+
+### Step 2: Install Godot Bridge Addon
+
+1. **Download** the latest `godot-mcp-bridge.zip` from [Releases](https://github.com/your-org/godot-mcp-server/releases)
+
+2. **Extract** to your project's `addons/` directory:
+
+```
+your-godot-project/
+├── addons/
+│   └── godot-mcp-bridge/
+│       ├── plugin.cfg
+│       ├── http_server.gd
+│       ├── tool_manager.gd
+│       └── ...
+├── scenes/
+├── scripts/
+└── project.godot
+```
+
+3. **Enable** the plugin in Godot:
+   - Open **Project > Project Settings > Plugins**
+   - Check the box next to "Godot MCP Bridge"
+   - Click "Enable"
+
+4. **Restart Godot** to activate the HTTP server
+
+### Step 3: Configure Your MCP Client
+
+#### For Claude Desktop (Recommended)
+
+Edit the config file:
+
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+- **Linux**: `~/.config/Claude/claude_desktop_config.json`
+
+Add the Godot server:
+
+```json
+{
+  "mcpServers": {
+    "godot": {
+      "command": "godot-mcp-server",
+      "args": [
+        "--project",
+        "/absolute/path/to/your/godot/project",
+        "--log-level",
+        "info"
+      ],
+      "env": {
+        "GODOT_PORT": "7777"
+      }
+    }
+  }
+}
+```
+
+#### For VS Code with MCP Extension
+
+Install the [MCP Extension](https://marketplace.visualstudio.com/items?itemName=modelcontextprotocol.mcp-vscode)
+
+Add to `.vscode/settings.json`:
+
+```json
+{
+  "mcp.servers": {
+    "godot": {
+      "command": "godot-mcp-server",
+      "args": [
+        "--project",
+        "${workspaceFolder}",
+        "--port",
+        "7777"
+      ]
+    }
+  }
+}
+```
+
+---
+
+## Verification
+
+### 1. Check Server Status
+
+Open the Sidecar Web UI:
+
+```
+http://localhost:8080
+```
+
+You should see:
+- ✅ **Server Status**: Running
+- ✅ **Godot Connection**: Connected
+- ✅ **Uptime**: 0h 0m 15s
+
+### 2. Test Health Endpoint
+
+```bash
+curl http://localhost:7777/health
+```
+
+Expected response:
+
+```json
+{
+  "status": "healthy",
+  "uptime_seconds": 42,
+  "godot_version": "4.6.0",
+  "bridge_version": "1.0.0"
+}
+```
+
+### 3. First Tool Invocation
+
+In Claude Desktop or VS Code, try:
+
+> "List all scenes in my Godot project"
+
+Expected response:
+
+```
+I found 8 scenes in your project:
+
+• scenes/MainMenu.tscn
+• scenes/levels/Level1.tscn
+• scenes/levels/Level2.tscn
+• scenes/characters/Player.tscn
+• scenes/characters/Enemy.tscn
+• scenes/ui/HUD.tscn
+• scenes/ui/PauseMenu.tscn
+• scenes/ui/GameOverScreen.tscn
+```
+
+---
+
+## Your First Workflows
+
+### Read a Scene
+
+> "Read the Player.tscn scene and describe its structure"
+
+The AI will invoke `read_scene` and provide a summary:
+
+```
+The Player scene has the following structure:
+
+Root: Player (CharacterBody2D)
+├── Sprite2D (texture: player_sprite.png)
+├── CollisionShape2D (shape: CapsuleShape2D)
+├── Camera2D (zoom: 2.0)
+├── AnimationPlayer
+└── HealthComponent (script: health_component.gd)
+
+Key properties:
+- Motion Mode: Grounded
+- Velocity: Vector2(0, 0)
+- Max Speed: 300
+- Jump Force: -600
+
+Attached script: res://scripts/player.gd
+```
+
+### Analyze Code
+
+> "Read Player.gd and suggest performance improvements"
+
+The AI will invoke `read_script` and provide analysis:
+
+```
+I've reviewed your Player.gd script. Here are some optimization suggestions:
+
+1. Line 45: Cache `get_node("Sprite2D")` in _ready() instead of 
+   calling it every frame in _process()
+
+2. Line 78: Use `move_and_slide()` instead of manually calculating 
+   collisions for better performance
+
+3. Lines 120-135: The attack logic could be extracted into a 
+   separate state machine for better maintainability
+
+Would you like me to implement any of these changes?
+```
+
+### Create New Content
+
+> "Create a simple collectible coin scene with rotation animation"
+
+The AI will invoke `create_scene`:
+
+```
+I've created scenes/items/Coin.tscn with:
+
+Structure:
+- Coin (Area2D)
+  ├── Sprite2D (placeholder texture)
+  ├── CollisionShape2D (circular)
+  └── AnimationPlayer (rotate_loop)
+
+Features:
+- Rotation animation (360° over 2 seconds)
+- Collision detection on Area2D layer 4
+- Ready for custom script attachment
+
+The scene is saved and ready to use. Would you like me to:
+1. Create a script to handle collection logic?
+2. Add particle effects on collection?
+3. Create a CoinManager for tracking collection?
+```
+
+---
+
+## Command-Line Options
+
+### Basic Usage
+
+```bash
+godot-mcp-server --project /path/to/project
+```
+
+### All Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--project <path>` | Path to Godot project root (required) | - |
+| `--port <number>` | Godot bridge HTTP port | `7777` |
+| `--ui-port <number>` | Sidecar Web UI port | `8080` |
+| `--log-level <level>` | Logging verbosity (debug/info/warn/error) | `info` |
+| `--cache-ttl <seconds>` | Resource cache TTL | `300` |
+| `--max-cache-size <mb>` | Maximum cache size in MB | `50` |
+| `--auth-key <key>` | API key for authentication (Phase 2) | - |
+| `--no-ui` | Disable Sidecar Web UI | `false` |
+| `--backup-dir <path>` | Directory for write operation backups | `.godot/mcp-backups` |
+
+### Examples
+
+**Development with debug logging**:
+
+```bash
+godot-mcp-server \
+  --project ~/dev/my-game \
+  --log-level debug \
+  --ui-port 3000
+```
+
+**Production with caching**:
+
+```bash
+godot-mcp-server \
+  --project /var/www/game-project \
+  --cache-ttl 600 \
+  --max-cache-size 100 \
+  --auth-key $MCP_AUTH_KEY \
+  --no-ui
+```
+
+---
+
+## Troubleshooting
+
+### Server Won't Start
+
+**Symptom**: `Error: EADDRINUSE: address already in use`
+
+**Cause**: Port 7777 or 8080 already in use
+
+**Solution**:
+
+```bash
+# Check what's using the port (macOS/Linux)
+lsof -i :7777
+
+# Kill the process or use different ports
+godot-mcp-server --project . --port 7778 --ui-port 8081
+```
+
+### Godot Connection Failed
+
+**Symptom**: Web UI shows "Disconnected" status
+
+**Causes & Solutions**:
+
+1. **Godot not running**
+   - Open your Godot project in the editor
+   - Ensure the addon is enabled in Project Settings
+
+2. **Wrong project path**
+   - Verify `--project` points to the directory containing `project.godot`
+   - Use absolute paths for reliability
+
+3. **Firewall blocking localhost**
+   - Check firewall settings
+   - Try disabling temporarily for testing
+
+4. **Port conflict**
+   - Check if another application is using port 7777
+   - Change port in both server config and Godot addon settings
+
+### Tool Invocations Slow
+
+**Symptom**: Operations taking >5 seconds
+
+**Solutions**:
+
+1. **Enable caching**:
+   ```bash
+   godot-mcp-server --project . --cache-ttl 300
+   ```
+
+2. **Check Godot performance**:
+   - Close unnecessary editor tabs
+   - Reduce viewport/inspector complexity
+   - Check system resources (CPU/RAM)
+
+3. **Network diagnostics**:
+   ```bash
+   # Test localhost latency
+   curl -w "@curl-format.txt" http://localhost:7777/health
+   ```
+
+### Permission Errors
+
+**Symptom**: `Error: EACCES: permission denied`
+
+**Solutions**:
+
+1. **Project directory permissions**:
+   ```bash
+   # Ensure read/write access
+   chmod -R u+rw /path/to/project
+   ```
+
+2. **Backup directory**:
+   ```bash
+   # Create backup directory manually
+   mkdir -p .godot/mcp-backups
+   chmod u+w .godot/mcp-backups
+   ```
+
+---
+
+## Next Steps
+
+✅ **Server installed and verified**
+
+Continue your journey:
+
+- [Understand MCP Concepts](./concepts.md) - Learn how the protocol works
+- [Explore Examples](./examples.md) - Real-world AI-assisted workflows
+- [Read API Documentation](./api/tools.md) - Master all available tools
+- [Review Best Practices](./best-practices.md) - Production tips
+
+---
+
+::: tip Quick Test Command
+Verify everything works in one command:
+
+```bash
+curl -X POST http://localhost:7777/rpc \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "health.check",
+    "params": {}
+  }'
+```
+:::
+
+::: warning Common Mistake
+Don't forget to restart Godot after enabling the addon! The HTTP server won't start until Godot restarts.
+:::

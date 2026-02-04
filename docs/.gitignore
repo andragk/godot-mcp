@@ -1,0 +1,8 @@
+# VitePress
+node_modules/
+.vitepress/dist/
+.vitepress/cache/
+.temp/
+
+# Working documents (keep for reference)
+# _working/ is intentionally tracked

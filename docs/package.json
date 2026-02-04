@@ -1,0 +1,21 @@
+{
+  "name": "godot-mcp-docs",
+  "version": "1.0.0",
+  "description": "Documentation for Godot 4.6 MCP Server",
+  "scripts": {
+    "docs:dev": "vitepress dev",
+    "docs:build": "vitepress build",
+    "docs:preview": "vitepress preview"
+  },
+  "devDependencies": {
+    "vitepress": "^1.0.0"
+  },
+  "keywords": [
+    "godot",
+    "mcp",
+    "model-context-protocol",
+    "vscode",
+    "documentation"
+  ],
+  "license": "MIT"
+}
