@@ -1,7 +1,7 @@
 ---
 name: dependency-update-orchestrator
 description: Orchestrates safe dependency updates with security scanning and testing
-tools: ['read', 'search', 'edit', 'agent', 'execute', 'todo']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # Dependency Update Orchestrator

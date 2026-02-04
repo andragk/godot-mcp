@@ -1,7 +1,7 @@
 ---
 name: continuous-deployment-orchestrator
 description: Orchestrates automated deployment of code changes to production
-tools: ['read', 'search', 'agent', 'execute', 'todo']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # Continuous Deployment Orchestrator

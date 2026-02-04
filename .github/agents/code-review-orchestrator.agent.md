@@ -1,7 +1,7 @@
 ---
 name: code-review-orchestrator
 description: Orchestrates systematic code review processes ensuring quality and standards
-tools: ['read', 'search', 'agent', 'execute', 'todo']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # Code Review Orchestrator

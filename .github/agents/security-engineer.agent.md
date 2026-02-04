@@ -1,7 +1,7 @@
 ---
 name: security-engineer
 description: Identifies vulnerabilities and implements security measures
-tools: ['read', 'search', 'edit', 'execute', 'web']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # Security Engineer Agent

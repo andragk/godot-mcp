@@ -1,7 +1,7 @@
 ---
 name: devops-engineer
 description: Automates deployment, manages infrastructure, and maintains CI/CD pipelines
-tools: ['read', 'search', 'edit', 'execute', 'web']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # DevOps Engineer Agent

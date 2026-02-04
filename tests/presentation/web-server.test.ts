@@ -122,7 +122,7 @@ describe('WebServer', () => {
       const response = await request(app).get('/api/bridge/health');
       
       expect(response.status).toBe(503);
-      expect(response.body).toHaveProperty('error', 'Bridge unavailable');
+      expect(response.body).toHaveProperty('error', 'Service temporarily unavailable');
     });
   });
 
@@ -148,7 +148,7 @@ describe('WebServer', () => {
       const response = await request(app).get('/api/bridge/version');
       
       expect(response.status).toBe(503);
-      expect(response.body).toHaveProperty('error', 'Bridge unavailable');
+      expect(response.body).toHaveProperty('error', 'Service temporarily unavailable');
     });
   });
 

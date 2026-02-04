@@ -1,7 +1,7 @@
 ---
 name: performance-optimization-orchestrator
 description: Orchestrates application performance improvements and resource optimization
-tools: ['read', 'search', 'edit', 'agent', 'execute', 'todo']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # Performance Optimization Orchestrator

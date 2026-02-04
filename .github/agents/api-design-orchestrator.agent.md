@@ -1,7 +1,7 @@
 ---
 name: api-design-orchestrator
 description: Orchestrates API design, documentation, implementation, and versioning
-tools: ['read', 'search', 'edit', 'agent', 'todo', 'web']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # API Design Orchestrator

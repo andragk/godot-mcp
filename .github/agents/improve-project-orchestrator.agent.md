@@ -1,7 +1,7 @@
 ---
 name: improve-project-orchestrator
 description: Orchestrates project analysis, improvement planning, and bilingual VitePress documentation generation
-tools: ['read', 'search', 'edit', 'agent', 'todo', 'execute', 'web']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # Improve Project Orchestrator

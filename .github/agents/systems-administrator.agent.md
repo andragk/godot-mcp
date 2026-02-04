@@ -1,7 +1,7 @@
 ---
 name: systems-administrator
 description: Maintains servers and infrastructure ensuring system availability
-tools: ['read', 'search', 'edit', 'execute', 'web']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # Systems Administrator Agent

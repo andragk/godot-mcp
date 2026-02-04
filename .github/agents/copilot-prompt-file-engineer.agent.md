@@ -1,7 +1,7 @@
 ---
 name: copilot-prompt-file-engineer
 description: Expert architect and validator specifically for GitHub Copilot prompt files (.prompt.md)
-tools: ['read', 'search', 'edit', 'agent', 'execute', 'todo', 'web']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # Copilot Prompt File Engineer

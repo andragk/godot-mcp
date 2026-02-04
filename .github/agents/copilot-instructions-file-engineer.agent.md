@@ -1,7 +1,7 @@
 ---
 name: copilot-instructions-file-engineer
 description: Expert architect specifically for GitHub Copilot instruction files (.instructions.md) - validates global rules and coding standards
-tools: ['read', 'search', 'edit', 'agent', 'execute', 'todo', 'web']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # Copilot Instructions File Engineer

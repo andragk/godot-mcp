@@ -1,7 +1,7 @@
 ---
 name: copilot-agent-file-engineer
 description: Expert architect specifically for GitHub Copilot agent files (.agent.md) - validates roles, capabilities, and workflows
-tools: ['read', 'search', 'edit', 'agent', 'execute', 'todo', 'web']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # Copilot Agent File Engineer

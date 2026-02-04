@@ -1,7 +1,7 @@
 ---
 name: testing-orchestrator
 description: Orchestrates comprehensive testing processes ensuring software quality
-tools: ['read', 'search', 'agent', 'execute', 'todo']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # Testing Orchestrator

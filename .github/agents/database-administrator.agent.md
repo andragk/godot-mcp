@@ -1,7 +1,7 @@
 ---
 name: database-administrator
 description: Manages database systems ensuring performance, availability, and security
-tools: ['read', 'search', 'edit', 'execute', 'web']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # Database Administrator Agent

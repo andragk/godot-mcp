@@ -1,7 +1,7 @@
 ---
 name: copilot-validation-pipeline
 description: Orchestrates validation of Copilot configuration files by delegating to specialized file engineer agents
-tools: ['read', 'search', 'edit', 'agent', 'execute', 'todo', 'web']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # Copilot Pipeline Orchestrator

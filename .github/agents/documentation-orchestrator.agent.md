@@ -1,7 +1,7 @@
 ---
 name: documentation-orchestrator
 description: Orchestrates creation and maintenance of technical and user documentation
-tools: ['read', 'search', 'edit', 'agent', 'todo', 'web']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # Documentation Orchestrator

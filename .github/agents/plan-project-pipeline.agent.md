@@ -1,7 +1,7 @@
 ---
 name: plan-project-pipeline
 description: Orchestrates complete project planning from description to world-class bilingual VitePress documentation
-tools: ['read', 'search', 'edit', 'agent', 'todo', 'execute', 'web']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # Plan Project Pipeline

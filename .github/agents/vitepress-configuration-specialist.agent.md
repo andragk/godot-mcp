@@ -1,7 +1,7 @@
 ---
 name: vitepress-configuration-specialist
 description: Configures and optimizes VitePress for bilingual documentation sites
-tools: ['read', 'search', 'edit', 'execute']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # VitePress Configuration Specialist

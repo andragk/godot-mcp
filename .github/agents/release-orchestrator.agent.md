@@ -1,7 +1,7 @@
 ---
 name: release-orchestrator
 description: Orchestrates coordinated software releases from version preparation to production deployment
-tools: ['read', 'search', 'edit', 'agent', 'execute', 'todo']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # Release Orchestrator

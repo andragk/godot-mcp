@@ -1,7 +1,7 @@
 ---
 name: documentation-generation-specialist
 description: Synthesizes technical artifacts into comprehensive, production-ready VitePress documentation
-tools: ['read', 'search', 'edit', 'web']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # Documentation Generation Specialist

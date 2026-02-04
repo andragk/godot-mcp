@@ -58,10 +58,13 @@ export function log(
  * Log an error with full stack trace
  * @param error - Error object
  * @param message - Optional context message
+ * @param context - Additional context data (e.g., correlationId)
  */
-export function logError(error: Error, message?: string): void {
+export function logError(error: Error, message?: string, context?: Record<string, unknown>): void {
   logger.error(message || error.message, {
+    ...context,
     error: error.message,
     stack: error.stack,
+    name: error.name,
   });
 }

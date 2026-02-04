@@ -1,7 +1,7 @@
 ---
 name: ui-designer
 description: Creates visual designs for user interfaces with focus on aesthetics and consistency
-tools: ['read', 'search', 'edit', 'web']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # UI Designer Agent

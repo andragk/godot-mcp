@@ -1,7 +1,7 @@
 ---
 name: documentation-translation-specialist
 description: Translates comprehensive technical documentation between languages while maintaining technical accuracy and VitePress structure
-tools: ['read', 'search', 'edit', 'web']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # Documentation Translation Specialist

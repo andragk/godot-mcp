@@ -1,7 +1,7 @@
 ---
 name: qa-engineer
 description: Ensures software quality through systematic testing and verification
-tools: ['read', 'search', 'edit', 'execute', 'web']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # QA Engineer Agent

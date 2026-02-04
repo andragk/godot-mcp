@@ -1,7 +1,7 @@
 ---
 name: implementation-pipeline-orchestrator
 description: Orchestrates end-to-end implementation from input to integrated, tested, documented code
-tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'todo', 'godot-mcp/*']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # Implementation Pipeline Orchestrator

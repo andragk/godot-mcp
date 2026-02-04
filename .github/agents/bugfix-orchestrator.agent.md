@@ -1,7 +1,7 @@
 ---
 name: bugfix-orchestrator
 description: Orchestrates bug identification, fix implementation, and verification processes
-tools: ['read', 'search', 'edit', 'agent', 'execute', 'todo']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # Bugfix Orchestrator

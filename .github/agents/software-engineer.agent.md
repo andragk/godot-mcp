@@ -1,7 +1,7 @@
 ---
 name: software-engineer
 description: Designs, develops, tests, and maintains software applications with clean, efficient code
-tools: ['read', 'search', 'edit', 'execute', 'todo', 'web']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # Software Engineer Agent

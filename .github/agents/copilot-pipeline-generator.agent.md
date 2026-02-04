@@ -1,7 +1,7 @@
 ---
 name: copilot-pipeline-generator
 description: Orchestrates generation of complete GitHub Copilot pipelines from workflow descriptions
-tools: ['read', 'search', 'edit', 'agent', 'execute', 'todo', 'web']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # Copilot Pipeline Generator

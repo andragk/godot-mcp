@@ -1,7 +1,7 @@
 ---
 name: security-review-orchestrator
 description: Orchestrates systematic security evaluation and vulnerability remediation
-tools: ['read', 'search', 'agent', 'execute', 'todo']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # Security Review Orchestrator

@@ -1,7 +1,7 @@
 ---
 name: refactoring-orchestrator
 description: Orchestrates code refactoring to improve quality without changing functionality
-tools: ['read', 'search', 'edit', 'agent', 'execute', 'todo']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # Refactoring Orchestrator

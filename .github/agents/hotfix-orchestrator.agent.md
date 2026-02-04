@@ -1,7 +1,7 @@
 ---
 name: hotfix-orchestrator
 description: Orchestrates urgent production fixes with expedited workflows
-tools: ['read', 'search', 'edit', 'agent', 'execute', 'todo']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # Hotfix Orchestrator

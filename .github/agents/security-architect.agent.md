@@ -1,7 +1,7 @@
 ---
 name: security-architect
 description: Designs security infrastructure and establishes security standards
-tools: ['read', 'search', 'edit', 'web']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # Security Architect Agent

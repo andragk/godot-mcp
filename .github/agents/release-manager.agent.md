@@ -1,7 +1,7 @@
 ---
 name: release-manager
 description: Coordinates software releases and manages deployment schedules
-tools: ['read', 'search', 'edit', 'web', 'todo']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # Release Manager Agent

@@ -1,7 +1,7 @@
 ---
 name: analyze-project-orchestrator
 description: Orchestrates analysis of existing projects and generation of world-class bilingual VitePress documentation
-tools: ['read', 'search', 'edit', 'agent', 'todo', 'execute', 'web']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # Analyze Project Orchestrator

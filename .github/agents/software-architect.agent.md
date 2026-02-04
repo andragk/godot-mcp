@@ -1,7 +1,7 @@
 ---
 name: software-architect
 description: Designs system architecture and makes key technical decisions
-tools: ['read', 'search', 'edit', 'web']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # Software Architect Agent

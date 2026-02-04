@@ -1,7 +1,7 @@
 ---
 name: technical-writer
 description: Creates and maintains technical documentation for users and developers
-tools: ['read', 'search', 'edit', 'web']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # Technical Writer Agent

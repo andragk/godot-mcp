@@ -1,7 +1,7 @@
 ---
 name: technical-debt-orchestrator
 description: Orchestrates identification, prioritization, and resolution of technical debt
-tools: ['read', 'search', 'edit', 'agent', 'todo']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # Technical Debt Orchestrator

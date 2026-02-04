@@ -1,7 +1,7 @@
 ---
 name: feature-development-orchestrator
 description: Orchestrates end-to-end feature development from requirements to deployment
-tools: ['read', 'search', 'edit', 'agent', 'execute', 'todo']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # Feature Development Orchestrator

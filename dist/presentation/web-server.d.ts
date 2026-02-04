@@ -14,6 +14,25 @@ export declare class WebServer {
      */
     private setupMiddleware;
     /**
+     * Validate request middleware
+     * @param req - Express request
+     * @param res - Express response
+     * @param next - Next middleware function
+     */
+    private validateRequest;
+    /**
+     * Sanitize object properties to prevent XSS
+     * @param obj - Object to sanitize
+     */
+    private sanitizeObject;
+    /**
+     * Authentication middleware for protected endpoints
+     * @param req - Express request
+     * @param res - Express response
+     * @param next - Next middleware function
+     */
+    private authenticateRequest;
+    /**
      * Setup Express routes
      */
     private setupRoutes;

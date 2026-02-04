@@ -181,8 +181,300 @@ func _process_rpc_method(request: Dictionary) -> Dictionary:
 					return _create_jsonrpc_response(id, {"value": value})
 			return _create_jsonrpc_error(-32602, "Invalid params", id)
 		
+		"launch_editor":
+			return _handle_launch_editor(id, params)
+		
+		"run_project":
+			return _handle_run_project(id, params)
+		
+		"stop_execution":
+			return _handle_stop_execution(id, params)
+		
+		"get_godot_version":
+			return _handle_get_godot_version(id, params)
+		
+		"list_projects":
+			return _handle_list_projects(id, params)
+		
+		"analyze_project":
+			return _handle_analyze_project(id, params)
+		
 		_:
 			return _create_jsonrpc_error(-32601, "Method not found: %s" % method, id)
+
+## Editor Control Tool Handlers
+
+func _handle_launch_editor(id: Variant, params: Variant) -> Dictionary:
+	if not params or typeof(params) != TYPE_DICTIONARY:
+		return _create_jsonrpc_error(-32602, "Invalid params", id)
+	
+	var project_path: String = params.get("project_path", "")
+	var editor_path: String = params.get("editor_path", "")
+	var additional_args: Array = params.get("additional_args", [])
+	
+	if project_path.is_empty():
+		return _create_jsonrpc_error(-32602, "project_path is required", id)
+	
+	# Detect Godot executable
+	if editor_path.is_empty():
+		editor_path = _detect_godot_executable()
+	
+	if editor_path.is_empty():
+		return _create_jsonrpc_error(-32000, "Godot executable not found", id)
+	
+	# Build command arguments
+	var args: PackedStringArray = PackedStringArray(["--path", project_path])
+	for arg in additional_args:
+		args.append(str(arg))
+	
+	# Launch the editor process
+	var pid := OS.create_process(editor_path, args)
+	
+	if pid == -1:
+		return _create_jsonrpc_error(-32000, "Failed to launch editor", id)
+	
+	log_message(LogLevel.INFO, "Launched Godot editor with PID: %d" % pid)
+	
+	return _create_jsonrpc_response(id, {
+		"success": true,
+		"processId": pid,
+		"editorPath": editor_path,
+		"projectPath": project_path
+	})
+
+func _handle_run_project(id: Variant, params: Variant) -> Dictionary:
+	if not params or typeof(params) != TYPE_DICTIONARY:
+		return _create_jsonrpc_error(-32602, "Invalid params", id)
+	
+	var project_path: String = params.get("project_path", "")
+	var scene: String = params.get("scene", "")
+	var debug: bool = params.get("debug", true)
+	
+	if project_path.is_empty():
+		return _create_jsonrpc_error(-32602, "project_path is required", id)
+	
+	var editor_path := _detect_godot_executable()
+	if editor_path.is_empty():
+		return _create_jsonrpc_error(-32000, "Godot executable not found", id)
+	
+	# Build command arguments
+	var args: PackedStringArray = PackedStringArray(["--path", project_path])
+	
+	if debug:
+		args.append("--debug")
+	
+	if not scene.is_empty():
+		args.append(scene)
+	
+	# Launch the project
+	var pid := OS.create_process(editor_path, args)
+	
+	if pid == -1:
+		return _create_jsonrpc_error(-32000, "Failed to run project", id)
+	
+	log_message(LogLevel.INFO, "Started Godot project with PID: %d" % pid)
+	
+	return _create_jsonrpc_response(id, {
+		"success": true,
+		"processId": pid,
+		"projectPath": project_path,
+		"debug": debug,
+		"scene": scene
+	})
+
+func _handle_stop_execution(id: Variant, params: Variant) -> Dictionary:
+	if not params or typeof(params) != TYPE_DICTIONARY:
+		return _create_jsonrpc_error(-32602, "Invalid params", id)
+	
+	var process_id: int = params.get("process_id", -1)
+	var force: bool = params.get("force", false)
+	
+	if process_id == -1:
+		return _create_jsonrpc_error(-32602, "process_id is required", id)
+	
+	# Note: GDScript doesn't have direct process kill functionality
+	# This would need OS-specific implementation or external tool
+	log_message(LogLevel.WARN, "Process termination not fully supported in GDScript")
+	
+	return _create_jsonrpc_response(id, {
+		"success": false,
+		"message": "Process termination requires OS-specific implementation",
+		"processId": process_id
+	})
+
+func _handle_get_godot_version(id: Variant, _params: Variant) -> Dictionary:
+	var version_info := Engine.get_version_info()
+	
+	return _create_jsonrpc_response(id, {
+		"version": "%d.%d.%d" % [version_info.major, version_info.minor, version_info.patch],
+		"versionString": version_info.string,
+		"status": version_info.status,
+		"build": version_info.build,
+		"hash": version_info.hash,
+		"year": version_info.year
+	})
+
+func _handle_list_projects(id: Variant, params: Variant) -> Dictionary:
+	if not params or typeof(params) != TYPE_DICTIONARY:
+		return _create_jsonrpc_error(-32602, "Invalid params", id)
+	
+	var search_paths: Array = params.get("search_paths", [])
+	var recursive: bool = params.get("recursive", false)
+	
+	if search_paths.is_empty():
+		return _create_jsonrpc_error(-32602, "search_paths is required", id)
+	
+	var projects: Array = []
+	
+	for search_path in search_paths:
+		var path := str(search_path)
+		projects.append_array(_find_projects_in_directory(path, recursive))
+	
+	return _create_jsonrpc_response(id, {"projects": projects})
+
+func _handle_analyze_project(id: Variant, params: Variant) -> Dictionary:
+	if not params or typeof(params) != TYPE_DICTIONARY:
+		return _create_jsonrpc_error(-32602, "Invalid params", id)
+	
+	var project_path: String = params.get("project_path", "")
+	
+	if project_path.is_empty():
+		return _create_jsonrpc_error(-32602, "project_path is required", id)
+	
+	# Check if project.godot exists
+	var project_file := project_path.path_join("project.godot")
+	if not FileAccess.file_exists(project_file):
+		return _create_jsonrpc_error(-32000, "project.godot not found", id)
+	
+	# Analyze project structure
+	var analysis := _analyze_project_structure(project_path)
+	
+	return _create_jsonrpc_response(id, analysis)
+
+## Helper Functions
+
+func _detect_godot_executable() -> String:
+	# Try common Godot executable locations
+	var possible_paths: Array = []
+	
+	if OS.get_name() == "Windows":
+		possible_paths = [
+			"C:/Program Files/Godot/Godot.exe",
+			"C:/Program Files (x86)/Godot/Godot.exe",
+			"C:/Godot/Godot.exe",
+			OS.get_executable_path()
+		]
+	elif OS.get_name() == "macOS":
+		possible_paths = [
+			"/Applications/Godot.app/Contents/MacOS/Godot",
+			OS.get_executable_path()
+		]
+	else:  # Linux
+		possible_paths = [
+			"/usr/local/bin/godot",
+			"/usr/bin/godot",
+			"/opt/godot/godot",
+			OS.get_executable_path()
+		]
+	
+	for path in possible_paths:
+		if FileAccess.file_exists(path):
+			return path
+	
+	return ""
+
+func _find_projects_in_directory(dir_path: String, recursive: bool, depth: int = 0) -> Array:
+	var projects: Array = []
+	var max_depth := 3
+	
+	if depth > max_depth:
+		return projects
+	
+	var dir := DirAccess.open(dir_path)
+	if not dir:
+		return projects
+	
+	dir.list_dir_begin()
+	var file_name := dir.get_next()
+	
+	while file_name != "":
+		if file_name == "." or file_name == "..":
+			file_name = dir.get_next()
+			continue
+		
+		var full_path := dir_path.path_join(file_name)
+		
+		if dir.current_is_dir():
+			if recursive:
+				projects.append_array(_find_projects_in_directory(full_path, recursive, depth + 1))
+		elif file_name == "project.godot":
+			var project_name := _get_project_name(full_path)
+			projects.append({
+				"path": dir_path,
+				"name": project_name
+			})
+		
+		file_name = dir.get_next()
+	
+	dir.list_dir_end()
+	return projects
+
+func _get_project_name(project_file_path: String) -> String:
+	var config := ConfigFile.new()
+	var err := config.load(project_file_path)
+	
+	if err != OK:
+		return "Unknown"
+	
+	return config.get_value("application", "config/name", "Unnamed Project")
+
+func _analyze_project_structure(project_path: String) -> Dictionary:
+	var scenes := _count_files_by_extension(project_path, ".tscn")
+	var scripts := _count_files_by_extension(project_path, ".gd")
+	var resources := _count_files_by_extension(project_path, ".tres")
+	
+	var project_file := project_path.path_join("project.godot")
+	var config := ConfigFile.new()
+	config.load(project_file)
+	
+	var project_name := config.get_value("application", "config/name", "Unknown")
+	var godot_version := config.get_value("application", "config/features", PackedStringArray())
+	
+	return {
+		"name": project_name,
+		"godotVersion": str(godot_version),
+		"scenes": scenes,
+		"scripts": scripts,
+		"resources": resources,
+		"path": project_path
+	}
+
+func _count_files_by_extension(dir_path: String, extension: String) -> int:
+	var count := 0
+	var dir := DirAccess.open(dir_path)
+	
+	if not dir:
+		return count
+	
+	dir.list_dir_begin()
+	var file_name := dir.get_next()
+	
+	while file_name != "":
+		if file_name == "." or file_name == "..":
+			file_name = dir.get_next()
+			continue
+		
+		var full_path := dir_path.path_join(file_name)
+		
+		if dir.current_is_dir():
+			count += _count_files_by_extension(full_path, extension)
+		elif file_name.ends_with(extension):
+			count += 1
+		
+		file_name = dir.get_next()
+	
+	dir.list_dir_end()
+	return count
 
 func _create_jsonrpc_response(id: Variant, result: Variant) -> Dictionary:
 	return {

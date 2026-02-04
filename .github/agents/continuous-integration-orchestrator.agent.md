@@ -1,7 +1,7 @@
 ---
 name: continuous-integration-orchestrator
 description: Orchestrates automated building, testing, and quality checks on code changes
-tools: ['read', 'search', 'agent', 'execute', 'todo']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # Continuous Integration Orchestrator

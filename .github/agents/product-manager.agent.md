@@ -1,7 +1,7 @@
 ---
 name: product-manager
 description: Defines product vision and prioritizes features based on business value
-tools: ['read', 'search', 'edit', 'web']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # Product Manager Agent

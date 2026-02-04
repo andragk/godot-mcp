@@ -1,7 +1,7 @@
 ---
 name: data-engineer
 description: Builds data pipelines and infrastructure for reliable, optimized data access
-tools: ['read', 'search', 'edit', 'execute', 'web']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # Data Engineer Agent

@@ -1,7 +1,7 @@
 ---
 name: build-engineer
 description: Manages build systems ensuring reliable, fast, reproducible builds
-tools: ['read', 'search', 'edit', 'execute', 'web']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # Build Engineer Agent

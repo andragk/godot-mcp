@@ -1,7 +1,7 @@
 ---
 name: database-migration-orchestrator
 description: Orchestrates safe database schema changes with backup and rollback capabilities
-tools: ['read', 'search', 'edit', 'agent', 'execute', 'todo']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # Database Migration Orchestrator

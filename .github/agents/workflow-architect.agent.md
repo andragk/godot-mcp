@@ -1,7 +1,7 @@
 ---
 name: workflow-architect
 description: Designs and optimizes workflow architectures, process flows, and automation pipelines
-tools: ['read', 'search', 'edit', 'todo', 'web']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # Workflow Architect

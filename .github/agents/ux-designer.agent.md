@@ -1,7 +1,7 @@
 ---
 name: ux-designer
 description: Designs user experiences and interaction flows based on user research
-tools: ['read', 'search', 'edit', 'web']
+tools: ['execute', 'read', 'edit', 'search', 'web', 'agent', 'agent/runSubagent', 'todo', 'godot-mcp/*']
 ---
 
 # UX Designer Agent
