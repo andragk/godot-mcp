@@ -213,7 +213,8 @@ func _send_json_response(client: StreamPeerTCP, status_code: int, data: Dictiona
 	response += "\r\n"
 	response += json
 	
-	client.put_data(response.to_utf8_buffer())
+	var buffer := response.to_utf8_buffer()
+	client.put_data(buffer)
 	client.disconnect_from_host()
 
 func _send_error_response(client: StreamPeerTCP, status_code: int, message: String) -> void:
@@ -226,7 +227,8 @@ func _send_error_response(client: StreamPeerTCP, status_code: int, message: Stri
 	response += "\r\n"
 	response += message
 	
-	client.put_data(response.to_utf8_buffer())
+	var buffer := response.to_utf8_buffer()
+	client.put_data(buffer)
 	client.disconnect_from_host()
 
 func _get_status_text(code: int) -> String:

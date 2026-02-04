@@ -7,7 +7,7 @@ import { WebServer } from './presentation/web-server.js';
 import { GodotClient } from './bridge/index.js';
 import { logger, logError } from './utils/logger.js';
 
-const WEB_PORT = 8080;
+const WEB_PORT = parseInt(process.env.WEB_PORT || '3000');
 
 /**
  * Main application entry point

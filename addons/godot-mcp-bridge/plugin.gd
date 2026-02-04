@@ -9,8 +9,7 @@ var http_server: Node
 func _enter_tree() -> void:
 	# Load and instantiate the HTTP server
 	var HTTPServerScript := preload("res://addons/godot-mcp-bridge/http_server.gd")
-	http_server = Node.new()
-	http_server.set_script(HTTPServerScript)
+	http_server = HTTPServerScript.new()
 	http_server.name = "MCPBridgeServer"
 	
 	# Add to the editor scene tree
