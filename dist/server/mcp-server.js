@@ -10,12 +10,35 @@ import { generateCorrelationId } from '../utils/correlation-id.js';
 import { GodotClient } from '../bridge/index.js';
 import { EditorControlTools, LaunchEditorSchema, RunProjectSchema, StopExecutionSchema, GetVersionSchema, ListProjectsSchema, AnalyzeProjectSchema, } from '../tools/index.js';
 import { listScenes, readScene, listScripts, readScript, getProjectStructure, ListScenesInputSchema, ReadSceneInputSchema, ListScriptsInputSchema, ReadScriptInputSchema, GetProjectStructureInputSchema, getCacheMetrics, } from '../tools/read-tools.js';
+import { searchNodes, getNodeProperties, } from '../tools/node-operations.js';
 import { ValidationError, ToolNotFoundError, toMCPError, } from '../types/errors.js';
 import { ToolRegistry } from '../types/tool-registry.js';
 /**
  * Empty schema for tools with no arguments
  */
 const EmptySchema = z.object({});
+/**
+ * Schema for search_nodes tool
+ */
+const SearchNodesInputSchema = z.object({
+    projectPath: z.string().describe('Absolute path to the Godot project directory'),
+    name: z.string().optional().describe('Node name pattern (exact, prefix, regex, or contains)'),
+    type: z.string().optional().describe('Node type filter (e.g., Node2D, Control, Sprite2D)'),
+    property: z.record(z.unknown()).optional().describe('Property filter (e.g., {"visible": true, "position.x": ">100"})'),
+    mode: z.enum(['exact', 'prefix', 'regex', 'contains']).optional().default('contains').describe('Search mode for name matching'),
+    operator: z.enum(['AND', 'OR']).optional().default('AND').describe('Combine multiple criteria with AND or OR'),
+    limit: z.number().optional().default(100).describe('Maximum number of results to return'),
+    offset: z.number().optional().default(0).describe('Offset for pagination'),
+    scenes: z.array(z.string()).optional().describe('Specific scene paths to search (relative to project root)'),
+});
+/**
+ * Schema for get_node_properties tool
+ */
+const GetNodePropertiesInputSchema = z.object({
+    projectPath: z.string().describe('Absolute path to the Godot project directory'),
+    scenePath: z.string().describe('Scene file path (relative to project root)'),
+    nodePath: z.string().describe('Node path within the scene hierarchy (e.g., "Player/Sprite2D")'),
+});
 /**
  * MCP Server for Godot Engine
  * Provides tool execution and resource management via the MCP protocol
@@ -470,6 +493,107 @@ export class GodotMCPServer {
             handler: async (_args, correlationId) => {
                 logger.debug('Executing get_cache_metrics', { correlationId });
                 return getCacheMetrics();
+            },
+        });
+        // Node Operations Tools
+        this.toolRegistry.register({
+            metadata: {
+                name: 'search_nodes',
+                version: '1.0.0',
+                category: 'node_operations',
+                securityLevel: 'safe',
+                description: 'Search for nodes across project scenes using flexible query patterns (name, type, properties)',
+            },
+            schema: SearchNodesInputSchema,
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    projectPath: {
+                        type: 'string',
+                        description: 'Absolute path to the Godot project directory',
+                    },
+                    name: {
+                        type: 'string',
+                        description: 'Node name pattern (exact, prefix, regex, or contains)',
+                    },
+                    type: {
+                        type: 'string',
+                        description: 'Node type filter (e.g., Node2D, Control, Sprite2D)',
+                    },
+                    property: {
+                        type: 'object',
+                        description: 'Property filter (e.g., {"visible": true, "position.x": ">100"})',
+                    },
+                    mode: {
+                        type: 'string',
+                        enum: ['exact', 'prefix', 'regex', 'contains'],
+                        default: 'contains',
+                        description: 'Search mode for name matching',
+                    },
+                    operator: {
+                        type: 'string',
+                        enum: ['AND', 'OR'],
+                        default: 'AND',
+                        description: 'Combine multiple criteria with AND or OR',
+                    },
+                    limit: {
+                        type: 'number',
+                        default: 100,
+                        description: 'Maximum number of results to return',
+                    },
+                    offset: {
+                        type: 'number',
+                        default: 0,
+                        description: 'Offset for pagination',
+                    },
+                    scenes: {
+                        type: 'array',
+                        items: { type: 'string' },
+                        description: 'Specific scene paths to search (relative to project root)',
+                    },
+                },
+                required: ['projectPath'],
+            },
+            handler: async (args, correlationId) => {
+                logger.info('Executing search_nodes', { correlationId, projectPath: args.projectPath });
+                return await searchNodes(args.projectPath, args);
+            },
+        });
+        this.toolRegistry.register({
+            metadata: {
+                name: 'get_node_properties',
+                version: '1.0.0',
+                category: 'node_operations',
+                securityLevel: 'safe',
+                description: 'Get comprehensive properties and metadata for a specific node within a scene',
+            },
+            schema: GetNodePropertiesInputSchema,
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    projectPath: {
+                        type: 'string',
+                        description: 'Absolute path to the Godot project directory',
+                    },
+                    scenePath: {
+                        type: 'string',
+                        description: 'Scene file path (relative to project root)',
+                    },
+                    nodePath: {
+                        type: 'string',
+                        description: 'Node path within the scene hierarchy (e.g., "Player/Sprite2D")',
+                    },
+                },
+                required: ['projectPath', 'scenePath', 'nodePath'],
+            },
+            handler: async (args, correlationId) => {
+                logger.info('Executing get_node_properties', {
+                    correlationId,
+                    projectPath: args.projectPath,
+                    scenePath: args.scenePath,
+                    nodePath: args.nodePath
+                });
+                return await getNodeProperties(args.projectPath, args.scenePath, args.nodePath);
             },
         });
         logger.info('Registered tools', { count: this.toolRegistry.getToolNames().length });

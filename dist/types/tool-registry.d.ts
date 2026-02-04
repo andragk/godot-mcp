@@ -8,7 +8,7 @@ import type { z } from 'zod';
 export interface ToolMetadata {
     name: string;
     version: string;
-    category: 'connectivity' | 'editor' | 'project' | 'system';
+    category: 'connectivity' | 'editor' | 'project' | 'system' | 'node_operations';
     securityLevel: 'safe' | 'requires-review' | 'privileged';
     description: string;
 }
