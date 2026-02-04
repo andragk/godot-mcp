@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Godot MCP Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        [x-cloak] { display: none !important; }
+        .log-entry {
+            transition: background-color 0.2s;
+        }
+        .log-entry:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen" x-data="dashboard()" x-init="init()">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="mb-8">
+            <h1 class="text-4xl font-bold text-gray-900 mb-2">Godot MCP Dashboard</h1>
+            <p class="text-gray-600">Monitor your Godot MCP server and bridge connection</p>
+        </header>
+
+        <!-- Status Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <!-- Server Status -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-semibold text-gray-900">Server</h2>
+                    <span 
+                        class="px-3 py-1 rounded-full text-sm font-medium"
+                        :class="status.bridgeConnected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
+                        x-text="status.bridgeConnected ? 'Connected' : 'Disconnected'">
+                    </span>
+                </div>
+                <div class="space-y-2">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Uptime:</span>
+                        <span class="font-medium" x-text="formatUptime(status.uptime)"></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Active Sessions:</span>
+                        <span class="font-medium" x-text="status.activeSessions"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bridge Status -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-semibold text-gray-900">Bridge</h2>
+                    <span 
+                        class="px-3 py-1 rounded-full text-sm font-medium"
+                        :class="getBridgeStatusColor(bridgeHealth.status)"
+                        x-text="bridgeHealth.status">
+                    </span>
+                </div>
+                <div class="space-y-2">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Port:</span>
+                        <span class="font-medium" x-text="bridgeHealth.port"></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Version:</span>
+                        <span class="font-medium" x-text="bridgeHealth.version || 'unknown'"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activity -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Activity</h2>
+                <div class="space-y-2">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Log Entries:</span>
+                        <span class="font-medium" x-text="logs.length"></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Last Update:</span>
+                        <span class="font-medium" x-text="formatTime(lastUpdate)"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Log Viewer -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-semibold text-gray-900">Server Logs</h2>
+                <div class="flex gap-2">
+                    <button 
+                        @click="clearLogs()"
+                        class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition">
+                        Clear
+                    </button>
+                    <button 
+                        @click="toggleAutoScroll()"
+                        class="px-4 py-2 rounded transition"
+                        :class="autoScroll ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'">
+                        Auto-scroll
+                    </button>
+                </div>
+            </div>
+
+            <!-- Log Entries -->
+            <div 
+                x-ref="logContainer"
+                class="bg-gray-50 rounded border border-gray-200 p-4 font-mono text-sm max-h-96 overflow-y-auto">
+                <template x-if="logs.length === 0">
+                    <p class="text-gray-500 italic">No logs yet...</p>
+                </template>
+                <template x-for="log in logs" :key="log.id">
+                    <div class="log-entry py-1 px-2 rounded">
+                        <span class="text-gray-500" x-text="formatLogTime(log.timestamp)"></span>
+                        <span 
+                            class="font-semibold ml-2"
+                            :class="getLogLevelColor(log.level)"
+                            x-text="log.level.toUpperCase()">
+                        </span>
+                        <span class="ml-2" x-text="log.message"></span>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function dashboard() {
+            return {
+                status: {
+                    uptime: 0,
+                    bridgeConnected: false,
+                    activeSessions: 0,
+                    lastActivity: new Date()
+                },
+                bridgeHealth: {
+                    status: 'unknown',
+                    port: 7777,
+                    version: 'unknown'
+                },
+                logs: [],
+                lastUpdate: new Date(),
+                autoScroll: true,
+                eventSource: null,
+                logIdCounter: 0,
+
+                async init() {
+                    await this.fetchStatus();
+                    await this.fetchBridgeHealth();
+                    this.connectToLogStream();
+                    
+                    // Poll status every 5 seconds
+                    setInterval(() => this.fetchStatus(), 5000);
+                    setInterval(() => this.fetchBridgeHealth(), 10000);
+                },
+
+                async fetchStatus() {
+                    try {
+                        const response = await fetch('/api/status');
+                        this.status = await response.json();
+                        this.lastUpdate = new Date();
+                    } catch (error) {
+                        console.error('Failed to fetch status:', error);
+                    }
+                },
+
+                async fetchBridgeHealth() {
+                    try {
+                        const response = await fetch('/api/bridge/health');
+                        this.bridgeHealth = await response.json();
+                    } catch (error) {
+                        console.error('Failed to fetch bridge health:', error);
+                    }
+                },
+
+                connectToLogStream() {
+                    this.eventSource = new EventSource('/api/logs/stream');
+                    
+                    this.eventSource.onmessage = (event) => {
+                        const log = JSON.parse(event.data);
+                        log.id = ++this.logIdCounter;
+                        this.logs.push(log);
+                        
+                        // Limit logs to last 100 entries
+                        if (this.logs.length > 100) {
+                            this.logs.shift();
+                        }
+                        
+                        if (this.autoScroll) {
+                            this.$nextTick(() => {
+                                const container = this.$refs.logContainer;
+                                container.scrollTop = container.scrollHeight;
+                            });
+                        }
+                    };
+
+                    this.eventSource.onerror = (error) => {
+                        console.error('SSE connection error:', error);
+                    };
+                },
+
+                clearLogs() {
+                    this.logs = [];
+                },
+
+                toggleAutoScroll() {
+                    this.autoScroll = !this.autoScroll;
+                },
+
+                formatUptime(seconds) {
+                    const hours = Math.floor(seconds / 3600);
+                    const minutes = Math.floor((seconds % 3600) / 60);
+                    const secs = seconds % 60;
+                    return `${hours}h ${minutes}m ${secs}s`;
+                },
+
+                formatTime(date) {
+                    return new Date(date).toLocaleTimeString();
+                },
+
+                formatLogTime(timestamp) {
+                    return new Date(timestamp).toLocaleTimeString();
+                },
+
+                getLogLevelColor(level) {
+                    const colors = {
+                        debug: 'text-gray-600',
+                        info: 'text-blue-600',
+                        warn: 'text-yellow-600',
+                        error: 'text-red-600'
+                    };
+                    return colors[level.toLowerCase()] || 'text-gray-600';
+                },
+
+                getBridgeStatusColor(status) {
+                    const colors = {
+                        healthy: 'bg-green-100 text-green-800',
+                        unhealthy: 'bg-red-100 text-red-800',
+                        degraded: 'bg-yellow-100 text-yellow-800',
+                        unknown: 'bg-gray-100 text-gray-800'
+                    };
+                    return colors[status] || 'bg-gray-100 text-gray-800';
+                }
+            };
+        }
+    </script>
+</body>
+</html>

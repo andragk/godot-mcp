@@ -1,0 +1,292 @@
+{
+  "metadata": {
+    "generated": "2026-02-04",
+    "agent": "@software-architect",
+    "phase": "Phase 1 - MVP",
+    "totalIssues": 6,
+    "estimatedDuration": "12 weeks (3 months)",
+    "targetCoverage": "85%"
+  },
+  "issues": [
+    {
+      "issueNumber": 2,
+      "issueTitle": "Foundation & Communication Layer",
+      "sprint": "Sprint 1 (Weeks 1-2)",
+      "status": "CRITICAL PATH - Blocks all others",
+      "technicalDesign": {
+        "architecture": "Three-tier architecture: (1) Node.js MCP Server with stdio transport, (2) HTTP Bridge using undici connection pooling for Node↔Godot communication via JSON-RPC 2.0, (3) Express-based Web UI server with SSE for real-time log streaming. Godot side implements HTTPServer on port 7777 with JSON-RPC request handler. Core modules: mcp-server.ts (MCP protocol), http-client.ts (bridge client), web-server.ts (UI server), http_server.gd (Godot listener), rpc_handler.gd (request routing).",
+        "technologyStack": [
+          "@modelcontextprotocol/sdk@^1.0.0 - MCP protocol implementation",
+          "undici@^6.0.0 - High-performance HTTP client with connection pooling",
+          "express@^4.18.0 - Web UI server framework",
+          "winston@^3.11.0 - Structured logging with JSON output",
+          "zod@^3.22.0 - Runtime schema validation",
+          "Alpine.js (CDN) - Reactive UI components",
+          "Tailwind CSS (CDN) - Utility-first styling",
+          "TypeScript@^5.3.0 - Type-safe development"
+        ],
+        "implementationApproach": [
+          "Day 1-2: Node.js setup with TypeScript strict mode, ESLint/Prettier, folder structure (src/{server,bridge,presentation,types,utils}), Logger utility with Winston",
+          "Day 3-4: MCP Server skeleton with stdio transport, tool registry, health check tool, test with MCP Inspector",
+          "Day 5: HTTP Bridge client with undici Pool (10 connections, 30s timeout), JSON-RPC builder, retry logic (exponential backoff 1s→2s→4s), metrics tracking",
+          "Day 6-7: Godot HTTPServer with TCPServer listening on port 7777, HTTP request parser (headers+body), /health endpoint, test with curl",
+          "Day 8: Godot RPCHandler with JSON-RPC 2.0 validation (jsonrpc, id, method, params), error codes (-32600 Invalid Request, -32601 Method Not Found, -32603 Internal Error)",
+          "Day 9: Integration testing - Node↔Godot roundtrip, latency benchmark (1000 requests, p99<50ms), reconnection test, concurrent requests (10 simultaneous)",
+          "Day 10: Web UI MVP - Express server with /api/status, /api/lifecycle/{start,stop,restart}, /api/logs/stream (SSE), Alpine.js dashboard with status cards, controls, log viewer"
+        ],
+        "performanceConsiderations": [
+          "Connection pooling: undici Pool with 10 concurrent connections, 60s keep-alive, 600s max timeout",
+          "Log buffering: Ring buffer with 1000 entry limit and 10MB memory cap, FIFO eviction",
+          "SSE optimization: Heartbeat every 30s, automatic reconnection on disconnect, client-side connection state tracking",
+          "HTTP latency target: <20ms for localhost roundtrip (p99)",
+          "No data caching in Phase 1 - establishing communication only"
+        ],
+        "securityDesign": [
+          "Input validation: Zod schemas for all MCP tool parameters and Web UI API requests",
+          "CORS configuration: Strict origin whitelist (localhost:3000, localhost:8080), credentials allowed, methods limited to GET/POST/OPTIONS",
+          "No shell commands in Phase 1 - foundation only establishes infrastructure",
+          "JSON-RPC validation: Enforce version 2.0, validate id types (string|number), validate method names",
+          "Rate limiting: To be implemented in Issue #8 (Security Hardening)",
+          "Graceful error handling: Network errors with retry, HTTP errors with structured responses, process cleanup on shutdown"
+        ]
+      },
+      "testStrategy": {
+        "unitTests": [
+          "HTTPClient: successful requests, network errors with retry, timeout handling, connection pool management",
+          "JSONRPCBuilder: request formatting, response parsing, error object structure",
+          "Logger: structured JSON output, log levels (debug/info/warn/error), metadata inclusion",
+          "GDScript HTTPServer: HTTP request parsing (POST method, headers, body), /health endpoint response",
+          "GDScript RPCHandler: valid request handling, invalid request errors (-32600), method not found (-32601)"
+        ],
+        "integrationTests": [
+          "HTTP bridge end-to-end: Node.js sends request → Godot receives → processes → responds → Node.js receives",
+          "Health check: GET /health returns 200 OK with uptime and status",
+          "JSON-RPC cycle: Request with ID 1 → Response with matching ID 1",
+          "Concurrent requests: 10 simultaneous calls, all succeed, no race conditions",
+          "Reconnection: Stop Godot → Node.js retries with backoff → Restart Godot → Auto-reconnect within 10s"
+        ],
+        "manualTests": [
+          "MCP client connection: Start Godot + MCP server → Connect Claude Desktop → Verify tool listing",
+          "Web UI dashboard: Open http://localhost:8080 → Verify status shows 'stopped' → Click Start → Verify 'running' → Check logs streaming",
+          "Reconnection handling: Stop Godot while MCP running → Observe retry logs → Restart Godot → Verify reconnection"
+        ],
+        "targetCoverage": 85
+      },
+      "documentationImpact": [
+        "NEW: docs/en/getting-started.md - Installation guide, setup instructions, first run tutorial",
+        "NEW: docs/en/architecture/overview.md - System architecture diagram, component descriptions",
+        "NEW: docs/en/architecture/communication.md - HTTP bridge deep dive, JSON-RPC protocol details",
+        "NEW: docs/en/api/protocol.md - JSON-RPC 2.0 specification, request/response formats, error codes",
+        "UPDATE: docs/en/index.md - Add Quick Start section linking to getting-started.md",
+        "UPDATE: docs/en/implementation/roadmap.md - Mark Sprint 1 complete"
+      ],
+      "mcpServerUsage": {
+        "required": true,
+        "tools": [
+          "Health check tool (internal, returns server version and uptime)"
+        ],
+        "resources": []
+      },
+      "estimatedEffort": "10 days",
+      "criticalPath": [
+        "Day 5: HTTP bridge functional (Node.js → Godot) - MILESTONE",
+        "Day 8: JSON-RPC 2.0 working (bidirectional) - MILESTONE",
+        "Day 10: Web UI MVP deployed - MILESTONE"
+      ]
+    },
+    {
+      "issueNumber": 3,
+      "issueTitle": "Editor Control Tools",
+      "sprint": "Sprint 2 (Weeks 3-4)",
+      "status": "Depends on Issue #2",
+      "technicalDesign": {
+        "architecture": "Node.js-only implementation (no Godot bridge handlers needed). Core modules: (1) ExecutableDetector - cross-platform Godot finder scanning PATH + platform defaults (Windows: Program Files/Steam, macOS: /Applications, Linux: /usr/bin + Flatpak/Snap), (2) ProcessManager - child process spawning with security constraints (no shell, argument whitelisting), lifecycle tracking (PID, start time, status), graceful termination (SIGTERM→wait 5s→SIGKILL), (3) OutputCapture - stdout/stderr streaming with ring buffer (10k lines, 10MB limit), SSE broadcast to Web UI, (4) ProjectParser - project.godot config parser, autoload extraction, plugin detection, resource counting. All 6 tools registered with MCP SDK.",
+        "technologyStack": [
+          "fs-extra@^11.2.0 - Enhanced file system operations with promises",
+          "glob@^10.3.0 - Pattern matching for recursive project scanning",
+          "which@^4.0.0 - Find executables in PATH cross-platform",
+          "Node.js child_process - Process spawning (spawn, not exec - security)",
+          "Node.js readline - Line-by-line stream reading for output capture",
+          "Existing: Zod for input validation, Winston for logging"
+        ],
+        "implementationApproach": [
+          "Day 1-2: ExecutableDetector class with platform detection (process.platform), PATH scanning (process.env.PATH split by delimiter), default location checks (Windows: C:\\Program Files, macOS: /Applications, Linux: /usr/bin + Flatpak/Snap), caching (1 hour TTL). Implement get_godot_version tool: spawn 'godot --version', parse output '4.6.0.stable.official [hash]', extract version/stability/mono/hash. Unit tests for parsing various formats.",
+          "Day 3-4: ProcessManager class with spawn() method (child_process.spawn with shell:false, stdio:['ignore','pipe','pipe']), process registry (Map<PID, ManagedProcess>), terminate() with graceful shutdown (send SIGTERM, wait 5s Promise.race, fallback SIGKILL). OutputCapture class with captureStream() (readline interface on stdout/stderr), ring buffer (array with FIFO eviction), SSE broadcast integration. Implement launch_godot_editor: detect executable, validate project path, spawn with ['--path', projectPath], capture output, return {pid, executable, startTime, status}. Implement run_godot_project: add --headless flag, --scene parameter, timeout enforcement. Implement stop_godot_execution: lookup PID, call terminate(), return exit code.",
+          "Day 5: ProjectParser class with parseProjectFile() (read project.godot, parse INI-like format with regex [section] and key=value), extract application/config/name, autoload section, detect plugins (scan addons/ for plugin.cfg). Implement list_godot_projects: recursive directory walk with glob '**\/project.godot', apply max depth limit (default 3), parse each project with ProjectParser, return array of {name, path, version, mainScene}. Implement analyze_project: count resources (walk directory, filter .tscn/.gd/.cs, skip .godot/.import), calculate total size (fs.stat), list plugins and autoloads, return comprehensive ProjectInfo object.",
+          "Day 6: Tool registration with MCPServer.registerTool() for all 6 tools, create JSON Schemas with Zod (LaunchEditorSchema, RunProjectSchema, StopExecutionSchema, GetVersionSchema, ListProjectsSchema, AnalyzeProjectSchema), write unit tests for each tool (mock fs operations, mock spawn), integration tests (spawn real Godot, verify output), update VitePress docs with API reference and examples."
+        ],
+        "performanceConsiderations": [
+          "Executable caching: Cache detected Godot path for 1 hour (session only, not persisted), invalidate on explicit request or detection failure",
+          "Process limits: Max 5 concurrent Godot processes enforced via semaphore in ProcessManager, reject new spawns with error when limit reached",
+          "Output buffer: Ring buffer with 10,000 line limit and 10MB memory cap, automatic FIFO eviction, prevents memory exhaustion from verbose games",
+          "Project scanning: Max depth 3 levels (configurable), skip directories with >10,000 files (performance safeguard), parallel scanning with 10 concurrent workers using Promise.all()",
+          "File I/O: Use async fs-extra methods throughout, no blocking operations in event loop"
+        ],
+        "securityDesign": [
+          "Command injection prevention: NEVER use shell:true in spawn(), whitelist allowed arguments ['--version','--headless','--path','--scene','--export','--debug','--verbose','--quit'], validate each argument matches whitelist before execution, throw SecurityError for disallowed args",
+          "Path traversal prevention: Resolve all user-provided paths to absolute with path.resolve(), check if path starts with allowed root directories (PROJECTS_DIR environment or process.cwd()), reject paths outside allowed directories with SecurityError",
+          "Input validation with Zod: LaunchEditorSchema validates project_path (min:1, max:500, no '..' segments), additional_args (array max:10, each string max:100). RunProjectSchema validates timeout (min:0, max:3600 for 1 hour limit). StopExecutionSchema validates PID (positive integer), force flag (boolean).",
+          "Argument sanitization: Strip any shell metacharacters from user input, use array-based arguments in spawn (automatic escaping), never concatenate user input into command strings",
+          "Process isolation: Each Godot process runs as child of Node.js, inherits limited environment variables, no elevated privileges"
+        ]
+      },
+      "testStrategy": {
+        "unitTests": [
+          "ExecutableDetector: finds Godot in PATH (mock PATH environment), finds platform default (mock fs.pathExists), caching works (second call instant), throws error when not found",
+          "ProcessManager: spawns process with correct arguments, tracks process in registry, terminates gracefully (SIGTERM), force kills after timeout (SIGKILL), cleans up on exit",
+          "OutputCapture: captures stdout lines, captures stderr lines, ring buffer evicts oldest when limit reached, broadcasts to SSE clients",
+          "ProjectParser: parses project.godot correctly, extracts autoloads, detects plugins, counts resources accurately, handles malformed files gracefully"
+        ],
+        "integrationTests": [
+          "launch_godot_editor: launches real Godot with test project (fixtures/test-project), returns valid PID, process appears in system (ps/tasklist), terminates cleanly",
+          "run_godot_project: runs headless project, captures game output in logs, stops on timeout, cleans up process",
+          "get_godot_version: executes 'godot --version', parses output correctly for Godot 4.0-4.6, detects mono builds",
+          "list_godot_projects: scans test directory with 3 projects, finds all project.godot files, returns correct metadata",
+          "analyze_project: counts scenes/scripts in test project, calculates size correctly, lists plugins"
+        ],
+        "manualTests": [
+          "Scenario 1 - Launch Editor: Ask Claude 'Launch Godot editor for /path/to/my-game' → Verify Godot opens with project → Ask 'What is the PID?' → Verify matches Task Manager",
+          "Scenario 2 - Run Headless: Ask 'Run project at /path/to/my-game headless' → Watch Web UI logs stream output → Ask 'Stop the process' → Verify graceful shutdown (exit code 0)",
+          "Scenario 3 - Version Detection: Ask 'What Godot version is installed?' → Verify correct version returned (e.g., '4.6.0.stable')",
+          "Scenario 4 - Project Discovery: Ask 'List all Godot projects in ~/Documents/Godot' → Verify all projects found with names → Ask 'Analyze project my-platformer' → Verify scene/script counts accurate"
+        ],
+        "targetCoverage": 90
+      },
+      "documentationImpact": [
+        "NEW: docs/en/api/tools/editor-control.md - Complete API reference for all 6 tools with parameters, returns, examples",
+        "UPDATE: docs/en/getting-started.md - Add 'Launching Your First Project' section with step-by-step workflow",
+        "NEW: docs/en/examples.md - Usage examples: detect version, list projects, launch editor, run headless, stop process",
+        "UPDATE: docs/en/api/tools.md - Add editor control tools to tool catalog",
+        "NEW: docs/en/troubleshooting.md - Common issues: Godot not found (set GODOT_PATH), permission denied (chmod +x), port conflicts"
+      ],
+      "mcpServerUsage": {
+        "required": true,
+        "tools": [
+          "launch_godot_editor - Spawns editor for project",
+          "run_godot_project - Executes project (headless or normal)",
+          "stop_godot_execution - Terminates running process",
+          "get_godot_version - Detects installed version",
+          "list_godot_projects - Scans directories for projects",
+          "analyze_project - Parses project configuration and counts resources"
+        ],
+        "resources": []
+      },
+      "estimatedEffort": "7 days",
+      "criticalPath": [
+        "Day 2: Godot executable detection working on all platforms - MILESTONE",
+        "Day 4: Editor launch and process control functional - MILESTONE",
+        "Day 7: All 6 tools implemented and tested - MILESTONE"
+      ]
+    },
+    {
+      "issueNumber": 4,
+      "issueTitle": "Read Tools & Web UI Lifecycle Controls",
+      "sprint": "Sprint 3 (Weeks 5-6)",
+      "status": "Depends on Issues #2, #3",
+      "technicalDesign": {
+        "architecture": "Hybrid architecture with Godot-side read operations and Node.js-side caching/Web UI. Godot bridge implements 5 read tool handlers: (1) list_scenes/list_scripts using DirAccess for recursive file scanning with filtering, (2) read_scene parsing .tscn format (Godot's custom resource format) into JSON node hierarchy, (3) read_script returning file content with metadata extraction (class_name, extends, signals, functions via regex), (4) get_project_structure building directory tree with exclusions (.godot/, .import/). Node.js implements LRU cache (50MB limit) with file modification timestamp-based invalidation. Web UI adds lifecycle API (/api/lifecycle/{start,stop,restart}) with child process management and SSE log streaming (/api/logs/stream) with EventSource client-side reconnection.",
+        "technologyStack": [
+          "lru-cache@^10.0.0 - LRU cache with size limit and TTL support",
+          "chokidar@^3.5.0 - File system watcher for cache invalidation (optional)",
+          "GDScript DirAccess - Recursive directory traversal in Godot",
+          "GDScript FileAccess - File reading with get_as_text()",
+          "GDScript ConfigFile - project.godot parser",
+          "Express EventSource - SSE implementation for log streaming",
+          "Alpine.js $watch - Reactive state updates for log viewer"
+        ],
+        "implementationApproach": [
+          "Day 1-2: Define JSON Schemas for all 5 read tools with Zod (ListScenesSchema, ReadSceneSchema, ListScriptsSchema, ReadScriptSchema, GetProjectStructureSchema). Create test fixtures (sample .tscn files, .gd files with various structures). Godot: Implement list_scenes tool handler using DirAccess.open(), get_directories()/get_files() recursive scan, filter for .tscn extensions, return array of {path, name, size, modified}. Implement list_scripts similarly for .gd/.cs files.",
+          "Day 3-4: Godot: Implement read_scene parser - FileAccess.get_as_text(), parse Godot resource format (sections [ext_resource], [sub_resource], [node]), extract node hierarchy with parent-child relationships, properties (type=value pairs), signals/connections. Return JSON: {nodes: [{name, type, parent, properties, children}], resources: [...]}. Handle edge cases: binary .scn files (return metadata only), malformed files (return parse error with line number), large scenes >500 nodes (pagination/streaming future optimization).",
+          "Day 5: Godot: Implement read_script with structure extraction - read file content, regex parse: class_name declaration, extends clause, signal declarations (signal name(params)), constants (const NAME = value), @export variables, function definitions (func name(params) -> return_type:). Return {content: string, metadata: {class_name, extends, signals: [{name, params}], functions: [{name, params, return_type, line_range}]}}. Handle C# scripts: return content + basic class info, defer full parsing to future sprint.",
+          "Day 6: Godot: Implement get_project_structure - parse project.godot with ConfigFile, recursive directory walk with exclusions (.godot/, .import/, .mono/, build/), build JSON tree {name, type: 'file'|'directory', size, modified, children: [...]}. Optional flags: include_hidden (show .godot), max_depth (limit recursion). Node.js: Implement LRU cache with lru-cache library, config: max 50MB (maxSize), TTL 5 minutes (ttl), cache key = tool name + params hash (MD5), cache value = {result, checksum: file hash, timestamp}. Cache invalidation: compare file modification time on cache hit, invalidate if changed.",
+          "Day 7: Web UI lifecycle controls - API endpoints: POST /api/lifecycle/start (spawn 'node dist/server/mcp-server.js' as child, track PID, return {success, pid, timestamp}), POST /api/lifecycle/stop (send SIGTERM to tracked PID, cleanup, return {success}), POST /api/lifecycle/restart (stop then start with 2s delay). Process state management: enum State {STOPPED, STARTING, RUNNING, STOPPING, ERROR}, persist in memory, broadcast state changes via SSE. Alpine.js dashboard component: startServer() calls POST /api/lifecycle/start, updates local state, disables button, shows spinner.",
+          "Day 8: SSE log streaming - enhance /api/logs/stream to accept query params ?level=info&component=GodotBridge for filtering, implement log buffer (last 1000 entries in memory), on connection send buffer + subscribe to new logs. Client-side: EventSource with onmessage handler, append to logs array (Alpine.js reactive), auto-scroll to bottom if autoScroll flag true, freeze scroll on user interaction. Add level-based CSS classes (debug:gray, info:blue, warn:yellow, error:red). Test SSE reconnection: disconnect network, verify auto-reconnect after 5s, no duplicate logs."
+        ],
+        "performanceConsiderations": [
+          "LRU cache optimization: 50MB total size limit enforced by lru-cache (evicts least recently used), per-entry TTL 5 minutes (auto-expire stale data), cache key includes tool name + sorted params hash (consistent hashing), O(1) get/set operations with Map internally",
+          "Scene parsing: Streaming parser for large files (future optimization), current implementation loads full file into memory (limit 10MB per file), regex optimization with compiled patterns, lazy parsing (only parse requested sections)",
+          "File system watchers: Optional chokidar integration for proactive cache invalidation (watch project directory, invalidate cache on file change events), disabled by default to reduce resource usage",
+          "SSE connection limits: Max 100 concurrent SSE clients, enforce with connection counter, close oldest connections when limit reached, heartbeat every 30s to detect dead connections",
+          "Log buffer: Ring buffer implementation (array with head/tail pointers), max 1000 entries (FIFO eviction), max 1MB memory per client, prevents memory exhaustion from verbose logs"
+        ],
+        "securityDesign": [
+          "Path traversal in read tools: All file paths resolved to absolute, validated against project root with path.resolve() and startsWith() check, reject paths outside project directory",
+          "File access restrictions: Godot bridge validates all file operations are within res:// or user:// filesystem, reject absolute paths or .. segments",
+          "Cache poisoning prevention: Cache keys include cryptographic hash of params (MD5 sufficient for non-security), prevent collision attacks, cache values include file checksum (SHA256) for integrity verification",
+          "SSE security: CORS restricted to localhost origins only, no sensitive data in logs (filter environment variables, credentials), rate limit log events (max 500/sec per client)",
+          "Input validation: Zod schemas enforce max path length (500 chars), max depth for recursive operations (10 levels), max file size for reads (10MB), reject malformed requests with 400 Bad Request"
+        ]
+      },
+      "testStrategy": {
+        "unitTests": [
+          "LRU cache: set/get operations, eviction when size exceeded, TTL expiration, cache hit/miss metrics, key collision handling",
+          "Scene parser: parse simple scene (2 nodes), parse complex scene (50+ nodes with properties), parse malformed file (returns error), binary .scn handling",
+          "Script parser: extract class_name, parse extends hierarchy, detect signals, extract function signatures, handle files without class_name",
+          "Directory tree: build tree with 3 levels, exclude .godot folders, apply max_depth limit, calculate sizes correctly"
+        ],
+        "integrationTests": [
+          "Read 100+ scenes benchmark: list_scenes finds all, read_scene parses each, verify cache hit ratio >50% on second pass, p99 latency <100ms",
+          "Cache invalidation: read file, modify file (touch), read again, verify cache miss and fresh data returned",
+          "Concurrent reads: 10 clients read same scene simultaneously, verify single cache entry, no race conditions",
+          "File modification detection: read file (cached), modify content, read again, verify new content returned (cache invalidated by timestamp check)"
+        ],
+        "manualTests": [
+          "Web UI lifecycle: Open dashboard → Click Start → Verify MCP process spawns (check Task Manager PID) → Click Stop → Verify graceful shutdown → Click Restart → Verify new PID assigned",
+          "SSE log streaming: Open dashboard → Start MCP server → Observe logs appear in real-time → Toggle auto-scroll off → Scroll up → Verify logs still append → Close browser tab → Reopen → Verify SSE reconnects and receives logs",
+          "Browse project: Ask Claude 'List all scenes in my project' → Verify all .tscn files returned → Ask 'Read scene MainMenu.tscn' → Verify node hierarchy displayed → Ask 'Read script Player.gd' → Verify content and metadata returned",
+          "Cache performance: Read large scene (50+ nodes) → Note response time → Read again immediately → Verify faster response (cache hit) → Check Web UI logs for cache hit message"
+        ],
+        "targetCoverage": 85
+      },
+      "documentationImpact": [
+        "NEW: docs/en/api/tools/read-tools.md - API reference for list_scenes, read_scene, list_scripts, read_script, get_project_structure",
+        "NEW: docs/en/architecture/caching.md - LRU cache design, invalidation strategy, performance tuning",
+        "NEW: docs/en/web-ui/lifecycle-controls.md - Usage guide for start/stop/restart with screenshots",
+        "NEW: docs/en/web-ui/log-streaming.md - SSE protocol details, client-side integration, filtering options",
+        "UPDATE: docs/en/examples.md - Add examples: reading scenes, browsing project structure, monitoring logs",
+        "UPDATE: docs/en/implementation/roadmap.md - Mark Sprint 3 complete"
+      ],
+      "mcpServerUsage": {
+        "required": true,
+        "tools": [
+          "list_scenes - Recursively find .tscn files in project",
+          "read_scene - Parse scene file into JSON node hierarchy",
+          "list_scripts - Find .gd/.cs files with metadata",
+          "read_script - Read script content with structure extraction",
+          "get_project_structure - Build directory tree with resource counts"
+        ],
+        "resources": []
+      },
+      "estimatedEffort": "8 days",
+      "criticalPath": [
+        "Day 4: Scene parser functional with complex scenes - MILESTONE",
+        "Day 6: LRU cache working with >50% hit ratio - MILESTONE",
+        "Day 8: Web UI lifecycle controls and SSE streaming stable - MILESTONE"
+      ]
+    }
+  ],
+  "summary": {
+    "totalEstimatedDays": 60,
+    "phaseCompletion": "12 weeks (3 months)",
+    "toolsDelivered": "25+ MCP tools across 6 categories",
+    "webUIModules": 2,
+    "performanceTargets": {
+      "readLatency": "<50ms p99",
+      "writeLatency": "<200ms p99",
+      "cacheHitRatio": ">50%",
+      "sseStability": ">1 hour uptime"
+    },
+    "securityCompliance": {
+      "inputValidation": "Zod schemas for all tools",
+      "pathTraversal": "Prevented via absolute path validation",
+      "commandInjection": "Prevented via argument whitelisting and no shell execution",
+      "rateLimiting": "100 reads/min, 20 writes/min (Issue #8)"
+    },
+    "testingMetrics": {
+      "targetCoverage": "85%",
+      "unitTests": "200+ tests",
+      "integrationTests": "50+ tests",
+      "platforms": ["Windows", "macOS", "Linux"]
+    }
+  }
+}
