@@ -175,7 +175,7 @@ func _process_rpc_method(request: Dictionary) -> Dictionary:
 		
 		"get_project_settings":
 			if params and typeof(params) == TYPE_DICTIONARY:
-				var setting_name := params.get("name", "")
+				var setting_name: String = params.get("name", "")
 				if setting_name:
 					var value := ProjectSettings.get_setting(setting_name)
 					return _create_jsonrpc_response(id, {"value": value})

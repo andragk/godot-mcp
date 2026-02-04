@@ -5,15 +5,20 @@ import { GodotClient } from '../../src/bridge/godot-client.js';
 import { logger } from '../../src/utils/logger.js';
 
 // Mock logger
-vi.mock('../../src/utils/logger.js', () => ({
-  logger: {
-    info: vi.fn(),
-    debug: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  },
-  logError: vi.fn(),
-}));
+vi.mock('../../src/utils/logger.js', () => {
+  const mockLog = vi.fn();
+  mockLog.bind = vi.fn(() => mockLog);
+  return {
+    logger: {
+      info: vi.fn(),
+      debug: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      log: mockLog,
+    },
+    logError: vi.fn(),
+  };
+});
 
 describe('WebServer', () => {
   let webServer: WebServer;
@@ -32,7 +37,12 @@ describe('WebServer', () => {
   });
 
   afterEach(async () => {
-    await webServer.stop();
+    // Only stop if server was started
+    try {
+      await webServer.stop();
+    } catch {
+      // Ignore errors if server wasn't started
+    }
   });
 
   describe('initialization', () => {
@@ -65,12 +75,17 @@ describe('WebServer', () => {
       expect(response.body).toHaveProperty('bridgeConnected');
     });
 
-    it('should setup SSE endpoint at /api/logs/stream', async () => {
+    it('should setup SSE endpoint at /api/logs/stream', (done) => {
       const app = (webServer as any).app;
-      const response = await request(app).get('/api/logs/stream');
+      const req = request(app).get('/api/logs/stream');
       
-      expect(response.headers['content-type']).toContain('text/event-stream');
-      expect(response.headers['cache-control']).toBe('no-cache');
+      // SSE connections don't close, so we check headers on the response object
+      req.on('response', (res) => {
+        expect(res.headers['content-type']).toContain('text/event-stream');
+        expect(res.headers['cache-control']).toBe('no-cache');
+        req.abort(); // Close the connection
+        done();
+      });
     });
   });
 

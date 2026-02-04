@@ -25,10 +25,6 @@ describe('GodotClient', () => {
     });
   });
 
-  afterEach(async () => {
-    await client.disconnect();
-  });
-
   describe('initialization', () => {
     it('should create client with default configuration', () => {
       const defaultClient = new GodotClient();
@@ -73,9 +69,9 @@ describe('GodotClient', () => {
     });
   });
 
-  describe('disconnect', () => {
+  describe('close', () => {
     it('should close connection pool', async () => {
-      await expect(client.disconnect()).resolves.not.toThrow();
+      await expect(client.close()).resolves.not.toThrow();
     });
   });
 });

@@ -15,11 +15,13 @@ vi.mock('../../src/utils/logger.js', () => ({
 
 // Mock GodotClient
 vi.mock('../../src/bridge/index.js', () => ({
-  GodotClient: vi.fn().mockImplementation(() => ({
-    sendRequest: vi.fn().mockResolvedValue({ status: 'ok' }),
-    healthCheck: vi.fn().mockResolvedValue({ status: 'healthy', uptime: 1000 }),
-    disconnect: vi.fn().mockResolvedValue(undefined),
-  })),
+  GodotClient: vi.fn(function(this: any) {
+    this.sendRequest = vi.fn().mockResolvedValue({ status: 'ok' });
+    this.healthCheck = vi.fn().mockResolvedValue({ status: 'healthy', uptime: 1000 });
+    this.getVersion = vi.fn().mockResolvedValue('4.6.0.stable');
+    this.close = vi.fn().mockResolvedValue(undefined);
+    return this;
+  }),
 }));
 
 describe('GodotMCPServer', () => {
