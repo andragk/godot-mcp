@@ -595,6 +595,7 @@ start coverage/index.html
 
 - [Deployment Guide](/en/implementation/deployment) - Package for production
 - [Best Practices](/en/best-practices) - Development guidelines
+- [Implementation Roadmap](/en/implementation/roadmap) - Sprint-by-sprint testing milestones
 
 :::tip Testing Best Practices
 - Write tests before implementation (TDD)
@@ -604,3 +605,147 @@ start coverage/index.html
 - Keep tests fast (<100ms per test)
 - Run tests in CI/CD pipeline
 :::
+
+---
+
+## Quality Gates & Release Criteria
+
+### Pre-Merge Quality Gate
+
+Required for all Pull Requests:
+
+- ✅ **All tests pass** (unit, integration, E2E)
+- ✅ **Coverage ≥80%** overall, 100% for critical paths
+- ✅ **No new ESLint warnings** (enforce with `--max-warnings 0`)
+- ✅ **No security vulnerabilities** (npm audit, Snyk scan)
+- ✅ **Performance benchmarks** don't regress by >10%
+- ✅ **Manual code review** approved by 1+ maintainer
+
+### Pre-Release Quality Gate
+
+Required before tagging a release:
+
+- ✅ **Full E2E test suite passes** (all critical workflows)
+- ✅ **Load testing validates performance** (p99 <50ms read, <200ms write)
+- ✅ **Security scan clean** (no high/critical vulnerabilities)
+- ✅ **Documentation updated** (CHANGELOG, API docs)
+- ✅ **Version bumped** (SemVer compliance)
+- ✅ **Staging deployment successful** (manual smoke test)
+
+### Test Pyramid Metrics
+
+**Target Distribution:**
+
+| Layer | Test Count | Execution Time | Coverage Target |
+|-------|-----------|----------------|-----------------|
+| Unit Tests | 80% | <30s | ≥80% overall |
+| Integration Tests | 15% | <90s | 100% API contracts |
+| E2E Tests | 5% | <2min | Critical paths only |
+| **Total** | **~1,000 tests** | **<5min** | **≥80%** |
+
+### Reliability Metrics
+
+**Target Metrics:**
+
+- **Flaky Test Rate**: <0.1% (max 1 flaky test per 1,000 runs)
+- **Build Success Rate**: >99% (excluding external failures)
+- **Mean Time to Detect (MTTD)**: <5min (CI pipeline catches failures)
+- **Mean Time to Repair (MTTR)**: <1hr (critical test failures fixed within 1 hour)
+
+**Flaky Test Management:**
+
+```typescript
+// Mark flaky tests for retry
+describe.concurrent.retry(3)('Flaky integration test', () => {
+  it('should handle network timeout gracefully', async () => {
+    // Test with retry logic
+  });
+});
+```
+
+---
+
+## Security Testing
+
+### Security Test Categories
+
+1. **Input Validation Tests** (100% coverage required):
+   - Path traversal attempts (`../../etc/passwd`)
+   - Absolute paths (`/etc/passwd`, `C:\Windows\System32`)
+   - Special characters (null bytes, Unicode exploits)
+   - Command injection patterns
+
+2. **Authentication Tests**:
+   - Invalid API keys
+   - Expired API keys
+   - Missing authentication headers
+   - Brute force protection (rate limiting)
+
+3. **Fuzz Testing**:
+   - Random input generation for all tool parameters
+   - Boundary value testing (min/max integers, empty strings)
+
+### Example Security Test
+
+```typescript
+describe('Security: Path Traversal Protection', () => {
+  const attackVectors = [
+    '../../../etc/passwd',
+    '..\\..\\..\\Windows\\System32\\config\\sam',
+    'scenes/../../../etc/passwd',
+    'scenes/%2e%2e%2f%2e%2e%2fetc/passwd',
+  ];
+
+  attackVectors.forEach(path => {
+    it(`should reject path traversal: ${path}`, async () => {
+      const result = await validatePath(path);
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('path traversal');
+    });
+  });
+
+  it('should reject absolute paths', () => {
+    expect(validatePath('/etc/passwd').valid).toBe(false);
+    expect(validatePath('C:\\Windows\\System32').valid).toBe(false);
+  });
+
+  it('should allow valid relative paths', () => {
+    expect(validatePath('scenes/main_menu.tscn').valid).toBe(true);
+    expect(validatePath('scripts/player.gd').valid).toBe(true);
+  });
+});
+```
+
+---
+
+## Test Data Management
+
+### Test Fixtures
+
+Create reusable test data:
+
+```typescript
+// tests/fixtures/scenes.ts
+export const MOCK_SCENE = {
+  path: 'scenes/test_scene.tscn',
+  nodes: [
+    { name: 'Root', type: 'Node2D', properties: {} },
+    { name: 'Player', type: 'CharacterBody2D', parent: 'Root' }
+  ],
+  connections: []
+};
+
+export const MOCK_SCRIPT = {
+  path: 'scripts/player.gd',
+  content: 'extends CharacterBody2D\n\nfunc _ready():\n\tpass'
+};
+```
+
+---
+
+## Related Documentation
+
+- [Security Architecture](/en/architecture/security) - Security testing requirements
+- [Setup Guide](/en/implementation/setup) - Development environment setup
+- [Deployment Guide](/en/implementation/deployment) - CI/CD pipeline configuration
+- [Best Practices](/en/best-practices) - Testing best practices

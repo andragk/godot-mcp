@@ -599,11 +599,14 @@ curl http://localhost:7777/health
 
 ## Next Steps
 
+- [Implementation Roadmap](/en/implementation/roadmap) - Complete Sprint 1-12 timeline
 - [Node.js Server Implementation](/en/implementation/node-server) - Build the MCP server
 - [Godot Bridge Implementation](/en/implementation/godot-bridge) - Create the HTTP server
 - [Testing Strategy](/en/implementation/testing) - Write comprehensive tests
 
 :::tip Development Workflow
+Follow the [Implementation Roadmap](./roadmap.md) for a structured 6-month plan from MVP to v1.0. Sprint 1 covers the foundation setup detailed on this page.
+:::
 1. Start Godot in headless mode (`godot --headless .`)
 2. Start Node.js server in watch mode (`npm run dev`)
 3. Use VS Code debugger for breakpoints

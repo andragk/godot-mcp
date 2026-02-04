@@ -630,6 +630,8 @@ func rpc_handler(request: HTTPServerRequest) -> HTTPServerResponse:
 
 ## Related Documentation
 
+- [Protocol Specification](/en/api/protocol) - Complete JSON-RPC protocol and error codes
 - [Tools API](/en/api/tools) - MCP tool specifications
 - [Resources API](/en/api/resources) - Resource URIs and metadata
+- [Security Architecture](/en/architecture/security) - Authentication and validation
 - [Implementation Guide](/en/implementation/godot-bridge) - Building the HTTP server

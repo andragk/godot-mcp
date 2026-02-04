@@ -229,6 +229,10 @@ godot-mcp-server \
 - ✅ Enable audit logging (`--audit-log /var/log/mcp-audit.log`)
 - ✅ Rate limit AI clients (`--rate-limit 100`)
 
+::: tip Deep Dive: Security Architecture
+For comprehensive security guidelines including threat modeling, security controls, authentication strategies, and incident response procedures, see the [Security Architecture](./architecture/security.md) page.
+:::
+
 ---
 
 ## Reliability Patterns

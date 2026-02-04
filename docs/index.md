@@ -174,23 +174,23 @@ Visit `http://localhost:8080` to:
 
 ### 📚 New to MCP?
 
-Start with [Getting Started](./en/getting-started.md) for installation and your first tool invocation.
+Start with [Getting Started](./en/getting-started) for installation and your first tool invocation.
 
 ### 🧠 Learn the Concepts
 
-Understand [MCP Protocol & Architecture](./en/concepts.md) to see how it all works together.
+Understand [MCP Protocol & Architecture](./en/concepts) to see how it all works together.
 
 ### 💡 See It in Action
 
-Explore [Real-World Examples](./en/examples.md) of AI-assisted game development workflows.
+Explore [Real-World Examples](./en/examples) of AI-assisted game development workflows.
 
 ### 🏗️ Build It Yourself
 
-Follow the [Implementation Guide](./en/implementation/setup.md) to create your own MCP server.
+Follow the [Implementation Guide](./en/implementation/setup) to create your own MCP server.
 
 ### 🔐 Production Deployment
 
-Review [Best Practices](./en/best-practices.md) for security, performance, and reliability.
+Review [Best Practices](./en/best-practices) for security, performance, and reliability.
 
 </div>
 
