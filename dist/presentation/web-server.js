@@ -49,7 +49,7 @@ export class WebServer {
                 directives: {
                     defaultSrc: ["'self'"],
                     styleSrc: ["'self'", "'unsafe-inline'"],
-                    scriptSrc: ["'self'"],
+                    scriptSrc: ["'self'", "'unsafe-inline'"], // Allow inline scripts for Alpine.js
                     imgSrc: ["'self'", 'data:', 'https:'],
                     connectSrc: ["'self'"],
                     fontSrc: ["'self'"],
@@ -195,6 +195,7 @@ export class WebServer {
         // });
         // Static file serving
         this.app.use(express.static('public'));
+        this.app.use('/node_modules', express.static('node_modules'));
         // Health endpoint (read limiter)
         this.app.get('/api/health', readLimiter, (_req, res) => {
             res.json({ status: 'ok', uptime: this.getUptime() });
