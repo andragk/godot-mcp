@@ -110,12 +110,23 @@ export class WebServer {
     // Request validation middleware
     this.app.use(this.validateRequest.bind(this));
 
-    // Request logging
-    this.app.use((req: Request, _res: Response, next: NextFunction) => {
-      logger.debug('HTTP request', {
-        method: req.method,
-        path: req.path,
-        ip: req.ip,
+    // Request logging (only log non-debug routes)
+    this.app.use((req: Request, res: Response, next: NextFunction) => {
+      // Skip logging for health checks and other noisy endpoints
+      if (req.path === '/api/health') {
+        return next();
+      }
+
+      const startTime = Date.now();
+      res.on('finish', () => {
+        const duration = Date.now() - startTime;
+        logger.info('HTTP request', {
+          method: req.method,
+          path: req.path,
+          status: res.statusCode,
+          duration: `${duration}ms`,
+          ip: req.ip,
+        });
       });
       next();
     });

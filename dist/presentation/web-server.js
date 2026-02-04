@@ -85,12 +85,22 @@ export class WebServer {
         this.app.use(express.json({ limit: MAX_BODY_SIZE }));
         // Request validation middleware
         this.app.use(this.validateRequest.bind(this));
-        // Request logging
-        this.app.use((req, _res, next) => {
-            logger.debug('HTTP request', {
-                method: req.method,
-                path: req.path,
-                ip: req.ip,
+        // Request logging (only log non-debug routes)
+        this.app.use((req, res, next) => {
+            // Skip logging for health checks and other noisy endpoints
+            if (req.path === '/api/health') {
+                return next();
+            }
+            const startTime = Date.now();
+            res.on('finish', () => {
+                const duration = Date.now() - startTime;
+                logger.info('HTTP request', {
+                    method: req.method,
+                    path: req.path,
+                    status: res.statusCode,
+                    duration: `${duration}ms`,
+                    ip: req.ip,
+                });
             });
             next();
         });
