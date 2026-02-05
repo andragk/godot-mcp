@@ -26,9 +26,16 @@ const HTTPResponseBuilderScript := preload("res://addons/godot-mcp-bridge/protoc
 const JSONRPCHandlerScript := preload("res://addons/godot-mcp-bridge/protocol/jsonrpc_handler.gd")
 const EditorControlHandlerScript := preload("res://addons/godot-mcp-bridge/handlers/editor_control_handler.gd")
 const ProjectDiscoveryHandlerScript := preload("res://addons/godot-mcp-bridge/handlers/project_discovery_handler.gd")
+const SceneManagementHandlerScript := preload("res://addons/godot-mcp-bridge/handlers/scene_management_handler.gd")
+const ScriptExecutionHandlerScript := preload("res://addons/godot-mcp-bridge/handlers/script_execution_handler.gd")
+const NodeInspectionHandlerScript := preload("res://addons/godot-mcp-bridge/handlers/node_inspection_handler.gd")
+const ResourceManagementHandlerScript := preload("res://addons/godot-mcp-bridge/handlers/resource_management_handler.gd")
+const BuildExportHandlerScript := preload("res://addons/godot-mcp-bridge/handlers/build_export_handler.gd")
+const TestingHandlerScript := preload("res://addons/godot-mcp-bridge/handlers/testing_handler.gd")
+const PluginManagementHandlerScript := preload("res://addons/godot-mcp-bridge/handlers/plugin_management_handler.gd")
 
 const PORT := 7777
-const VERSION := "0.1.0"
+const VERSION := "0.2.0"
 
 ## Core components
 var server: TCPServer
@@ -40,8 +47,17 @@ var logger: MCPLogger
 var request_parser: HTTPRequestParser
 var response_builder: HTTPResponseBuilder
 var jsonrpc_handler: JSONRPCHandler
+
+## Business logic handlers
 var editor_handler: EditorControlHandler
 var project_handler: ProjectDiscoveryHandler
+var scene_handler: SceneManagementHandler
+var script_handler: ScriptExecutionHandler
+var node_handler: NodeInspectionHandler
+var resource_handler: ResourceManagementHandler
+var build_handler: BuildExportHandler
+var testing_handler: TestingHandler
+var plugin_handler: PluginManagementHandler
 
 
 func _ready() -> void:
@@ -75,8 +91,20 @@ func _initialize_handlers() -> void:
 	request_parser = HTTPRequestParserScript.new()
 	response_builder = HTTPResponseBuilderScript.new()
 	jsonrpc_handler = JSONRPCHandlerScript.new()
+	
+	# Get EditorInterface for handlers that need it
+	var editor_interface = EditorInterface
+	
+	# Initialize business logic handlers
 	editor_handler = EditorControlHandlerScript.new(logger)
 	project_handler = ProjectDiscoveryHandlerScript.new(logger)
+	scene_handler = SceneManagementHandlerScript.new(logger, editor_interface)
+	script_handler = ScriptExecutionHandlerScript.new(logger, editor_interface)
+	node_handler = NodeInspectionHandlerScript.new(logger, editor_interface)
+	resource_handler = ResourceManagementHandlerScript.new(logger, editor_interface)
+	build_handler = BuildExportHandlerScript.new(logger, editor_interface)
+	testing_handler = TestingHandlerScript.new(logger, editor_interface)
+	plugin_handler = PluginManagementHandlerScript.new(logger, editor_interface)
 
 
 func _process(_delta: float) -> void:
@@ -248,25 +276,109 @@ func _route_rpc_method(request: Dictionary) -> Dictionary:
 		"get_project_settings":
 			return _handle_get_project_settings(id, params)
 		
-		# Editor control methods - delegated to EditorControlHandler
+		# Editor control methods - EditorControlHandler
 		"launch_editor":
 			return _handle_launch_editor(id, params)
-		
 		"run_project":
 			return _handle_run_project(id, params)
-		
 		"stop_execution":
 			return _handle_stop_execution(id, params)
-		
 		"get_godot_version":
 			return _handle_get_godot_version(id, params)
 		
-		# Project discovery methods - delegated to ProjectDiscoveryHandler
+		# Project discovery methods - ProjectDiscoveryHandler
 		"list_projects":
 			return _handle_list_projects(id, params)
-		
 		"analyze_project":
 			return _handle_analyze_project(id, params)
+		
+		# Scene management methods - SceneManagementHandler
+		"get_current_scene":
+			return _handle_generic(id, params, scene_handler, "get_current_scene")
+		"load_scene_in_editor":
+			return _handle_generic(id, params, scene_handler, "load_scene_in_editor")
+		"save_current_scene":
+			return _handle_generic(id, params, scene_handler, "save_current_scene")
+		"close_scene":
+			return _handle_generic(id, params, scene_handler, "close_scene")
+		"reload_current_scene":
+			return _handle_generic(id, params, scene_handler, "reload_current_scene")
+		"get_open_scenes":
+			return _handle_generic(id, params, scene_handler, "get_open_scenes")
+		
+		# Script execution methods - ScriptExecutionHandler
+		"run_gdscript":
+			return _handle_generic(id, params, script_handler, "run_gdscript")
+		"evaluate_expression":
+			return _handle_generic(id, params, script_handler, "evaluate_expression")
+		"get_editor_settings":
+			return _handle_generic(id, params, script_handler, "get_editor_settings")
+		"set_editor_settings":
+			return _handle_generic(id, params, script_handler, "set_editor_settings")
+		"list_editor_settings":
+			return _handle_generic(id, params, script_handler, "list_editor_settings")
+		
+		# Node inspection methods - NodeInspectionHandler
+		"get_node_tree":
+			return _handle_generic(id, params, node_handler, "get_node_tree")
+		"inspect_node":
+			return _handle_generic(id, params, node_handler, "inspect_node")
+		"modify_node_property":
+			return _handle_generic(id, params, node_handler, "modify_node_property")
+		"add_node_to_scene":
+			return _handle_generic(id, params, node_handler, "add_node_to_scene")
+		"delete_node":
+			return _handle_generic(id, params, node_handler, "delete_node")
+		
+		# Resource management methods - ResourceManagementHandler
+		"import_asset":
+			return _handle_generic(id, params, resource_handler, "import_asset")
+		"get_import_settings":
+			return _handle_generic(id, params, resource_handler, "get_import_settings")
+		"set_import_settings":
+			return _handle_generic(id, params, resource_handler, "set_import_settings")
+		"reimport_assets":
+			return _handle_generic(id, params, resource_handler, "reimport_assets")
+		"get_resource_metadata":
+			return _handle_generic(id, params, resource_handler, "get_resource_metadata")
+		
+		# Build & export methods - BuildExportHandler
+		"export_project":
+			return _handle_generic(id, params, build_handler, "export_project")
+		"get_export_presets":
+			return _handle_generic(id, params, build_handler, "get_export_presets")
+		"create_export_preset":
+			return _handle_generic(id, params, build_handler, "create_export_preset")
+		"run_custom_build_script":
+			return _handle_generic(id, params, build_handler, "run_custom_build_script")
+		"get_build_info":
+			return _handle_generic(id, params, build_handler, "get_build_info")
+		
+		# Testing methods - TestingHandler
+		"run_tests":
+			return _handle_generic(id, params, testing_handler, "run_tests")
+		"run_scene_test":
+			return _handle_generic(id, params, testing_handler, "run_scene_test")
+		"get_test_results":
+			return _handle_generic(id, params, testing_handler, "get_test_results")
+		"profile_scene":
+			return _handle_generic(id, params, testing_handler, "profile_scene")
+		
+		# Plugin management methods - PluginManagementHandler
+		"list_plugins":
+			return _handle_generic(id, params, plugin_handler, "list_plugins")
+		"get_plugin_info":
+			return _handle_generic(id, params, plugin_handler, "get_plugin_info")
+		"enable_plugin":
+			return _handle_generic(id, params, plugin_handler, "enable_plugin")
+		"disable_plugin":
+			return _handle_generic(id, params, plugin_handler, "disable_plugin")
+		"is_plugin_enabled":
+			return _handle_generic(id, params, plugin_handler, "is_plugin_enabled")
+		"reload_plugin":
+			return _handle_generic(id, params, plugin_handler, "reload_plugin")
+		"install_plugin":
+			return _handle_generic(id, params, plugin_handler, "install_plugin")
 		
 		_:
 			return jsonrpc_handler.create_error(
@@ -274,6 +386,138 @@ func _route_rpc_method(request: Dictionary) -> Dictionary:
 				"Method not found: %s" % method,
 				id
 			)
+
+
+## Generic handler for delegating to handler methods
+##
+## WHY: Handlers are designed to accept params as Dictionary arguments
+## and return properly formatted success/error dictionaries.
+func _handle_generic(id: Variant, params: Variant, handler: Object, method_name: String) -> Dictionary:
+	if not handler.has_method(method_name):
+		return jsonrpc_handler.create_error(
+			jsonrpc_handler.INTERNAL_ERROR,
+			"Handler method not found: " + method_name,
+			id
+		)
+	
+	# Ensure params is a dictionary
+	var call_params := {}
+	if params and typeof(params) == TYPE_DICTIONARY:
+		call_params = params
+	
+	# Call handler method - handlers accept individual parameters extracted from dict
+	var result: Dictionary
+	
+	# Extract common parameters and call handler method
+	# Each handler method defines its own parameter signature
+	match method_name:
+		# Scene management
+		"load_scene_in_editor":
+			result = handler.load_scene_in_editor(call_params.get("scene_path", ""))
+		"get_current_scene", "save_current_scene", "close_scene", "reload_current_scene", "get_open_scenes":
+			result = handler.call(method_name)
+		
+		# Script execution
+		"run_gdscript":
+			result = handler.run_gdscript(call_params.get("code", ""), call_params.get("context", {}))
+		"evaluate_expression":
+			result = handler.evaluate_expression(call_params.get("expression", ""))
+		"get_editor_settings":
+			result = handler.get_editor_settings(call_params.get("setting_path", ""))
+		"set_editor_settings":
+			result = handler.set_editor_settings(call_params.get("setting_path", ""), call_params.get("value"))
+		"list_editor_settings":
+			result = handler.list_editor_settings(call_params.get("prefix", ""))
+		
+		# Node inspection
+		"get_node_tree":
+			result = handler.get_node_tree(call_params.get("include_properties", false), call_params.get("max_depth", -1))
+		"inspect_node":
+			result = handler.inspect_node(call_params.get("node_path", ""))
+		"modify_node_property":
+			result = handler.modify_node_property(
+				call_params.get("node_path", ""),
+				call_params.get("property_name", ""),
+				call_params.get("value")
+			)
+		"add_node_to_scene":
+			result = handler.add_node_to_scene(
+				call_params.get("parent_path", ""),
+				call_params.get("node_type", ""),
+				call_params.get("node_name", ""),
+				call_params.get("properties", {})
+			)
+		"delete_node":
+			result = handler.delete_node(call_params.get("node_path", ""))
+		
+		# Resource management
+		"import_asset":
+			result = handler.import_asset(call_params.get("asset_path", ""), call_params.get("force", false))
+		"get_import_settings":
+			result = handler.get_import_settings(call_params.get("asset_path", ""))
+		"set_import_settings":
+			result = handler.set_import_settings(call_params.get("asset_path", ""), call_params.get("settings", {}))
+		"reimport_assets":
+			result = handler.reimport_assets(call_params.get("path_pattern", ""))
+		"get_resource_metadata":
+			result = handler.get_resource_metadata(call_params.get("resource_path", ""))
+		
+		# Build & export
+		"export_project":
+			result = handler.export_project(
+				call_params.get("preset_name", ""),
+				call_params.get("output_path", ""),
+				call_params.get("debug", false)
+			)
+		"get_export_presets", "get_build_info":
+			result = handler.call(method_name)
+		"create_export_preset":
+			result = handler.create_export_preset(
+				call_params.get("preset_name", ""),
+				call_params.get("platform", ""),
+				call_params.get("settings", {})
+			)
+		"run_custom_build_script":
+			result = handler.run_custom_build_script(call_params.get("script_path", ""), call_params.get("arguments", {}))
+		
+		# Testing
+		"run_tests":
+			result = handler.run_tests(call_params.get("test_path", ""), call_params.get("framework", "gut"))
+		"run_scene_test":
+			result = handler.run_scene_test(
+				call_params.get("scene_path", ""),
+				call_params.get("duration", 0.0),
+				call_params.get("headless", false)
+			)
+		"get_test_results":
+			result = handler.get_test_results()
+		"profile_scene":
+			result = handler.profile_scene(
+				call_params.get("scene_path", ""),
+				call_params.get("duration", 5.0),
+				call_params.get("metrics", ["fps"])
+			)
+		
+		# Plugin management
+		"list_plugins":
+			result = handler.list_plugins()
+		"get_plugin_info", "enable_plugin", "disable_plugin", "is_plugin_enabled", "reload_plugin":
+			result = handler.call(method_name, call_params.get("plugin_name", ""))
+		"install_plugin":
+			result = handler.install_plugin(call_params.get("source_path", ""), call_params.get("plugin_name", ""))
+		
+		_:
+			return jsonrpc_handler.create_error(
+				jsonrpc_handler.INTERNAL_ERROR, 
+				"Unknown method mapping: " + method_name,
+				id
+			)
+	
+	# Check if result has error (handlers return {success: false, error: "message"})
+	if result.has("error") and not result.get("success", true):
+		return jsonrpc_handler.create_error(jsonrpc_handler.INTERNAL_ERROR, result.error, id)
+	
+	return jsonrpc_handler.create_response(id, result)
 
 
 ## Handle get_project_settings RPC method

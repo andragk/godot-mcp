@@ -1,0 +1,1095 @@
+openapi: 3.0.3
+info:
+  title: Godot MCP Bridge API
+  description: |
+    REST API for the Godot MCP Bridge - Enables programmatic control of Godot Editor operations via HTTP/JSON-RPC.
+    
+    This bridge exposes Godot-specific operations that require running inside the editor (scene management,
+    node inspection, script execution, etc.) while the main MCP server handles file system operations.
+    
+    ## Architecture
+    
+    - **Transport**: HTTP/1.1 on port 7777
+    - **Protocol**: JSON-RPC 2.0
+    - **Authentication**: None (local development only)
+    - **CORS**: Enabled (all origins)
+    
+    ## JSON-RPC 2.0 Format
+    
+    All endpoints accept JSON-RPC 2.0 requests:
+    ```json
+    {
+      "jsonrpc": "2.0",
+      "id": 1,
+      "method": "method_name",
+      "params": {
+        "parameter": "value"
+      }
+    }
+    ```
+    
+    Responses follow JSON-RPC 2.0 format:
+    ```json
+    {
+      "jsonrpc": "2.0",
+      "id": 1,
+      "result": {
+        "success": true,
+        "data": "..."
+      }
+    }
+    ```
+    
+    Errors follow JSON-RPC 2.0 error format:
+    ```json
+    {
+      "jsonrpc": "2.0",
+      "id": 1,
+      "error": {
+        "code": -32600,
+        "message": "Invalid Request"
+      }
+    }
+    ```
+  version: "0.2.0"
+  contact:
+    name: Godot MCP Project
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:7777
+    description: Local Godot Editor
+
+paths:
+  /rpc:
+    post:
+      summary: JSON-RPC 2.0 Endpoint
+      description: All API methods are called via this single endpoint using JSON-RPC 2.0 protocol
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonRpcRequest'
+            examples:
+              ping:
+                summary: Ping
+                value:
+                  jsonrpc: "2.0"
+                  id: 1
+                  method: "ping"
+                  params: {}
+              get_current_scene:
+                summary: Get Current Scene
+                value:
+                  jsonrpc: "2.0"
+                  id: 2
+                  method: "get_current_scene"
+                  params: {}
+              load_scene:
+                summary: Load Scene
+                value:
+                  jsonrpc: "2.0"
+                  id: 3
+                  method: "load_scene_in_editor"
+                  params:
+                    scene_path: "res://scenes/main.tscn"
+      responses:
+        '200':
+          description: JSON-RPC response (success or error)
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/JsonRpcSuccess'
+                  - $ref: '#/components/schemas/JsonRpcError'
+
+  /health:
+    get:
+      summary: Health Check
+      description: Check if server is running
+      responses:
+        '200':
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  uptime:
+                    type: integer
+                    description: Server uptime in milliseconds
+                  version:
+                    type: string
+                    example: "0.2.0"
+
+components:
+  schemas:
+    JsonRpcRequest:
+      type: object
+      required:
+        - jsonrpc
+        - method
+        - id
+      properties:
+        jsonrpc:
+          type: string
+          enum: ["2.0"]
+        id:
+          oneOf:
+            - type: string
+            - type: integer
+            - type: "null"
+        method:
+          type: string
+          description: Method name to call
+        params:
+          type: object
+          description: Method parameters
+    
+    JsonRpcSuccess:
+      type: object
+      required:
+        - jsonrpc
+        - id
+        - result
+      properties:
+        jsonrpc:
+          type: string
+          enum: ["2.0"]
+        id:
+          oneOf:
+            - type: string
+            - type: integer
+        result:
+          type: object
+          description: Method result
+    
+    JsonRpcError:
+      type: object
+      required:
+        - jsonrpc
+        - id
+        - error
+      properties:
+        jsonrpc:
+          type: string
+          enum: ["2.0"]
+        id:
+          oneOf:
+            - type: string
+            - type: integer
+            - type: "null"
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: integer
+              description: JSON-RPC error code
+            message:
+              type: string
+              description: Error message
+
+x-methods:
+  # Core Methods
+  ping:
+    description: Test connectivity
+    params: {}
+    returns:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "pong"
+  
+  get_engine_info:
+    description: Get Godot engine information
+    params: {}
+    returns:
+      type: object
+      properties:
+        version:
+          type: object
+          description: Engine version info
+        fps:
+          type: number
+        time_scale:
+          type: number
+  
+  get_godot_version:
+    description: Get detailed Godot version
+    params: {}
+    returns:
+      type: object
+      properties:
+        version:
+          type: string
+          example: "4.6.0"
+        status:
+          type: string
+        build:
+          type: string
+        hash:
+          type: string
+  
+  # Editor Control Methods
+  launch_editor:
+    description: Launch Godot editor for a project
+    params:
+      type: object
+      required: [project_path]
+      properties:
+        project_path:
+          type: string
+          description: Path to Godot project
+        editor_path:
+          type: string
+          description: Path to Godot executable (auto-detected if empty)
+        additional_args:
+          type: array
+          items:
+            type: string
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        processId:
+          type: integer
+        editorPath:
+          type: string
+        projectPath:
+          type: string
+  
+  run_project:
+    description: Run a Godot project
+    params:
+      type: object
+      required: [project_path]
+      properties:
+        project_path:
+          type: string
+        scene:
+          type: string
+          description: Specific scene to run
+        debug:
+          type: boolean
+          default: true
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        processId:
+          type: integer
+        projectPath:
+          type: string
+        debug:
+          type: boolean
+  
+  stop_execution:
+    description: Stop a running Godot process
+    params:
+      type: object
+      required: [process_id]
+      properties:
+        process_id:
+          type: integer
+        force:
+          type: boolean
+          default: false
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+  
+  # Project Discovery Methods
+  list_projects:
+    description: Find Godot projects in directories
+    params:
+      type: object
+      required: [search_paths]
+      properties:
+        search_paths:
+          type: array
+          items:
+            type: string
+        recursive:
+          type: boolean
+          default: false
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        projects:
+          type: array
+          items:
+            type: object
+        count:
+          type: integer
+  
+  analyze_project:
+    description: Analyze a Godot project
+    params:
+      type: object
+      required: [project_path]
+      properties:
+        project_path:
+          type: string
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        project_name:
+          type: string
+        godot_version:
+          type: string
+        features:
+          type: array
+        assets_count:
+          type: integer
+  
+  # Scene Management Methods
+  get_current_scene:
+    description: Get currently open scene in editor
+    params: {}
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        scene_path:
+          type: string
+        has_scene_open:
+          type: boolean
+        root_node_name:
+          type: string
+        root_node_type:
+          type: string
+  
+  load_scene_in_editor:
+    description: Open a scene file in the editor
+    params:
+      type: object
+      required: [scene_path]
+      properties:
+        scene_path:
+          type: string
+          description: Path to .tscn file
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        scene_path:
+          type: string
+        message:
+          type: string
+  
+  save_current_scene:
+    description: Save the currently open scene
+    params: {}
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        scene_path:
+          type: string
+        message:
+          type: string
+  
+  close_scene:
+    description: Close the currently open scene
+    params: {}
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        previous_scene:
+          type: string
+        message:
+          type: string
+  
+  reload_current_scene:
+    description: Reload scene from disk
+    params: {}
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        scene_path:
+          type: string
+        message:
+          type: string
+  
+  get_open_scenes:
+    description: Get list of open scenes
+    params: {}
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        open_scenes:
+          type: array
+          items:
+            type: string
+        count:
+          type: integer
+  
+  # Script Execution Methods
+  run_gdscript:
+    description: Execute GDScript code in editor context
+    params:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+          description: GDScript code to execute
+        context:
+          type: object
+          description: Variables to inject into script context
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        result:
+          description: Execution result
+        result_type:
+          type: integer
+          description: Variant type ID
+  
+  evaluate_expression:
+    description: Evaluate a GDScript expression
+    params:
+      type: object
+      required: [expression]
+      properties:
+        expression:
+          type: string
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        result:
+          description: Expression result
+        result_type:
+          type: integer
+        expression:
+          type: string
+  
+  get_editor_settings:
+    description: Get editor setting value
+    params:
+      type: object
+      required: [setting_path]
+      properties:
+        setting_path:
+          type: string
+          example: "interface/editor/display_scale"
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        setting_path:
+          type: string
+        value:
+          description: Setting value
+        value_type:
+          type: integer
+  
+  set_editor_settings:
+    description: Set editor setting value
+    params:
+      type: object
+      required: [setting_path, value]
+      properties:
+        setting_path:
+          type: string
+        value:
+          description: New value
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        setting_path:
+          type: string
+        value:
+          description: Set value
+        message:
+          type: string
+  
+  list_editor_settings:
+    description: List available editor settings
+    params:
+      type: object
+      properties:
+        prefix:
+          type: string
+          description: Filter by prefix
+          example: "interface/"
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        settings:
+          type: array
+          items:
+            type: string
+        count:
+          type: integer
+  
+  # Node Inspection Methods
+  get_node_tree:
+    description: Get complete node tree of open scene
+    params:
+      type: object
+      properties:
+        include_properties:
+          type: boolean
+          default: false
+        max_depth:
+          type: integer
+          default: -1
+          description: -1 for unlimited
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        tree:
+          type: object
+          description: Hierarchical node tree
+        scene_path:
+          type: string
+  
+  inspect_node:
+    description: Get all properties of a specific node
+    params:
+      type: object
+      required: [node_path]
+      properties:
+        node_path:
+          type: string
+          example: "Player/Sprite2D"
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        node_path:
+          type: string
+        node_name:
+          type: string
+        node_type:
+          type: string
+        properties:
+          type: object
+        child_count:
+          type: integer
+  
+  modify_node_property:
+    description: Modify a node property in open scene
+    params:
+      type: object
+      required: [node_path, property_name, value]
+      properties:
+        node_path:
+          type: string
+        property_name:
+          type: string
+        value:
+          description: New value
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        node_path:
+          type: string
+        property_name:
+          type: string
+        old_value:
+          description: Previous value
+        new_value:
+          description: Updated value
+  
+  add_node_to_scene:
+    description: Add a new node to open scene
+    params:
+      type: object
+      required: [parent_path, node_type, node_name]
+      properties:
+        parent_path:
+          type: string
+          example: "."
+        node_type:
+          type: string
+          example: "Sprite2D"
+        node_name:
+          type: string
+        properties:
+          type: object
+          description: Initial node properties
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        node_path:
+          type: string
+        node_name:
+          type: string
+        node_type:
+          type: string
+  
+  delete_node:
+    description: Delete a node from open scene
+    params:
+      type: object
+      required: [node_path]
+      properties:
+        node_path:
+          type: string
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        node_path:
+          type: string
+        node_name:
+          type: string
+  
+  # Resource Management Methods
+  import_asset:
+    description: Import or reimport an asset
+    params:
+      type: object
+      required: [asset_path]
+      properties:
+        asset_path:
+          type: string
+        force:
+          type: boolean
+          default: false
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        asset_path:
+          type: string
+        message:
+          type: string
+  
+  get_import_settings:
+    description: Get asset import settings
+    params:
+      type: object
+      required: [asset_path]
+      properties:
+        asset_path:
+          type: string
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        asset_path:
+          type: string
+        has_import_file:
+          type: boolean
+        settings:
+          type: object
+  
+  set_import_settings:
+    description: Set asset import settings
+    params:
+      type: object
+      required: [asset_path, settings]
+      properties:
+        asset_path:
+          type: string
+        settings:
+          type: object
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        asset_path:
+          type: string
+        message:
+          type: string
+  
+  reimport_assets:
+    description: Reimport assets matching pattern
+    params:
+      type: object
+      required: [path_pattern]
+      properties:
+        path_pattern:
+          type: string
+          example: "res://sprites/**/*.png"
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        pattern:
+          type: string
+        count:
+          type: integer
+        files:
+          type: array
+          items:
+            type: string
+  
+  get_resource_metadata:
+    description: Get resource metadata and dependencies
+    params:
+      type: object
+      required: [resource_path]
+      properties:
+        resource_path:
+          type: string
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        resource_path:
+          type: string
+        resource_type:
+          type: string
+        is_cached:
+          type: boolean
+        dependencies:
+          type: array
+          items:
+            type: string
+  
+  # Build & Export Methods
+  export_project:
+    description: Export project using preset
+    params:
+      type: object
+      required: [preset_name, output_path]
+      properties:
+        preset_name:
+          type: string
+        output_path:
+          type: string
+        debug:
+          type: boolean
+          default: false
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        error:
+          type:string
+  
+  get_export_presets:
+    description: List configured export presets
+    params: {}
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        presets:
+          type: array
+          items:
+            type: object
+        count:
+          type: integer
+  
+  create_export_preset:
+    description: Create a new export preset
+    params:
+      type: object
+      required: [preset_name, platform]
+      properties:
+        preset_name:
+          type: string
+        platform:
+          type: string
+          example: "Windows Desktop"
+        settings:
+          type: object
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        preset_name:
+          type: string
+        platform:
+          type: string
+        preset_index:
+          type: integer
+  
+  run_custom_build_script:
+    description: Run custom build script
+    params:
+      type: object
+      required: [script_path]
+      properties:
+        script_path:
+          type: string
+        arguments:
+          type: object
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        script_path:
+          type: string
+        result:
+          description: Script execution result
+  
+  get_build_info:
+    description: Get project build information
+    params: {}
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        info:
+          type: object
+  
+  # Testing Methods
+  run_tests:
+    description: Run GDScript tests
+    params:
+      type: object
+      required: [test_path]
+      properties:
+        test_path:
+          type: string
+        framework:
+          type: string
+          enum: [gut, gdUnit4, custom]
+          default: gut
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        test_path:
+          type: string
+        result:
+          description: Test results
+  
+  run_scene_test:
+    description: Run a scene for testing
+    params:
+      type: object
+      required: [scene_path]
+      properties:
+        scene_path:
+          type: string
+        duration:
+          type: number
+          default: 0.0
+          description: Seconds to run (0 for indefinite)
+        headless:
+          type: boolean
+          default: false
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        scene_path:
+          type: string
+        message:
+          type: string
+  
+  get_test_results:
+    description: Get last test run results
+    params: {}
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        has_results:
+          type: boolean
+        results:
+          description: Test results data
+  
+  profile_scene:
+    description: Profile scene performance
+    params:
+      type: object
+      required: [scene_path]
+      properties:
+        scene_path:
+          type: string
+        duration:
+          type: number
+          default: 5.0
+        metrics:
+          type: array
+          items:
+            type: string
+          default: ["fps"]
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        error:
+          type: string
+  
+  # Plugin Management Methods
+  list_plugins:
+    description: List all installed plugins
+    params: {}
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        plugins:
+          type: array
+          items:
+            type: object
+        count:
+          type: integer
+  
+  get_plugin_info:
+    description: Get plugin information
+    params:
+      type: object
+      required: [plugin_name]
+      properties:
+        plugin_name:
+          type: string
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        plugin:
+          type: object
+  
+  enable_plugin:
+    description: Enable a plugin
+    params:
+      type: object
+      required: [plugin_name]
+      properties:
+        plugin_name:
+          type: string
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        plugin_name:
+          type: string
+        message:
+          type: string
+  
+  disable_plugin:
+    description: Disable a plugin
+    params:
+      type: object
+      required: [plugin_name]
+      properties:
+        plugin_name:
+          type: string
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        plugin_name:
+          type: string
+        message:
+          type: string
+  
+  is_plugin_enabled:
+    description: Check if plugin is enabled
+    params:
+      type: object
+      required: [plugin_name]
+      properties:
+        plugin_name:
+          type: string
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        plugin_name:
+          type: string
+        is_enabled:
+          type: boolean
+  
+  reload_plugin:
+    description: Reload a plugin
+    params:
+      type: object
+      required: [plugin_name]
+      properties:
+        plugin_name:
+          type: string
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        plugin_name:
+          type: string
+        message:
+          type: string
+  
+  install_plugin:
+    description: Install a plugin from directory
+    params:
+      type: object
+      required: [source_path]
+      properties:
+        source_path:
+          type: string
+        plugin_name:
+          type: string
+          description: Optional override name
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        plugin_name:
+          type: string
+        install_path:
+          type: string

@@ -1,5 +1,4 @@
 extends RefCounted
-class_name ProjectDiscoveryHandler
 
 ## ProjectDiscoveryHandler - Discovers and analyzes Godot projects
 ##
