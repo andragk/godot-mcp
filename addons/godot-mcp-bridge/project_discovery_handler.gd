@@ -6,6 +6,8 @@ class_name ProjectDiscoveryHandler
 ## WHY: Project discovery is a distinct responsibility separate
 ## from HTTP/RPC handling. Makes the code testable.
 
+const MCPLoggerScript := preload("res://addons/godot-mcp-bridge/logger.gd")
+
 var _logger: MCPLogger
 const MAX_SEARCH_DEPTH := 3  ## WHY: Prevent infinite recursion in deep directory trees
 

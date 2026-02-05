@@ -6,6 +6,8 @@ class_name EditorControlHandler
 ## WHY: Editor control (launching, running projects) is a distinct
 ## responsibility separate from HTTP/RPC handling.
 
+const MCPLoggerScript := preload("res://addons/godot-mcp-bridge/logger.gd")
+
 var _logger: MCPLogger
 
 
