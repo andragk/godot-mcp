@@ -393,19 +393,19 @@ export declare class SceneOperationsTools {
      */
     private applyModifyProperty;
     /**
-     * Apply remove_node operation (stub)
+     * Apply remove_node operation
      */
     private applyRemoveNode;
     /**
-     * Apply add_node operation (stub)
+     * Apply add_node operation
      */
     private applyAddNode;
     /**
-     * Apply rename_node operation (stub)
+     * Apply rename_node operation
      */
     private applyRenameNode;
     /**
-     * Apply reparent_node operation (stub)
+     * Apply reparent_node operation
      */
     private applyReparentNode;
     /**
