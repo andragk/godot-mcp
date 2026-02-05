@@ -43,21 +43,21 @@ var clients: Array[StreamPeerTCP] = []
 var start_time: int
 
 ## Specialized handlers (following SRP)
-var logger
-var request_parser
-var response_builder
-var jsonrpc_handler
+var logger: MCPLogger
+var request_parser: HTTPRequestParser
+var response_builder: HTTPResponseBuilder
+var jsonrpc_handler: JSONRPCHandler
 
 ## Business logic handlers
-var editor_handler
-var project_handler
-var scene_handler
-var script_handler
-var node_handler
-var resource_handler
-var build_handler
-var testing_handler
-var plugin_handler
+var editor_handler: EditorControlHandler
+var project_handler: ProjectDiscoveryHandler
+var scene_handler: SceneManagementHandler
+var script_handler: ScriptExecutionHandler
+var node_handler: NodeInspectionHandler
+var resource_handler: ResourceManagementHandler
+var build_handler: BuildExportHandler
+var testing_handler: TestingHandler
+var plugin_handler: PluginManagementHandler
 
 
 func _ready() -> void:

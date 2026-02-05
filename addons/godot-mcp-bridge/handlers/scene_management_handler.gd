@@ -1,4 +1,5 @@
 extends RefCounted
+class_name SceneManagementHandler
 
 ## SceneManagementHandler - Manages open scenes in Godot Editor
 ##

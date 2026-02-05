@@ -1,4 +1,5 @@
 extends RefCounted
+class_name HTTPRequestParser
 
 ## HTTPRequestParser - Parses raw HTTP request strings
 ##

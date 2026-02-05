@@ -1,4 +1,5 @@
 extends RefCounted
+class_name EditorControlHandler
 
 ## EditorControlHandler - Handles Godot editor control operations
 ##

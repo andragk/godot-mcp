@@ -1,4 +1,5 @@
 extends RefCounted
+class_name TestingHandler
 
 ## TestingHandler - Runs tests and profiling operations
 ##

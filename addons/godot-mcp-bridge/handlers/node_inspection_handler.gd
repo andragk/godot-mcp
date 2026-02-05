@@ -1,4 +1,5 @@
 extends RefCounted
+class_name NodeInspectionHandler
 
 ## NodeInspectionHandler - Inspects and modifies nodes in open scenes
 ##

@@ -1,4 +1,5 @@
 extends RefCounted
+class_name JSONRPCHandler
 
 ## JSONRPCHandler - Handles JSON-RPC 2.0 protocol operations
 ##

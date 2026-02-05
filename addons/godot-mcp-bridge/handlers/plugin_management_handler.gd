@@ -1,4 +1,5 @@
 extends RefCounted
+class_name PluginManagementHandler
 
 ## PluginManagementHandler - Manages Godot editor plugins
 ##

@@ -1,5 +1,5 @@
 extends RefCounted
-
+class_name BuildExportHandler
 
 ## BuildExportHandler - Handles project builds and exports
 ##

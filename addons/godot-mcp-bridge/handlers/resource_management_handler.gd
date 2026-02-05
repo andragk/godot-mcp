@@ -1,4 +1,5 @@
 extends RefCounted
+class_name ResourceManagementHandler
 
 ## ResourceManagementHandler - Manages asset imports and resources
 ##
