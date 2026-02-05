@@ -18,22 +18,6 @@ extends Node
 ## - EditorControlHandler: Editor control operations
 ## - ProjectDiscoveryHandler: Project discovery and analysis
 
-## WHY: Preload handler scripts to ensure type availability
-## (class_name alone may not be immediately recognized by Godot)
-const MCPLoggerScript := preload("res://addons/godot-mcp-bridge/core/logger.gd")
-const HTTPRequestParserScript := preload("res://addons/godot-mcp-bridge/protocol/http_request_parser.gd")
-const HTTPResponseBuilderScript := preload("res://addons/godot-mcp-bridge/protocol/http_response_builder.gd")
-const JSONRPCHandlerScript := preload("res://addons/godot-mcp-bridge/protocol/jsonrpc_handler.gd")
-const EditorControlHandlerScript := preload("res://addons/godot-mcp-bridge/handlers/editor_control_handler.gd")
-const ProjectDiscoveryHandlerScript := preload("res://addons/godot-mcp-bridge/handlers/project_discovery_handler.gd")
-const SceneManagementHandlerScript := preload("res://addons/godot-mcp-bridge/handlers/scene_management_handler.gd")
-const ScriptExecutionHandlerScript := preload("res://addons/godot-mcp-bridge/handlers/script_execution_handler.gd")
-const NodeInspectionHandlerScript := preload("res://addons/godot-mcp-bridge/handlers/node_inspection_handler.gd")
-const ResourceManagementHandlerScript := preload("res://addons/godot-mcp-bridge/handlers/resource_management_handler.gd")
-const BuildExportHandlerScript := preload("res://addons/godot-mcp-bridge/handlers/build_export_handler.gd")
-const TestingHandlerScript := preload("res://addons/godot-mcp-bridge/handlers/testing_handler.gd")
-const PluginManagementHandlerScript := preload("res://addons/godot-mcp-bridge/handlers/plugin_management_handler.gd")
-
 const PORT := 7777
 const VERSION := "0.2.0"
 
@@ -87,24 +71,24 @@ func _ready() -> void:
 ## WHY: Separates initialization logic from _ready() for clarity.
 ## Makes dependency injection explicit and testable.
 func _initialize_handlers() -> void:
-	logger = MCPLoggerScript.new()
-	request_parser = HTTPRequestParserScript.new()
-	response_builder = HTTPResponseBuilderScript.new()
-	jsonrpc_handler = JSONRPCHandlerScript.new()
+	logger = MCPLogger.new()
+	request_parser = HTTPRequestParser.new()
+	response_builder = HTTPResponseBuilder.new()
+	jsonrpc_handler = JSONRPCHandler.new()
 	
 	# Get EditorInterface for handlers that need it
 	var editor_interface = EditorInterface
 	
 	# Initialize business logic handlers
-	editor_handler = EditorControlHandlerScript.new(logger)
-	project_handler = ProjectDiscoveryHandlerScript.new(logger)
-	scene_handler = SceneManagementHandlerScript.new(logger, editor_interface)
-	script_handler = ScriptExecutionHandlerScript.new(logger, editor_interface)
-	node_handler = NodeInspectionHandlerScript.new(logger, editor_interface)
-	resource_handler = ResourceManagementHandlerScript.new(logger, editor_interface)
-	build_handler = BuildExportHandlerScript.new(logger, editor_interface)
-	testing_handler = TestingHandlerScript.new(logger, editor_interface)
-	plugin_handler = PluginManagementHandlerScript.new(logger, editor_interface)
+	editor_handler = EditorControlHandler.new(logger)
+	project_handler = ProjectDiscoveryHandler.new(logger)
+	scene_handler = SceneManagementHandler.new(logger, editor_interface)
+	script_handler = ScriptExecutionHandler.new(logger, editor_interface)
+	node_handler = NodeInspectionHandler.new(logger, editor_interface)
+	resource_handler = ResourceManagementHandler.new(logger, editor_interface)
+	build_handler = BuildExportHandler.new(logger, editor_interface)
+	testing_handler = TestingHandler.new(logger, editor_interface)
+	plugin_handler = PluginManagementHandler.new(logger, editor_interface)
 
 
 func _process(_delta: float) -> void:

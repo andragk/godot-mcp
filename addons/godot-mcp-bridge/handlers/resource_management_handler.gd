@@ -6,8 +6,6 @@ class_name ResourceManagementHandler
 ## WHY: Godot's import system runs in the editor. AI tools need to
 ## trigger imports, modify settings, or analyze resource metadata.
 
-const MCPLoggerScript := preload("res://addons/godot-mcp-bridge/core/logger.gd")
-
 var _logger: MCPLogger
 var _editor_interface: EditorInterface
 var _filesystem: EditorFileSystem

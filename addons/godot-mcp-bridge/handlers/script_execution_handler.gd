@@ -6,8 +6,6 @@ extends RefCounted
 ## WHY: Allows AI tools to run GDScript code directly in the editor
 ## for automation, testing, and interactive development workflows.
 
-const MCPLoggerScript := preload("res://addons/godot-mcp-bridge/core/logger.gd")
-
 var _logger: MCPLogger
 var _editor_interface: EditorInterface
 

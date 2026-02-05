@@ -6,7 +6,6 @@ class_name PluginManagementHandler
 ## WHY: Enables programmatic plugin management for automated workflows,
 ## plugin development, or dynamic editor configuration.
 
-const MCPLoggerScript := preload("res://addons/godot-mcp-bridge/core/logger.gd")
 
 var _logger: MCPLogger
 var _editor_interface: EditorInterface

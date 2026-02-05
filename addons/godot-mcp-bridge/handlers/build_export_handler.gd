@@ -6,7 +6,6 @@ class_name BuildExportHandler
 ## WHY: Automating builds and exports enables CI/CD workflows and
 ## allows AI tools to test cross-platform compatibility.
 
-const MCPLoggerScript := preload("res://addons/godot-mcp-bridge/core/logger.gd")
 
 var _logger: MCPLogger
 var _editor_interface: EditorInterface

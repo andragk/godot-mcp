@@ -6,7 +6,6 @@ class_name NodeInspectionHandler
 ## WHY: Provides programmatic access to scene tree and node properties
 ## without parsing .tscn files. Operations reflect live editor state.
 
-const MCPLoggerScript := preload("res://addons/godot-mcp-bridge/core/logger.gd")
 
 var _logger: MCPLogger
 var _editor_interface: EditorInterface

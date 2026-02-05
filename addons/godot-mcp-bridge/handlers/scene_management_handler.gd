@@ -6,8 +6,6 @@ class_name SceneManagementHandler
 ## WHY: Scene management operations require the EditorInterface API
 ## which is only available when running inside Godot Editor.
 
-const MCPLoggerScript := preload("res://addons/godot-mcp-bridge/core/logger.gd")
-
 var _logger: MCPLogger
 var _editor_interface: EditorInterface
 

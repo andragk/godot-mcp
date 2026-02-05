@@ -6,7 +6,6 @@ class_name TestingHandler
 ## WHY: Enables automated testing workflows and performance analysis
 ## through AI-assisted test generation and execution.
 
-const MCPLoggerScript := preload("res://addons/godot-mcp-bridge/core/logger.gd")
 
 var _logger: MCPLogger
 var _editor_interface: EditorInterface
