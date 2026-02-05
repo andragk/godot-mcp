@@ -374,6 +374,7 @@ export interface ModifySceneResult {
  */
 export declare class SceneOperationsTools {
     private validator;
+    private backupManager;
     constructor();
     /**
      * Create a new scene file
@@ -381,9 +382,41 @@ export declare class SceneOperationsTools {
     createScene(input: unknown): Promise<CreateSceneResult>;
     /**
      * Modify an existing scene file
-     * TODO: Implement full modification operations
      */
-    modifyScene(_input: unknown): Promise<ModifySceneResult>;
+    modifyScene(input: unknown): Promise<ModifySceneResult>;
+    /**
+     * Apply a single operation to scene content
+     */
+    private applyOperation;
+    /**
+     * Apply modify_property operation
+     */
+    private applyModifyProperty;
+    /**
+     * Apply remove_node operation (stub)
+     */
+    private applyRemoveNode;
+    /**
+     * Apply add_node operation (stub)
+     */
+    private applyAddNode;
+    /**
+     * Apply rename_node operation (stub)
+     */
+    private applyRenameNode;
+    /**
+     * Apply reparent_node operation (stub)
+     */
+    private applyReparentNode;
+    /**
+     * Find node section in scene file
+     * Returns the line index of the node header, or -1 if not found
+     */
+    private findNodeSection;
+    /**
+     * Escape special regex characters
+     */
+    private escapeRegex;
     /**
      * Generate scene file content
      */

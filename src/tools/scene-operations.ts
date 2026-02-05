@@ -11,7 +11,7 @@ import * as path from 'path';
 import { logger } from '../utils/logger.js';
 import { validatePath } from '../utils/path-validator.js';
 import { SceneValidator } from '../utils/scene-validator.js';
-// import { BackupManager } from '../utils/backup-manager.js'; // TODO: Uncomment when modify_scene is implemented
+import { BackupManager } from '../utils/backup-manager.js';
 import { ValidationError, InternalError } from '../types/errors.js';
 
 /**
@@ -134,11 +134,11 @@ export interface ModifySceneResult {
  */
 export class SceneOperationsTools {
   private validator: SceneValidator;
-  // private backupManager: BackupManager; // TODO: Enable when modify_scene is implemented
+  private backupManager: BackupManager;
 
   constructor() {
     this.validator = new SceneValidator();
-    // this.backupManager = new BackupManager(); // TODO: Enable when modify_scene is implemented
+    this.backupManager = new BackupManager();
   }
 
   /**
@@ -246,14 +246,319 @@ export class SceneOperationsTools {
 
   /**
    * Modify an existing scene file
-   * TODO: Implement full modification operations
    */
-  async modifyScene(_input: unknown): Promise<ModifySceneResult> {
-    // const validated = ModifySceneInputSchema.parse(input); // TODO: Uncomment when implementing
+  async modifyScene(input: unknown): Promise<ModifySceneResult> {
+    const validated = ModifySceneInputSchema.parse(input);
+    const { projectPath, scenePath, operations, createBackup, validateAfter } = validated;
+
+    logger.info('Modifying scene', {
+      service: 'godot-mcp',
+      projectPath,
+      scenePath,
+      operationCount: operations.length,
+      createBackup
+    });
+
+    try {
+      // Validate project path
+      await validatePath(projectPath, { 
+        mustExist: true, 
+        allowAbsolute: true
+      });
+
+      const fullScenePath = path.resolve(projectPath, scenePath);
+      
+      // Check if scene exists
+      try {
+        await fs.access(fullScenePath);
+      } catch (error: any) {
+        if (error.code === 'ENOENT') {
+          throw new ValidationError(
+            `Scene file does not exist: ${scenePath}`
+          );
+        }
+        throw error;
+      }
+
+      // Create backup if requested
+      let backupPath: string | undefined;
+      if (createBackup) {
+        const backup = await this.backupManager.createBackup(
+          projectPath,
+          scenePath,
+          'modify_scene',
+          { operationCount: operations.length }
+        );
+        backupPath = backup.backupPath;
+        logger.info('Backup created', {
+          service: 'godot-mcp',
+          backupPath
+        });
+      }
+
+      // Read scene file
+      let sceneContent = await fs.readFile(fullScenePath, 'utf-8');
+      const originalContent = sceneContent;
+
+      // Apply operations
+      let operationsApplied = 0;
+      const warnings: string[] = [];
+
+      for (const operation of operations) {
+        try {
+          sceneContent = this.applyOperation(sceneContent, operation);
+          operationsApplied++;
+        } catch (error : any) {
+          const errorMsg = `Operation ${operation.operation} failed: ${error.message}`;
+          logger.error(errorMsg, {
+            service: 'godot-mcp',
+            operation: operation.operation,
+            error: error.message
+          });
+          
+          // Rollback on first error
+          if (backupPath) {
+            logger.info('Rolling back due to error', {
+              service: 'godot-mcp',
+              backupPath
+            });
+            await this.backupManager.restoreBackup(projectPath, backupPath);
+          }
+          
+          throw new InternalError(
+            `Failed to apply operations: ${errorMsg}`
+          );
+        }
+      }
+
+      // Validate modified scene if requested
+      if (validateAfter) {
+        const validationResult = this.validator.validate(sceneContent);
+        if (!validationResult.valid) {
+          const errorMessages = validationResult.errors
+            .filter(e => e.severity === 'error')
+            .map(e => `${e.message} (line ${e.line})`);
+          
+          if (errorMessages.length > 0) {
+            logger.warn('Modified scene failed validation, rolling back', {
+              service: 'godot-mcp',
+              errors: errorMessages
+            });
+            
+            // Rollback
+            if (backupPath) {
+              await this.backupManager.restoreBackup(projectPath, backupPath);
+            } else {
+              // Restore original content if no backup was created
+              await fs.writeFile(fullScenePath, originalContent, 'utf-8');
+            }
+            
+            throw new ValidationError(
+              `Modified scene failed validation: ${errorMessages.join('; ')}`
+            );
+          }
+          
+          // Add warnings but don't fail
+          validationResult.errors
+            .filter(e => e.severity === 'warning')
+            .forEach(e => warnings.push(`${e.message} (line ${e.line})`));
+        }
+      }
+
+      // Write modified scene
+      await fs.writeFile(fullScenePath, sceneContent, 'utf-8');
+
+      logger.info('Scene modified successfully', {
+        service: 'godot-mcp',
+        scenePath: fullScenePath,
+        operationsApplied,
+        backupCreated: !!backupPath,
+        warningsCount: warnings.length
+      });
+
+      return {
+        success: true,
+        scenePath: fullScenePath,
+        operationsApplied,
+        backupCreated: !!backupPath,
+        backupPath,
+        validationPassed: validateAfter ? warnings.length === 0 : true,
+        warnings: warnings.length > 0 ? warnings : undefined
+      };
+
+    } catch (error: any) {
+      if (error instanceof ValidationError) {
+        throw error;
+      }
+
+      logger.error('Failed to modify scene', {
+        service: 'godot-mcp',
+        error: error.message,
+        stack: error.stack
+      });
+
+      throw new InternalError(
+        `Failed to modify scene: ${error.message}`
+      );
+    }
+  }
+
+  /**
+   * Apply a single operation to scene content
+   */
+  private applyOperation(sceneContent: string, operation: ModifyOperation): string {
+    switch (operation.operation) {
+      case 'modify_property':
+        return this.applyModifyProperty(sceneContent, operation);
+      case 'remove_node':
+        return this.applyRemoveNode(sceneContent, operation);
+      case 'add_node':
+        return this.applyAddNode(sceneContent, operation);
+      case 'rename_node':
+        return this.applyRenameNode(sceneContent, operation);
+      case 'reparent_node':
+        return this.applyReparentNode(sceneContent, operation);
+      default:
+        throw new ValidationError(`Unknown operation type: ${(operation as any).operation}`);
+    }
+  }
+
+  /**
+   * Apply modify_property operation
+   */
+  private applyModifyProperty(
+    sceneContent: string,
+    operation: Extract<ModifyOperation, { operation: 'modify_property' }>
+  ): string {
+    const { nodePath, property, value } = operation;
+    const lines = sceneContent.split('\n');
     
-    throw new InternalError(
-      'modify_scene is not yet fully implemented. Only create_scene is currently available.'
-    );
+    // Find the node section
+    const nodeIndex = this.findNodeSection(lines, nodePath);
+    if (nodeIndex === -1) {
+      throw new ValidationError(`Node not found: ${nodePath}`);
+    }
+
+    // Find the property within the node section
+    const propertyPattern = new RegExp(`^${this.escapeRegex(property)}\\s*=`);
+    let propertyIndex = -1;
+    
+    // Search from node header until next node or end
+    for (let i = nodeIndex + 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      // Stop if we hit another section
+      if (line.startsWith('[')) {
+        break;
+      }
+      
+      if (propertyPattern.test(line)) {
+        propertyIndex = i;
+        break;
+      }
+    }
+
+    const formattedValue = this.formatPropertyValue(value as NodePropertyValue);
+    const propertyLine = `${property} = ${formattedValue}`;
+
+    if (propertyIndex === -1) {
+      // Property doesn't exist, add it after the node header
+      lines.splice(nodeIndex + 1, 0, propertyLine);
+    } else {
+      // Property exists, replace it
+      lines[propertyIndex] = propertyLine;
+    }
+
+    return lines.join('\n');
+  }
+
+  /**
+   * Apply remove_node operation (stub)
+   */
+  private applyRemoveNode(
+    _sceneContent: string,
+    _operation: Extract<ModifyOperation, { operation: 'remove_node' }>
+  ): string {
+    throw new InternalError('remove_node operation not yet implemented');
+  }
+
+  /**
+   * Apply add_node operation (stub)
+   */
+  private applyAddNode(
+    _sceneContent: string,
+    _operation: Extract<ModifyOperation, { operation: 'add_node' }>
+  ): string {
+    throw new InternalError('add_node operation not yet implemented');
+  }
+
+  /**
+   * Apply rename_node operation (stub)
+   */
+  private applyRenameNode(
+    _sceneContent: string,
+    _operation: Extract<ModifyOperation, { operation: 'rename_node' }>
+  ): string {
+    throw new InternalError('rename_node operation not yet implemented');
+  }
+
+  /**
+   * Apply reparent_node operation (stub)
+   */
+  private applyReparentNode(
+    _sceneContent: string,
+    _operation: Extract<ModifyOperation, { operation: 'reparent_node' }>
+  ): string {
+    throw new InternalError('reparent_node operation not yet implemented');
+  }
+
+  /**
+   * Find node section in scene file
+   * Returns the line index of the node header, or -1 if not found
+   */
+  private findNodeSection(lines: string[], nodePath: string): number {
+    // Handle root node (path is ".")
+    if (nodePath === '.') {
+      // Find first node without parent attribute
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line.startsWith('[node ') && !line.includes('parent=')) {
+          return i;
+        }
+      }
+      return -1;
+    }
+
+    // For non-root nodes, find by name and parent path
+    const pathParts = nodePath.split('/');
+    const nodeName = pathParts[pathParts.length - 1];
+    const parentPath = pathParts.length > 1 
+      ? pathParts.slice(0, -1).join('/') 
+      : '.';
+
+    const namePattern = new RegExp(`name="(${this.escapeRegex(nodeName)})"`);
+    const parentPattern = parentPath === '.' 
+      ? /parent="\."/
+      : new RegExp(`parent="(${this.escapeRegex(parentPath)})"`);
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (line.startsWith('[node ')) {
+        // Check if this node matches both name and parent
+        if (namePattern.test(line) && (parentPath === '.' ? !line.includes('parent=') : parentPattern.test(line))) {
+          return i;
+        }
+      }
+    }
+
+    return -1;
+  }
+
+  /**
+   * Escape special regex characters
+   */
+  private escapeRegex(str: string): string {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
   /**
