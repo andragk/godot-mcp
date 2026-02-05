@@ -133,6 +133,24 @@ export class CircuitBreakerError extends MCPError {
     }
 }
 /**
+ * Configuration error - invalid configuration or setup
+ */
+export class ConfigurationError extends MCPError {
+    code = 'CONFIGURATION_ERROR';
+    statusCode = 500;
+    configKey;
+    constructor(message, correlationId, configKey) {
+        super(message, correlationId);
+        this.configKey = configKey;
+    }
+    toClientError() {
+        return {
+            ...super.toClientError(),
+            configKey: this.configKey,
+        };
+    }
+}
+/**
  * JSON-RPC error - structured error from Godot bridge
  */
 export class RpcError extends MCPError {
@@ -174,5 +192,75 @@ export function toMCPError(error, correlationId) {
     }
     // Unknown error type
     return new InternalError('An unexpected error occurred', correlationId);
+}
+/**
+ * Convert MCPError to JSON-RPC 2.0 error format
+ * Maps MCP error types to JSON-RPC error codes
+ */
+export function toMCPRPCError(error) {
+    // Handle MCP-specific errors
+    if (error instanceof ValidationError) {
+        return {
+            code: -32602, // Invalid params
+            message: error.message,
+            data: {
+                field: error.field,
+                issues: error.issues,
+            },
+        };
+    }
+    if (error instanceof ToolNotFoundError) {
+        return {
+            code: -32601, // Method not found
+            message: error.message,
+            data: { toolName: error.toolName },
+        };
+    }
+    if (error instanceof TimeoutError) {
+        return {
+            code: -32000, // Server error
+            message: error.message,
+            data: {
+                timeout: true,
+                timeoutMs: error.timeoutMs,
+                operation: error.operation,
+            },
+        };
+    }
+    if (error instanceof NetworkError) {
+        return {
+            code: -32000, // Server error
+            message: error.message,
+            data: {
+                retryable: error.retryable,
+            },
+        };
+    }
+    if (error instanceof CircuitBreakerError) {
+        return {
+            code: -32000, // Server error
+            message: error.message,
+            data: {
+                retryAfterMs: error.retryAfterMs,
+            },
+        };
+    }
+    if (error instanceof RpcError) {
+        return {
+            code: error.rpcCode,
+            message: error.message,
+            data: error.rpcData,
+        };
+    }
+    // Generic internal error
+    return {
+        code: -32603, // Internal error
+        message: process.env.NODE_ENV === 'production'
+            ? 'Internal error'
+            : error.message,
+        data: process.env.NODE_ENV === 'production'
+            ? undefined
+            : { originalMessage: error.message },
+    };
 }
 //# sourceMappingURL=errors.js.map

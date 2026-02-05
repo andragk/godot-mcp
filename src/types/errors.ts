@@ -156,6 +156,27 @@ export class CircuitBreakerError extends MCPError {
 }
 
 /**
+ * Configuration error - invalid configuration or setup
+ */
+export class ConfigurationError extends MCPError {
+  readonly code = 'CONFIGURATION_ERROR';
+  readonly statusCode = 500;
+  readonly configKey?: string;
+
+  constructor(message: string, correlationId?: string, configKey?: string) {
+    super(message, correlationId);
+    this.configKey = configKey;
+  }
+
+  override toClientError() {
+    return {
+      ...super.toClientError(),
+      configKey: this.configKey,
+    };
+  }
+}
+
+/**
  * JSON-RPC error - structured error from Godot bridge
  */
 export class RpcError extends MCPError {
@@ -203,4 +224,85 @@ export function toMCPError(error: unknown, correlationId?: string): MCPError {
 
   // Unknown error type
   return new InternalError('An unexpected error occurred', correlationId);
+}
+
+/**
+ * Convert MCPError to JSON-RPC 2.0 error format
+ * Maps MCP error types to JSON-RPC error codes
+ */
+export function toMCPRPCError(error: Error): {
+  code: number;
+  message: string;
+  data?: unknown;
+} {
+  // Handle MCP-specific errors
+  if (error instanceof ValidationError) {
+    return {
+      code: -32602, // Invalid params
+      message: error.message,
+      data: {
+        field: error.field,
+        issues: error.issues,
+      },
+    };
+  }
+
+  if (error instanceof ToolNotFoundError) {
+    return {
+      code: -32601, // Method not found
+      message: error.message,
+      data: { toolName: error.toolName },
+    };
+  }
+
+  if (error instanceof TimeoutError) {
+    return {
+      code: -32000, // Server error
+      message: error.message,
+      data: {
+        timeout: true,
+        timeoutMs: error.timeoutMs,
+        operation: error.operation,
+      },
+    };
+  }
+
+  if (error instanceof NetworkError) {
+    return {
+      code: -32000, // Server error
+      message: error.message,
+      data: {
+        retryable: error.retryable,
+      },
+    };
+  }
+
+  if (error instanceof CircuitBreakerError) {
+    return {
+      code: -32000, // Server error
+      message: error.message,
+      data: {
+        retryAfterMs: error.retryAfterMs,
+      },
+    };
+  }
+
+  if (error instanceof RpcError) {
+    return {
+      code: error.rpcCode,
+      message: error.message,
+      data: error.rpcData,
+    };
+  }
+
+  // Generic internal error
+  return {
+    code: -32603, // Internal error
+    message: process.env.NODE_ENV === 'production' 
+      ? 'Internal error' 
+      : error.message,
+    data: process.env.NODE_ENV === 'production' 
+      ? undefined 
+      : { originalMessage: error.message },
+  };
 }

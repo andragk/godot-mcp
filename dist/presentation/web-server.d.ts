@@ -6,10 +6,10 @@ export declare class WebServer {
     private readonly app;
     private readonly godotClient;
     private readonly serverManager;
-    private readonly sseClients;
+    private readonly sseClientManager;
+    private readonly sseHeartbeat;
     private readonly startTime;
     private server;
-    private heartbeatInterval;
     constructor(godotClient: GodotClient);
     /**
      * Setup Express middleware
@@ -47,12 +47,6 @@ export declare class WebServer {
      * @param entry - Log entry to broadcast
      */
     private broadcastLog;
-    /**
-     * Send a log entry to a specific SSE client
-     * @param client - SSE client
-     * @param entry - Log entry
-     */
-    private sendLogToClient;
     /**
      * Setup heartbeat for SSE connections
      */

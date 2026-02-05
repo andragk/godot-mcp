@@ -155,15 +155,15 @@ describe('WebServer', () => {
   describe('SSE client management', () => {
     it('should track connected SSE clients', async () => {
       const app = (webServer as any).app;
-      const sseClients = (webServer as any).sseClients;
+      const sseClientManager = (webServer as any).sseClientManager;
       
-      expect(sseClients.size).toBe(0);
+      expect(sseClientManager.getClientCount()).toBe(0);
 
       // Initiate SSE connection (doesn't complete in test)
       const req = request(app).get('/api/logs/stream');
       
       // Can't easily test client count without real connection
-      expect(sseClients).toBeDefined();
+      expect(sseClientManager).toBeDefined();
     });
   });
 

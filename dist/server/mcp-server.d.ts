@@ -1,16 +1,17 @@
 /**
  * MCP Server for Godot Engine
- * Provides tool execution and resource management via the MCP protocol
+ * Orchestrates MCP protocol, tool execution, and resource management
  */
 export declare class GodotMCPServer {
     private readonly server;
     private readonly godotClient;
     private readonly editorTools;
     private readonly toolRegistry;
-    private readonly startTime;
+    private readonly requestHandler;
+    private readonly lifecycleManager;
     constructor();
     /**
-     * Register all available tools in the registry
+     * Register all available tools using centralized registration
      */
     private registerTools;
     /**
@@ -30,8 +31,16 @@ export declare class GodotMCPServer {
      */
     stop(): Promise<void>;
     /**
-     * Get server uptime in seconds
+     * Get server health status
+     */
+    getHealthStatus(): Promise<import("./lifecycle-manager.js").HealthStatus>;
+    /**
+     * Get server uptime in milliseconds
      */
     getUptime(): number;
+    /**
+     * Get server version
+     */
+    getVersion(): string;
 }
 //# sourceMappingURL=mcp-server.d.ts.map

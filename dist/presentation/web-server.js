@@ -8,6 +8,9 @@ import helmet from 'helmet';
 import { logger, logError } from '../utils/logger.js';
 import { MCPServerProcessManager } from '../utils/server-process-manager.js';
 import { getCacheMetrics } from '../tools/read-tools.js';
+import { SSEHeartbeat } from './sse-heartbeat.js';
+import { SSEClientManager } from './sse-client-manager.js';
+import { MCPError, ValidationError, ToolNotFoundError, NetworkError, TimeoutError, CircuitBreakerError, ConfigurationError, InternalError, } from '../types/errors.js';
 /**
  * Allowed origins for CORS
  */
@@ -31,14 +34,16 @@ export class WebServer {
     app;
     godotClient;
     serverManager;
-    sseClients = new Set();
+    sseClientManager;
+    sseHeartbeat;
     startTime;
     server = null;
-    heartbeatInterval = null;
     constructor(godotClient) {
         this.app = express();
         this.godotClient = godotClient;
         this.serverManager = new MCPServerProcessManager();
+        this.sseClientManager = new SSEClientManager();
+        this.sseHeartbeat = new SSEHeartbeat({ interval: 30000 });
         this.startTime = new Date();
         this.setupMiddleware();
         this.setupRoutes();
@@ -230,7 +235,7 @@ export class WebServer {
                 const status = {
                     uptime: this.getUptime(),
                     bridgeConnected: bridgeHealth.status === 'healthy',
-                    activeSessions: this.sseClients.size,
+                    activeSessions: this.sseClientManager.getClientCount(),
                     lastActivity: new Date(),
                 };
                 res.json(status);
@@ -246,19 +251,11 @@ export class WebServer {
             res.setHeader('Cache-Control', 'no-cache');
             res.setHeader('Connection', 'keep-alive');
             const clientId = `client-${Date.now()}-${Math.random()}`;
-            const client = { id: clientId, response: res };
-            this.sseClients.add(client);
-            logger.info('SSE client connected', { clientId, total: this.sseClients.size });
-            // Send initial connection message
-            this.sendLogToClient(client, {
-                timestamp: new Date().toISOString(),
-                level: 'info',
-                message: 'Connected to log stream',
-            });
+            // Add client to manager
+            this.sseClientManager.addClient(clientId, res);
             // Handle client disconnect
             req.on('close', () => {
-                this.sseClients.delete(client);
-                logger.info('SSE client disconnected', { clientId, total: this.sseClients.size });
+                this.sseClientManager.removeClient(clientId);
             });
         });
         // Bridge health check endpoint (read limiter)
@@ -327,6 +324,15 @@ export class WebServer {
             const metrics = getCacheMetrics();
             res.json(metrics);
         });
+        // SSE stats endpoint
+        this.app.get('/api/sse/stats', readLimiter, (_req, res) => {
+            const clientStats = this.sseClientManager.getStats();
+            const heartbeatStats = this.sseHeartbeat.getStats();
+            res.json({
+                clients: clientStats,
+                heartbeat: heartbeatStats
+            });
+        });
         // Tool Explorer API endpoints
         this.app.get('/api/tools', readLimiter, (_req, res) => {
             // Return list of available MCP tools
@@ -355,16 +361,97 @@ export class WebServer {
                 res.status(500).json({ error: error instanceof Error ? error.message : 'Tool execution failed' });
             }
         });
-        // Error handling middleware
-        this.app.use((err, _req, res, _next) => {
-            // Log full error details server-side
-            logError(err, 'Express error handler');
-            logger.error('Additional error context', {
-                name: err.name,
+        // Error handling middleware - must be last
+        this.app.use((err, req, res, _next) => {
+            // Extract correlation ID from request or error
+            const correlationId = req.headers['x-correlation-id'] ||
+                (err instanceof MCPError ? err.correlationId : undefined) ||
+                `err-${Date.now()}`;
+            // Log full error details server-side with correlation ID
+            logger.error('Request error', {
+                service: 'godot-mcp',
+                correlationId,
+                error: err.message,
                 stack: err.stack,
+                path: req.path,
+                method: req.method,
+                errorType: err.constructor.name,
             });
-            // Return generic error to client (never expose internal details)
-            res.status(500).json({ error: 'An unexpected error occurred' });
+            // Handle MCP-specific errors with appropriate status codes
+            if (err instanceof ValidationError) {
+                res.status(err.statusCode).json({
+                    error: 'Validation Error',
+                    message: err.message,
+                    field: err.field,
+                    issues: err.issues,
+                    correlationId,
+                });
+                return;
+            }
+            if (err instanceof ToolNotFoundError) {
+                res.status(err.statusCode).json({
+                    error: 'Tool Not Found',
+                    message: err.message,
+                    toolName: err.toolName,
+                    correlationId,
+                });
+                return;
+            }
+            if (err instanceof NetworkError) {
+                res.status(err.statusCode).json({
+                    error: 'Network Error',
+                    message: err.message,
+                    retryable: err.retryable,
+                    correlationId,
+                });
+                return;
+            }
+            if (err instanceof TimeoutError) {
+                res.status(err.statusCode).json({
+                    error: 'Timeout Error',
+                    message: err.message,
+                    timeoutMs: err.timeoutMs,
+                    operation: err.operation,
+                    correlationId,
+                });
+                return;
+            }
+            if (err instanceof CircuitBreakerError) {
+                res.status(err.statusCode).json({
+                    error: 'Service Unavailable',
+                    message: err.message,
+                    retryAfterMs: err.retryAfterMs,
+                    correlationId,
+                });
+                return;
+            }
+            if (err instanceof ConfigurationError) {
+                res.status(err.statusCode).json({
+                    error: 'Configuration Error',
+                    message: err.message,
+                    configKey: err.configKey,
+                    correlationId,
+                });
+                return;
+            }
+            if (err instanceof InternalError) {
+                res.status(err.statusCode).json({
+                    error: 'Internal Server Error',
+                    message: err.message,
+                    correlationId,
+                });
+                return;
+            }
+            // Generic error handling for non-MCP errors
+            const statusCode = 500;
+            const message = process.env.NODE_ENV === 'production'
+                ? 'An unexpected error occurred'
+                : err.message;
+            res.status(statusCode).json({
+                error: 'Internal Server Error',
+                message,
+                correlationId,
+            });
         });
     }
     /**
@@ -395,38 +482,21 @@ export class WebServer {
      * @param entry - Log entry to broadcast
      */
     broadcastLog(entry) {
-        for (const client of this.sseClients) {
-            this.sendLogToClient(client, entry);
-        }
-    }
-    /**
-     * Send a log entry to a specific SSE client
-     * @param client - SSE client
-     * @param entry - Log entry
-     */
-    sendLogToClient(client, entry) {
-        try {
-            client.response.write(`data: ${JSON.stringify(entry)}\n\n`);
-        }
-        catch {
-            // Client may have disconnected
-            this.sseClients.delete(client);
-        }
+        this.sseClientManager.broadcast({
+            type: 'log',
+            data: entry
+        });
     }
     /**
      * Setup heartbeat for SSE connections
      */
     setupHeartbeat() {
-        this.heartbeatInterval = setInterval(() => {
-            for (const client of this.sseClients) {
-                try {
-                    client.response.write(': heartbeat\n\n');
-                }
-                catch {
-                    this.sseClients.delete(client);
-                }
-            }
-        }, 30000);
+        // Subscribe heartbeat to send to all clients
+        this.sseHeartbeat.subscribe(() => {
+            this.sseClientManager.sendHeartbeat();
+        });
+        // Start heartbeat
+        this.sseHeartbeat.start();
     }
     /**
      * Get server uptime in seconds
@@ -450,19 +520,10 @@ export class WebServer {
      * Stop the web server
      */
     async stop() {
-        if (this.heartbeatInterval) {
-            clearInterval(this.heartbeatInterval);
-            this.heartbeatInterval = null;
-        }
-        for (const client of this.sseClients) {
-            try {
-                client.response.end();
-            }
-            catch {
-                // Ignore errors
-            }
-        }
-        this.sseClients.clear();
+        // Stop heartbeat
+        this.sseHeartbeat.stop();
+        // Close all SSE clients
+        this.sseClientManager.closeAll();
         if (this.server) {
             return new Promise((resolve, reject) => {
                 this.server.close((error) => {

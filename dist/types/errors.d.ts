@@ -116,6 +116,21 @@ export declare class CircuitBreakerError extends MCPError {
     };
 }
 /**
+ * Configuration error - invalid configuration or setup
+ */
+export declare class ConfigurationError extends MCPError {
+    readonly code = "CONFIGURATION_ERROR";
+    readonly statusCode = 500;
+    readonly configKey?: string;
+    constructor(message: string, correlationId?: string, configKey?: string);
+    toClientError(): {
+        configKey: string | undefined;
+        code: string;
+        message: string;
+        correlationId?: string;
+    };
+}
+/**
  * JSON-RPC error - structured error from Godot bridge
  */
 export declare class RpcError extends MCPError {
@@ -136,4 +151,13 @@ export declare class RpcError extends MCPError {
  * Convert unknown error to MCPError
  */
 export declare function toMCPError(error: unknown, correlationId?: string): MCPError;
+/**
+ * Convert MCPError to JSON-RPC 2.0 error format
+ * Maps MCP error types to JSON-RPC error codes
+ */
+export declare function toMCPRPCError(error: Error): {
+    code: number;
+    message: string;
+    data?: unknown;
+};
 //# sourceMappingURL=errors.d.ts.map

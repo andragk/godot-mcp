@@ -39,8 +39,10 @@ import {
 
 import {
   CreateSceneInputSchema,
+  // ModifySceneInputSchema, // TODO: Uncomment when modify_scene is implemented
   SceneOperationsTools,
   type CreateSceneResult,
+  // type ModifySceneResult, // TODO: Uncomment when modify_scene is implemented
 } from '../tools/scene-operations.js';
 
 /**
