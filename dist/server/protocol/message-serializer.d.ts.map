@@ -1,1 +1,0 @@
-{"version":3,"file":"message-serializer.d.ts","sourceRoot":"","sources":["../../../src/server/protocol/message-serializer.ts"],"names":[],"mappings":"AAMA;;GAEG;AACH,wBAAgB,gBAAgB,CAAC,KAAK,EAAE,OAAO,GAAG,MAAM,CAUvD;AAED;;GAEG;AACH,wBAAgB,kBAAkB,CAAC,CAAC,GAAG,OAAO,EAAE,IAAI,EAAE,MAAM,GAAG,CAAC,CAW/D;AAED;;GAEG;AACH,wBAAgB,iBAAiB,CAAC,OAAO,EAAE,OAAO,GAAG,OAAO,CAa3D"}
