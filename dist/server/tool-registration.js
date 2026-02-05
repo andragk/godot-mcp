@@ -8,11 +8,7 @@ import { logger } from '../utils/logger.js';
 import { LaunchEditorSchema, RunProjectSchema, StopExecutionSchema, GetVersionSchema, ListProjectsSchema, AnalyzeProjectSchema, } from '../tools/editor-control.js';
 import { ListScenesInputSchema, ReadSceneInputSchema, ListScriptsInputSchema, ReadScriptInputSchema, GetProjectStructureInputSchema, listScenes, readScene, listScripts, readScript, getProjectStructure, getCacheMetrics, } from '../tools/read-tools.js';
 import { searchNodes, getNodeProperties, } from '../tools/node-operations.js';
-import { CreateSceneInputSchema, 
-// ModifySceneInputSchema, // TODO: Uncomment when modify_scene is implemented
-SceneOperationsTools,
-// type ModifySceneResult, // TODO: Uncomment when modify_scene is implemented
- } from '../tools/scene-operations.js';
+import { CreateSceneInputSchema, ModifySceneInputSchema, SceneOperationsTools, } from '../tools/scene-operations.js';
 /**
  * Empty schema for tools with no arguments
  */
@@ -634,6 +630,117 @@ export function registerSceneTools(registry) {
         handler: async (args, correlationId) => {
             logger.info('Executing create_scene', { correlationId, scenePath: args.scenePath });
             const result = await sceneOps.createScene(args);
+            return result;
+        },
+    });
+    registry.register({
+        metadata: {
+            name: 'modify_scene',
+            version: '1.0.0',
+            category: 'scene_operations',
+            securityLevel: 'requires-review',
+            description: 'Modify an existing Godot scene file with operations like add_node, remove_node, modify_property, rename_node, and reparent_node',
+        },
+        schema: ModifySceneInputSchema,
+        inputSchema: {
+            type: 'object',
+            properties: {
+                projectPath: {
+                    type: 'string',
+                    description: 'Absolute path to the Godot project directory',
+                },
+                scenePath: {
+                    type: 'string',
+                    description: 'Scene path relative to project root (must end with .tscn)',
+                },
+                operations: {
+                    type: 'array',
+                    description: 'Array of modification operations to apply',
+                    items: {
+                        oneOf: [
+                            {
+                                type: 'object',
+                                description: 'Add a new node',
+                                properties: {
+                                    operation: { type: 'string', enum: ['add_node'] },
+                                    parentPath: { type: 'string', description: 'Path to parent node (e.g., "." for root, "Player" for child)' },
+                                    node: {
+                                        type: 'object',
+                                        description: 'Node definition',
+                                        properties: {
+                                            name: { type: 'string', description: 'Node name' },
+                                            type: { type: 'string', description: 'Node type' },
+                                            properties: { type: 'object', description: 'Node properties' },
+                                            children: { type: 'array', description: 'Child nodes' },
+                                        },
+                                        required: ['name', 'type'],
+                                    },
+                                },
+                                required: ['operation', 'parentPath', 'node'],
+                            },
+                            {
+                                type: 'object',
+                                description: 'Remove a node',
+                                properties: {
+                                    operation: { type: 'string', enum: ['remove_node'] },
+                                    nodePath: { type: 'string', description: 'Path to node to remove' },
+                                },
+                                required: ['operation', 'nodePath'],
+                            },
+                            {
+                                type: 'object',
+                                description: 'Modify a node property',
+                                properties: {
+                                    operation: { type: 'string', enum: ['modify_property'] },
+                                    nodePath: { type: 'string', description: 'Path to node' },
+                                    property: { type: 'string', description: 'Property name' },
+                                    value: { description: 'New property value (string, number, boolean, or complex type)' },
+                                },
+                                required: ['operation', 'nodePath', 'property', 'value'],
+                            },
+                            {
+                                type: 'object',
+                                description: 'Rename a node',
+                                properties: {
+                                    operation: { type: 'string', enum: ['rename_node'] },
+                                    nodePath: { type: 'string', description: 'Path to node to rename' },
+                                    newName: { type: 'string', description: 'New node name' },
+                                },
+                                required: ['operation', 'nodePath', 'newName'],
+                            },
+                            {
+                                type: 'object',
+                                description: 'Reparent a node',
+                                properties: {
+                                    operation: { type: 'string', enum: ['reparent_node'] },
+                                    nodePath: { type: 'string', description: 'Path to node to move' },
+                                    newParentPath: { type: 'string', description: 'Path to new parent node' },
+                                },
+                                required: ['operation', 'nodePath', 'newParentPath'],
+                            },
+                        ],
+                    },
+                },
+                createBackup: {
+                    type: 'boolean',
+                    description: 'Create backup before modification (default: true)',
+                    default: true,
+                },
+                validateAfter: {
+                    type: 'boolean',
+                    description: 'Validate scene after modification (default: true)',
+                    default: true,
+                },
+            },
+            required: ['projectPath', 'scenePath', 'operations'],
+        },
+        handler: async (args, correlationId) => {
+            logger.info('Executing modify_scene', {
+                correlationId,
+                scenePath: args.scenePath,
+                operationCount: args.operations?.length
+            });
+            const result = await sceneOps.modifyScene(args);
             return result;
         },
     });
