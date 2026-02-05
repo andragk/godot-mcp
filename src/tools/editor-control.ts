@@ -32,10 +32,16 @@ export const GetVersionSchema = z.object({
   editorPath: z.string().optional().describe('Optional path to Godot editor executable'),
 });
 
+const SearchPathsSchema = z
+  .union([z.string(), z.array(z.string())])
+  .transform((value) => (Array.isArray(value) ? value : [value]))
+  .describe('Directories to search for Godot projects');
+
 export const ListProjectsSchema = z.object({
-  searchPaths: z.array(z.string()).describe('Directories to search for Godot projects'),
+  searchPaths: SearchPathsSchema,
   recursive: z.boolean().optional().default(false).describe('Search subdirectories'),
 });
+
 
 export const AnalyzeProjectSchema = z.object({
   projectPath: z.string().describe('Absolute path to the Godot project directory'),
@@ -130,9 +136,10 @@ export const editorControlTools = [
       type: 'object',
       properties: {
         searchPaths: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Directories to search for Godot projects',
+          oneOf: [
+            { type: 'string', description: 'Directory to search' },
+            { type: 'array', items: { type: 'string' }, description: 'Directories to search' }
+          ],
         },
         recursive: {
           type: 'boolean',
@@ -333,6 +340,7 @@ export class EditorControlTools {
       throw error;
     }
   }
+
 
   /**
    * Analyze project structure

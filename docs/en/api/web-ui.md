@@ -10,23 +10,61 @@ The Sidecar Web UI provides a browser-based dashboard for monitoring and control
 
 ## Base URL
 
-**Local Access:** `http://localhost:8080`
+**Local Access:** `http://localhost:3000`
 
 **Protocol:** HTTP/1.1  
 **Format:** JSON
 
+## Authentication & Access Control
+
+**Current Behavior:**
+- Requests must originate from localhost (127.0.0.1/::1).
+- If `MCP_API_KEY` is set, provide it via `X-API-Key` or `Authorization: Bearer <key>`.
+
+:::warning
+Write endpoints and the SSE log stream enforce localhost access. Remote access is rejected with `403`.
+:::
+
+## Rate Limits
+
+**Current Behavior:**
+- Limits are keyed by API key when present; otherwise by client IP.
+- Localhost requests and valid API-key requests bypass rate limiting.
+- Read endpoints: 100 requests per 15 minutes (`RATE_LIMIT_MAX_READS`, `RATE_LIMIT_WINDOW`).
+- Write endpoints: 20 requests per 15 minutes (`RATE_LIMIT_MAX_WRITES`, `RATE_LIMIT_WINDOW`).
+- Tool execution (`/api/execute`): 30 requests per minute per tool and client.
+- Lifecycle controls (`/api/server/*`): 10 requests per 5 minutes per client.
+- SSE connection attempts (`/api/logs/stream`): 10 requests per minute per client.
+
 ## Endpoints Overview
+
+**Current Behavior:** The Web UI exposes the following endpoints in the running server.
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/status` | GET | Server status and metrics |
-| `/api/lifecycle/start` | POST | Start MCP server |
-| `/api/lifecycle/stop` | POST | Stop MCP server |
-| `/api/lifecycle/restart` | POST | Restart MCP server |
-| `/api/connections` | GET | List active MCP clients |
+| `/api/health` | GET | Basic health check |
+| `/api/status` | GET | Web UI status summary |
+| `/api/bridge/health` | GET | Godot bridge health |
+| `/api/bridge/version` | GET | Godot bridge version |
+| `/api/server/start` | POST | Start MCP server process |
+| `/api/server/stop` | POST | Stop MCP server process |
+| `/api/server/restart` | POST | Restart MCP server process |
+| `/api/server/status` | GET | MCP server process status |
+| `/api/cache/metrics` | GET | Cache metrics snapshot |
+| `/api/sse/stats` | GET | SSE client + heartbeat stats |
 | `/api/logs/stream` | GET (SSE) | Real-time log streaming |
+| `/api/tools` | GET | List MCP tools for Tool Explorer |
+| `/api/execute` | POST | Execute MCP tool from Web UI |
+
+**Planned Enhancement:** The following endpoints are referenced in future UI modules but are not implemented yet.
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/connections` | GET | List active MCP clients |
 | `/api/logs/history` | GET | Historical logs |
 | `/api/settings` | GET/PUT | Server configuration |
+| `/api/resources` | GET | Resource browser |
+| `/api/resources/content` | GET | Resource content preview |
 
 ## Status & Monitoring
 
@@ -37,52 +75,76 @@ Returns current server status and performance metrics.
 **Response:**
 ```json
 {
-  "status": "running",
-  "uptime_ms": 3600000,
-  "version": "1.0.0",
-  "godot": {
-    "connected": true,
-    "version": "4.6.0.stable",
-    "project_path": "/home/user/MyGame",
-    "project_name": "My Awesome Game"
-  },
-  "mcp": {
-    "clients_connected": 2,
-    "requests_total": 1542,
-    "requests_success": 1520,
-    "requests_errors": 22
-  },
-  "performance": {
-    "latency_p50_ms": 25,
-    "latency_p95_ms": 45,
-    "latency_p99_ms": 120,
-    "requests_per_second": 12.5
-  },
-  "cache": {
-    "size": 42,
-    "max_size": 100,
-    "hit_rate": 0.72,
-    "memory_mb": 8.5
-  }
+  "uptime": 3600,
+  "bridgeConnected": true,
+  "activeSessions": 2,
+  "lastActivity": "2026-02-04T10:05:23.000Z"
 }
 ```
 
-**Status Values:**
-- `starting` - Server initializing
-- `running` - Operational
-- `stopping` - Shutting down gracefully
-- `stopped` - Not running
-- `error` - Error state
+**Response Codes:**
+- `200` - Success
+- `500` - Service unavailable
+
+---
+
+### GET /api/health
+
+Basic health check for the Web UI server.
+
+**Response:**
+```json
+{
+  "status": "ok",
+  "uptime": 3600
+}
+```
+
+---
+
+### GET /api/bridge/health
+
+Returns the current health status of the Godot bridge.
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "port": 7777,
+  "uptime": 5234,
+  "lastCheck": "2026-02-04T10:05:23.000Z",
+  "error": null
+}
+```
 
 **Response Codes:**
 - `200` - Success
-- `503` - Service unavailable
+- `503` - Bridge unavailable
+
+---
+
+### GET /api/bridge/version
+
+Returns the version string from the Godot bridge.
+
+**Response:**
+```json
+{
+  "version": "4.6.0"
+}
+```
+
+**Response Codes:**
+- `200` - Success
+- `503` - Bridge unavailable
 
 ---
 
 ### GET /api/connections
 
 Lists all active MCP client connections.
+
+**Planned Enhancement:** This endpoint is not implemented in the current Web UI server.
 
 **Response:**
 ```json
@@ -119,43 +181,39 @@ Lists all active MCP client connections.
 
 ## Lifecycle Management
 
-### POST /api/lifecycle/start
+### POST /api/server/start
 
-Starts the MCP server if it's stopped.
-
-**Request Body:**
-```json
-{
-  "wait_for_godot": true      // Optional: wait for Godot connection
-}
-```
+Starts the MCP server process.
 
 **Response:**
 ```json
 {
   "success": true,
-  "message": "MCP server started successfully",
-  "pid": 12345,
-  "started_at": "2026-02-04T10:00:00Z"
+  "message": "MCP server started",
+  "info": {
+    "state": "running",
+    "pid": 12345,
+    "startedAt": "2026-02-04T10:00:00.000Z",
+    "uptime": 2,
+    "restartCount": 0
+  }
 }
 ```
 
 **Response Codes:**
 - `200` - Started successfully
-- `409` - Already running
 - `500` - Failed to start
 
 ---
 
-### POST /api/lifecycle/stop
+### POST /api/server/stop
 
-Stops the MCP server gracefully.
+Stops the MCP server process.
 
 **Request Body:**
 ```json
 {
-  "force": false,             // Optional: force immediate shutdown
-  "timeout_ms": 5000          // Optional: grace period before force kill
+  "force": false
 }
 ```
 
@@ -163,37 +221,36 @@ Stops the MCP server gracefully.
 ```json
 {
   "success": true,
-  "message": "MCP server stopped successfully",
-  "stopped_at": "2026-02-04T10:05:00Z",
-  "active_connections_closed": 2
+  "message": "MCP server stopped",
+  "info": {
+    "state": "stopped",
+    "stoppedAt": "2026-02-04T10:05:00.000Z",
+    "restartCount": 0
+  }
 }
 ```
 
 **Response Codes:**
 - `200` - Stopped successfully
-- `409` - Not running
 - `500` - Failed to stop
 
 ---
 
-### POST /api/lifecycle/restart
+### POST /api/server/restart
 
-Restarts the MCP server (stop + start).
-
-**Request Body:**
-```json
-{
-  "wait_for_godot": true
-}
-```
+Restarts the MCP server process (stop + start).
 
 **Response:**
 ```json
 {
   "success": true,
-  "message": "MCP server restarted successfully",
-  "restarted_at": "2026-02-04T10:06:00Z",
-  "downtime_ms": 1250
+  "message": "MCP server restarted",
+  "info": {
+    "state": "running",
+    "pid": 12346,
+    "startedAt": "2026-02-04T10:06:00.000Z",
+    "restartCount": 1
+  }
 }
 ```
 
@@ -203,16 +260,106 @@ Restarts the MCP server (stop + start).
 
 ---
 
+### GET /api/server/status
+
+Returns the current MCP server process status.
+
+**Response:**
+```json
+{
+  "state": "running",
+  "pid": 12345,
+  "startedAt": "2026-02-04T10:00:00.000Z",
+  "stoppedAt": null,
+  "uptime": 3600,
+  "restartCount": 0,
+  "lastError": null
+}
+```
+
+---
+
+## Cache & SSE Monitoring
+
+### GET /api/cache/metrics
+
+Returns cache metrics for the file, scene, and script caches.
+
+**Response:**
+```json
+{
+  "fileCache": {
+    "hits": 120,
+    "misses": 30,
+    "evictions": 4,
+    "currentSize": 1048576,
+    "entryCount": 42,
+    "hitRatio": 0.8
+  },
+  "sceneCache": {
+    "hits": 18,
+    "misses": 5,
+    "evictions": 0,
+    "currentSize": 262144,
+    "entryCount": 6,
+    "hitRatio": 0.78
+  },
+  "scriptCache": {
+    "hits": 40,
+    "misses": 12,
+    "evictions": 1,
+    "currentSize": 131072,
+    "entryCount": 8,
+    "hitRatio": 0.77
+  }
+}
+```
+
+---
+
+### GET /api/sse/stats
+
+Returns statistics for SSE clients and heartbeat activity.
+
+**Response:**
+```json
+{
+  "clients": {
+    "totalClients": 2,
+    "totalEventsSent": 18,
+    "clients": [
+      {
+        "id": "client-1700000000000-0.123",
+        "connectedAt": "2026-02-04T10:00:00.000Z",
+        "lastActivity": "2026-02-04T10:05:00.000Z",
+        "eventsSent": 12,
+        "sessionDuration": 300000
+      }
+    ]
+  },
+  "heartbeat": {
+    "isRunning": true,
+    "interval": 30000,
+    "heartbeatsSent": 10,
+    "subscribers": 2
+  }
+}
+```
+
+---
+
 ## Logging
 
 ### GET /api/logs/stream (Server-Sent Events)
 
 Real-time log streaming using Server-Sent Events (SSE).
 
+**Current Behavior:** Requires localhost access and optional API key (see Authentication section).
+
 **Example Request:**
 ```http
 GET /api/logs/stream HTTP/1.1
-Host: localhost:8080
+Host: localhost:3000
 Accept: text/event-stream
 ```
 
@@ -240,6 +387,12 @@ interface LogEvent {
   message: string;
   context: Record<string, any>;
 }
+
+interface SSEEventEnvelope {
+  event: "log" | "status" | "metric" | "error" | "info" | "heartbeat";
+  data: LogEvent | Record<string, unknown>;
+  id?: string;
+}
 ```
 
 **Client-Side Usage (JavaScript):**
@@ -265,6 +418,8 @@ eventSource.onerror = () => {
 ### GET /api/logs/history
 
 Retrieves historical logs with filtering and pagination.
+
+**Planned Enhancement:** This endpoint is not available yet. Use `/api/logs/stream` for real-time logs.
 
 **Query Parameters:**
 - `level`: Filter by log level (`debug`, `info`, `warn`, `error`)
@@ -311,6 +466,8 @@ GET /api/logs/history?level=error&limit=50&page=1
 ---
 
 ## Configuration
+
+**Planned Enhancement:** These endpoints are not implemented in the current Web UI server.
 
 ### GET /api/settings
 
@@ -388,17 +545,20 @@ Updates server configuration (requires restart for some settings).
 The Web UI serves static files from the `/public` directory:
 
 - `GET /` - Dashboard HTML
-- `GET /css/app.css` - Tailwind CSS
-- `GET /js/app.js` - Alpine.js components
-- `GET /favicon.ico` - Favicon
+- `GET /tool-explorer.html` - Tool Explorer UI
+- `GET /tool-explorer.js` - Tool Explorer script
+- `GET /styles/output.css` - Tailwind CSS output
+- `GET /styles/input.css` - Tailwind CSS source
 
 ---
 
 ## WebSocket API (Phase 2)
 
+**Planned Enhancement:** WebSocket support is not available yet.
+
 For Phase 2, WebSocket support will be added for bi-directional communication:
 
-**Endpoint:** `ws://localhost:8080/ws`
+**Endpoint:** `ws://localhost:3000/ws`
 
 **Message Types:**
 - `subscribe` - Subscribe to events
@@ -419,17 +579,9 @@ For Phase 2, WebSocket support will be added for bi-directional communication:
 
 ## CORS Configuration
 
-**Allowed Origins (Development):**
-- `http://localhost:*`
-- `http://127.0.0.1:*`
+**Current Behavior:** The Web UI binds to localhost only; CORS is not configured.
 
-**Allowed Methods:**
-- `GET`, `POST`, `PUT`, `OPTIONS`
-
-**Allowed Headers:**
-- `Content-Type`, `Authorization`
-
-**Production:** CORS disabled (localhost-only binding)
+**Planned Enhancement:** Configurable CORS allowlist for non-local deployments.
 
 ---
 
@@ -439,50 +591,44 @@ For Phase 2, WebSocket support will be added for bi-directional communication:
 
 ```json
 {
-  "error": {
-    "code": "INTERNAL_ERROR",
-    "message": "Failed to retrieve server status",
-    "details": {
-      "original_error": "Connection refused"
-    }
-  }
+  "error": "Service temporarily unavailable"
 }
 ```
 
+`/api/execute` returns a structured execution payload when tool execution fails. See the Tool Explorer section.
+
 ### Error Codes
 
-| Code | HTTP Status | Description |
-|------|-------------|-------------|
-| `BAD_REQUEST` | 400 | Invalid request parameters |
-| `NOT_FOUND` | 404 | Endpoint or resource not found |
-| `CONFLICT` | 409 | Resource conflict (e.g., already running) |
-| `INTERNAL_ERROR` | 500 | Internal server error |
-| `SERVICE_UNAVAILABLE` | 503 | MCP server not available |
+| HTTP Status | Description |
+|-------------|-------------|
+| 400 | Validation error or missing required fields |
+| 401 | API key missing or invalid |
+| 403 | Localhost-only access restriction |
+| 404 | Tool not found |
+| 429 | Rate limit exceeded |
+| 500 | Internal server error |
+| 503 | Bridge unavailable |
+| 504 | Tool execution timed out |
 
 ---
 
 ## Rate Limiting
 
-**Limits:**
-- 100 requests/minute per IP (general endpoints)
-- 10 requests/minute per IP (lifecycle endpoints)
-- 1 concurrent SSE connection per IP
+**Current Behavior:**
+- Read endpoints: 100 requests per 15 minutes
+- Write endpoints: 20 requests per 15 minutes
 
 **Rate Limit Headers:**
 ```http
-X-RateLimit-Limit: 100
-X-RateLimit-Remaining: 95
-X-RateLimit-Reset: 1612451200
+RateLimit-Limit: 100
+RateLimit-Remaining: 95
+RateLimit-Reset: 1612451200
 ```
 
 **Response (Rate Limited):**
 ```json
 {
-  "error": {
-    "code": "RATE_LIMIT_EXCEEDED",
-    "message": "Too many requests",
-    "retry_after_seconds": 42
-  }
+  "error": "Too many requests, please try again later"
 }
 ```
 
@@ -502,20 +648,20 @@ X-RateLimit-Reset: 1612451200
   <!-- Metrics -->
   <div class="metrics">
     <div>
-      <span>Requests:</span>
-      <span x-text="metrics.requests_total"></span>
+      <span>Active sessions:</span>
+      <span x-text="metrics.activeSessions"></span>
     </div>
     <div>
-      <span>Latency (p99):</span>
-      <span x-text="metrics.latency_p99_ms + 'ms'"></span>
+      <span>Uptime (s):</span>
+      <span x-text="metrics.uptime"></span>
     </div>
   </div>
 
   <!-- Lifecycle Controls -->
-  <button @click="startServer()" :disabled="status === 'running'">
+  <button @click="startServer()" :disabled="status === 'bridge_connected'">
     Start
   </button>
-  <button @click="stopServer()" :disabled="status !== 'running'">
+  <button @click="stopServer()" :disabled="status !== 'bridge_connected'">
     Stop
   </button>
 
@@ -560,20 +706,19 @@ function dashboard() {
     },
     
     async startServer() {
-      await fetch('/api/lifecycle/start', { method: 'POST' });
+      await fetch('/api/server/start', { method: 'POST' });
       await this.pollStatus();
-    },
+    }
     
     async stopServer() {
-      await fetch('/api/lifecycle/stop', { method: 'POST' });
+      await fetch('/api/server/stop', { method: 'POST' });
       await this.pollStatus();
-    },
+    }
     
     get statusColor() {
       return {
-        'bg-green-500': this.status === 'running',
-        'bg-yellow-500': this.status === 'starting',
-        'bg-red-500': this.status === 'error'
+        'bg-green-500': this.status === 'bridge_connected',
+        'bg-red-500': this.status === 'bridge_disconnected'
       };
     }
   };
@@ -587,8 +732,8 @@ function dashboard() {
 
 **Response Times:**
 - Status endpoint: <10ms
-- Logs (history): <50ms
-- Lifecycle operations: 500-2000ms (includes server start/stop time)
+- Logs (stream): <50ms
+- Server start/stop: 500-2000ms (includes process startup)
 
 **SSE Connection:**
 - Heartbeat every 30s (to keep connection alive)
@@ -623,6 +768,9 @@ Interactive interface for discovering and testing MCP tools directly from the br
     {
       "name": "read_scene",
       "description": "Read and parse a Godot scene file",
+      "category": "scene_operations",
+      "securityLevel": "safe",
+      "version": "1.0.0",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -634,14 +782,13 @@ Interactive interface for discovering and testing MCP tools directly from the br
         "required": ["path"]
       }
     }
-  ],
-  "total": 15
+  ]
 }
 ```
 
 #### Interactive Tool Testing
 
-**Endpoint:** `POST /api/tools/invoke`
+**Endpoint:** `POST /api/execute`
 
 **Request:**
 ```json
@@ -657,13 +804,26 @@ Interactive interface for discovering and testing MCP tools directly from the br
 ```json
 {
   "success": true,
-  "result": {
+  "data": {
     "type": "Node2D",
     "name": "Player",
     "children": [...]
   },
-  "execution_time_ms": 45,
-  "timestamp": "2026-02-04T10:00:00Z"
+  "correlationId": "corr-1700000000000-abc123",
+  "durationMs": 45
+}
+```
+
+**Error Response:**
+```json
+{
+  "success": false,
+  "error": {
+    "name": "ValidationError",
+    "message": "Invalid arguments"
+  },
+  "correlationId": "corr-1700000000000-abc123",
+  "durationMs": 12
 }
 ```
 
@@ -678,6 +838,8 @@ Interactive JSON Schema viewer with:
 ---
 
 ### 2. Resource Management
+
+**Planned Enhancement:** Not implemented in the current Web UI server.
 
 Browse, preview, and search MCP resources exposed by the server.
 
@@ -746,6 +908,8 @@ Advanced filtering capabilities:
 ---
 
 ### 3. Real-Time Logging & Monitoring
+
+**Planned Enhancement:** Not implemented in the current Web UI server.
 
 Comprehensive logging infrastructure with categorized output and performance tracking.
 
@@ -851,6 +1015,8 @@ GET /api/metrics/stream
 ---
 
 ### 4. Configuration & Security
+
+**Planned Enhancement:** Not implemented in the current Web UI server.
 
 Manage environment variables, client access, and prompt templates.
 
@@ -1006,6 +1172,8 @@ Content-Type: application/json
 
 ### 5. Connection & Session Management
 
+**Planned Enhancement:** Not implemented in the current Web UI server.
+
 Monitor and control active client connections with detailed session tracking.
 
 #### Active Client List
@@ -1117,6 +1285,8 @@ Real-time session analytics:
 
 ### 6. Service State & Lifecycle Control
 
+**Planned Enhancement:** Not implemented in the current Web UI server.
+
 Comprehensive process management with visual state indicators and health monitoring.
 
 #### State Indicators
@@ -1213,32 +1383,24 @@ Comprehensive process management with visual state indicators and health monitor
 
 **Start Server:**
 ```http
-POST /api/lifecycle/start
+POST /api/server/start
 ```
 
 **Stop Server:**
 ```http
-POST /api/lifecycle/stop
+POST /api/server/stop
 ```
 
 **Restart Server:**
 ```http
-POST /api/lifecycle/restart
-```
-
-**Reload Configuration:**
-```http
-POST /api/lifecycle/reload
-Content-Type: application/json
-
-{
-  "preserve_connections": true
-}
+POST /api/server/restart
 ```
 
 ---
 
 ### 7. Advanced Logging & Observability
+
+**Planned Enhancement:** Not implemented in the current Web UI server.
 
 Professional-grade logging with traffic inspection, categorization, and export capabilities.
 
@@ -1484,9 +1646,8 @@ Reusable components for consistent UI:
 ```html
 <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
       :class="{
-        'bg-green-100 text-green-800': status === 'running',
-        'bg-yellow-100 text-yellow-800': status === 'starting',
-        'bg-red-100 text-red-800': status === 'error'
+        'bg-green-100 text-green-800': status === 'bridge_connected',
+        'bg-red-100 text-red-800': status === 'bridge_disconnected'
       }">
   <svg class="w-2 h-2 mr-2" fill="currentColor" viewBox="0 0 8 8">
     <circle cx="4" cy="4" r="3"/>
@@ -1498,8 +1659,8 @@ Reusable components for consistent UI:
 **Metric Card:**
 ```html
 <div class="bg-white rounded-lg shadow p-6">
-  <h3 class="text-sm font-medium text-gray-500 mb-2">Total Requests</h3>
-  <p class="text-3xl font-bold text-gray-900" x-text="metrics.requests_total"></p>
+  <h3 class="text-sm font-medium text-gray-500 mb-2">Active Sessions</h3>
+  <p class="text-3xl font-bold text-gray-900" x-text="metrics.activeSessions"></p>
   <p class="text-sm text-gray-600 mt-1">
     <span class="text-green-600">↑ 12%</span> from last hour
   </p>
@@ -1541,8 +1702,11 @@ document.addEventListener('alpine:init', () => {
     async pollStatus() {
       const res = await fetch('/api/status');
       const data = await res.json();
-      this.status = data.status;
-      this.metrics = data.mcp;
+      this.status = data.bridgeConnected ? 'bridge_connected' : 'bridge_disconnected';
+      this.metrics = {
+        activeSessions: data.activeSessions,
+        uptime: data.uptime
+      };
     }
   });
 });
@@ -1552,7 +1716,7 @@ document.addEventListener('alpine:init', () => {
 ```html
 <div x-data>
   <span x-text="$store.server.status"></span>
-  <span x-text="$store.server.metrics.requests_total"></span>
+  <span x-text="$store.server.metrics.activeSessions"></span>
 </div>
 ```
 
@@ -1628,12 +1792,17 @@ For logs with 10,000+ entries, use virtual scrolling:
 
 ### CORS Configuration
 
-For development, allow localhost origins:
+**Current Behavior:** CORS is enabled with an allowlist (localhost plus `ALLOWED_ORIGINS`).
+
+Allowlisted origins for development:
 
 ```javascript
 // server.js
 app.use(cors({
-  origin: ['http://localhost:8080', 'http://127.0.0.1:8080'],
+  origin: [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000'
+  ],
   methods: ['GET', 'POST', 'PUT'],
   credentials: true
 }));
@@ -1641,17 +1810,26 @@ app.use(cors({
 
 ### Content Security Policy
 
-Set restrictive CSP headers:
+**Current Behavior:** CSP headers are enforced via Helmet to restrict script/style/font sources.
+
+Current CSP configuration:
 
 ```html
 <meta http-equiv="Content-Security-Policy" 
-      content="default-src 'self'; 
-               script-src 'self' 'unsafe-inline' cdn.tailwindcss.com cdn.jsdelivr.net; 
-               style-src 'self' 'unsafe-inline' cdn.tailwindcss.com; 
-               connect-src 'self';">
+  content="default-src 'self';
+       style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+       script-src 'self' 'unsafe-inline' 'unsafe-eval';
+       img-src 'self' data: https:;
+       connect-src 'self';
+       font-src 'self' https://fonts.gstatic.com;
+       object-src 'none';
+       media-src 'self';
+       frame-src 'none';">
 ```
 
 ### Input Validation
+
+**Planned Enhancement:** Not implemented in the current Web UI server.
 
 Always validate and sanitize user inputs:
 

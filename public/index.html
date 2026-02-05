@@ -3,169 +3,115 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Godot MCP Dashboard</title>
+    <title>Godot MCP Command Center</title>
     <link rel="stylesheet" href="/styles/output.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script defer src="/node_modules/alpinejs/dist/cdn.js"></script>
-    <style>
-        [x-cloak] { display: none !important; }
-        .log-entry {
-            transition: background-color 0.2s;
-        }
-        .log-entry:hover {
-            background-color: rgba(0, 0, 0, 0.05);
-        }
-    </style>
 </head>
-<body class="bg-gray-100 min-h-screen" x-data="dashboard()" x-init="init()">
-    <div class="container mx-auto px-4 py-8">
-        <!-- Header -->
-        <header class="mb-8">
-            <div class="flex items-center justify-between">
-                <div>
-                    <h1 class="text-4xl font-bold text-gray-900 mb-2">Godot MCP Dashboard</h1>
-                    <p class="text-gray-600">Monitor your Godot MCP server and bridge connection</p>
+<body class="min-h-screen" x-data="dashboard()" x-init="init()">
+    <div class="bg-orb orb-a"></div>
+    <div class="bg-orb orb-b"></div>
+
+    <div class="page-shell">
+        <header class="hero glass-panel">
+            <div class="hero-copy">
+                <span class="eyebrow">Godot MCP</span>
+                <h1 class="hero-title">Command Center for Real-Time Godot Operations</h1>
+                <p class="hero-sub">Monitor bridge health, inspect execution telemetry, and keep control of the MCP service lifecycle from a single dashboard.</p>
+                <div class="hero-actions">
+                    <button @click="refreshStatus()" class="action-button primary">
+                        Refresh Signals
+                    </button>
+                    <div class="status-pill" :class="getConnectionStatusColor()">
+                        <span class="status-dot"></span>
+                        <span x-text="connectionStatus"></span>
+                    </div>
                 </div>
-                <button 
-                    @click="refreshStatus()"
-                    class="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition shadow-md">
-                    <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    Refresh
-                </button>
+            </div>
+            <div class="hero-panel">
+                <div class="hero-metric">
+                    <span class="metric-label">Server Uptime</span>
+                    <span class="metric-value" x-text="formatUptime(status.uptime)"></span>
+                </div>
+                <div class="hero-metric">
+                    <span class="metric-label">Active Sessions</span>
+                    <span class="metric-value" x-text="status.activeSessions"></span>
+                </div>
+                <div class="hero-metric">
+                    <span class="metric-label">Bridge Version</span>
+                    <span class="metric-value" x-text="bridgeHealth.version || 'unknown'"></span>
+                </div>
             </div>
         </header>
 
-        <!-- Status Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <!-- Server Status -->
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-xl font-semibold text-gray-900">Server</h2>
-                    <span 
-                        class="px-3 py-1 rounded-full text-sm font-medium"
-                        :class="status.bridgeConnected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
-                        x-text="status.bridgeConnected ? 'Connected' : 'Disconnected'">
-                    </span>
+        <section class="metrics-grid">
+            <div class="metric-card glass-panel reveal">
+                <div class="card-header">
+                    <h2>Server Status</h2>
+                    <span class="status-pill" :class="status.bridgeConnected ? 'status-good' : 'status-bad'" x-text="status.bridgeConnected ? 'Connected' : 'Disconnected'"></span>
                 </div>
-                <div class="space-y-2">
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Uptime:</span>
-                        <span class="font-medium" x-text="formatUptime(status.uptime)"></span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Active Sessions:</span>
-                        <span class="font-medium" x-text="status.activeSessions"></span>
-                    </div>
-                </div>
+                <p class="card-value" x-text="formatUptime(status.uptime)"></p>
+                <p class="card-sub">Runtime since last clean start.</p>
             </div>
-
-            <!-- Bridge Status -->
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-xl font-semibold text-gray-900">Bridge</h2>
-                    <span 
-                        class="px-3 py-1 rounded-full text-sm font-medium"
-                        :class="getBridgeStatusColor(bridgeHealth.status)"
-                        x-text="bridgeHealth.status">
-                    </span>
+            <div class="metric-card glass-panel reveal">
+                <div class="card-header">
+                    <h2>Bridge Health</h2>
+                    <span class="status-pill" :class="getBridgeStatusColor(bridgeHealth.status)" x-text="bridgeHealth.status"></span>
                 </div>
-                <div class="space-y-2">
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Port:</span>
-                        <span class="font-medium" x-text="bridgeHealth.port"></span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Version:</span>
-                        <span class="font-medium" x-text="bridgeHealth.version || 'unknown'"></span>
-                    </div>
-                </div>
+                <p class="card-value">Port <span x-text="bridgeHealth.port"></span></p>
+                <p class="card-sub">Live connection to the Godot editor bridge.</p>
             </div>
-
-            <!-- Activity -->
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <h2 class="text-xl font-semibold text-gray-900 mb-4">Activity</h2>
-                <div class="space-y-2">
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Log Entries:</span>
-                        <span class="font-medium" x-text="logs.length"></span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Last Update:</span>
-                        <span class="font-medium" x-text="formatTime(lastUpdate)"></span>
-                    </div>
+            <div class="metric-card glass-panel reveal">
+                <div class="card-header">
+                    <h2>Activity</h2>
+                    <span class="status-pill status-neutral">Live</span>
                 </div>
+                <p class="card-value" x-text="logs.length + ' logs'"></p>
+                <p class="card-sub">Last update <span x-text="formatTime(lastUpdate)"></span></p>
             </div>
-        </div>
+        </section>
 
-        <!-- Log Viewer -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-            <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center gap-4">
-                    <h2 class="text-xl font-semibold text-gray-900">Server Logs</h2>
-                    <span 
-                        class="px-2 py-1 rounded-full text-xs font-medium"
-                        :class="getConnectionStatusColor()"
-                        x-text="connectionStatus">
-                    </span>
+        <section class="log-panel glass-panel">
+            <div class="log-header">
+                <div>
+                    <h2>Server Logs</h2>
+                    <p class="log-sub">Streaming diagnostics from the MCP service and bridge.</p>
                 </div>
-                <div class="flex gap-2">
-                    <label class="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded cursor-pointer hover:bg-gray-300 transition">
-                        <input type="checkbox" x-model="showHealthChecks" class="rounded">
+                <div class="log-actions">
+                    <label class="toggle-pill">
+                        <input type="checkbox" x-model="showHealthChecks">
                         <span>Show health checks</span>
                     </label>
-                    <button 
-                        @click="exportLogs()"
-                        class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition"
-                        :disabled="logs.length === 0">
-                        Export
-                    </button>
-                    <button 
-                        @click="clearLogs()"
-                        class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition">
-                        Clear
-                    </button>
-                    <button 
-                        @click="toggleAutoScroll()"
-                        class="px-4 py-2 rounded transition"
-                        :class="autoScroll ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'">
-                        Auto-scroll
-                    </button>
+                    <button @click="exportLogs()" class="action-button ghost" :disabled="logs.length === 0">Export</button>
+                    <button @click="clearLogs()" class="action-button ghost">Clear</button>
+                    <button @click="toggleAutoScroll()" class="action-button" :class="autoScroll ? 'primary' : 'ghost'">Auto-scroll</button>
                 </div>
             </div>
 
-            <!-- Log Entries -->
-            <div 
-                x-ref="logContainer"
-                class="bg-gray-50 rounded border border-gray-200 p-4 font-mono text-sm max-h-96 overflow-y-auto">
+            <div x-ref="logContainer" class="log-stream">
                 <template x-if="filteredLogs().length === 0">
-                    <p class="text-gray-500 italic">No logs yet...</p>
+                    <p class="log-empty">No logs yet...</p>
                 </template>
                 <template x-for="log in filteredLogs()" :key="log.id">
-                    <div class="log-entry py-1 px-2 rounded hover:bg-gray-100">
-                        <div class="flex items-start">
-                            <span class="text-gray-500 flex-shrink-0" x-text="formatLogTime(log.timestamp)"></span>
-                            <span 
-                                class="font-semibold ml-2 flex-shrink-0"
-                                :class="getLogLevelColor(log.level)"
-                                x-text="log.level.toUpperCase()">
-                            </span>
-                            <span class="ml-2 flex-grow" x-text="log.message"></span>
+                    <div class="log-entry">
+                        <div class="log-line">
+                            <span class="log-time" x-text="formatLogTime(log.timestamp)"></span>
+                            <span class="log-level" :class="getLogLevelColor(log.level)" x-text="log.level.toUpperCase()"></span>
+                            <span class="log-message" x-text="log.message"></span>
                         </div>
                         <template x-if="log.context && Object.keys(log.context).length > 0">
-                            <div class="ml-20 mt-1 text-xs text-gray-600">
+                            <div class="log-context">
                                 <template x-for="(value, key) in log.context" :key="key">
-                                    <span class="inline-block mr-4">
-                                        <span class="font-semibold" x-text="key + ':'"></span>
-                                        <span x-text="value"></span>
-                                    </span>
+                                    <span><strong x-text="key + ':'"></strong> <span x-text="value"></span></span>
                                 </template>
                             </div>
                         </template>
                     </div>
                 </template>
             </div>
-        </div>
+        </section>
     </div>
 
     <script>
@@ -340,31 +286,31 @@
 
                 getLogLevelColor(level) {
                     const colors = {
-                        debug: 'text-gray-600',
-                        info: 'text-blue-600',
-                        warn: 'text-yellow-600',
-                        error: 'text-red-600'
+                        debug: 'log-level-debug',
+                        info: 'log-level-info',
+                        warn: 'log-level-warn',
+                        error: 'log-level-error'
                     };
-                    return colors[level.toLowerCase()] || 'text-gray-600';
+                    return colors[level.toLowerCase()] || 'log-level-debug';
                 },
 
                 getBridgeStatusColor(status) {
                     const colors = {
-                        healthy: 'bg-green-100 text-green-800',
-                        unhealthy: 'bg-red-100 text-red-800',
-                        degraded: 'bg-yellow-100 text-yellow-800',
-                        unknown: 'bg-gray-100 text-gray-800'
+                        healthy: 'status-good',
+                        unhealthy: 'status-bad',
+                        degraded: 'status-warn',
+                        unknown: 'status-neutral'
                     };
-                    return colors[status] || 'bg-gray-100 text-gray-800';
+                    return colors[status] || 'status-neutral';
                 },
 
                 getConnectionStatusColor() {
                     const colors = {
-                        connected: 'bg-green-100 text-green-800',
-                        connecting: 'bg-yellow-100 text-yellow-800',
-                        error: 'bg-red-100 text-red-800'
+                        connected: 'status-good',
+                        connecting: 'status-warn',
+                        error: 'status-bad'
                     };
-                    return colors[this.connectionStatus] || 'bg-gray-100 text-gray-800';
+                    return colors[this.connectionStatus] || 'status-neutral';
                 }
             };
         }

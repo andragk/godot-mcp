@@ -1243,7 +1243,7 @@ Goal: Deliver functional core with read operations, HTTP communication, and basi
    - Design system: colors, typography, spacing
 
 2. **Express API Server** (2 days)
-   - Create Express app on port 8080
+   - Create Express app on port 3000
    - Endpoints: GET /api/status, GET /api/connections, POST /api/server/start, POST /api/server/stop
    - WebSocket server for log streaming (ws library)
    - Static file serving (public folder)
@@ -1257,13 +1257,13 @@ Goal: Deliver functional core with read operations, HTTP communication, and basi
    - Use Alpine.js `x-data` for state, `$watch` for reactivity
 
 4. **WebSocket Integration** (1 day)
-   - Connect to ws://localhost:8080/logs
+   - Connect to ws://localhost:3000/logs
    - Receive log events (JSON): level, timestamp, message, context
    - Display in real-time (buffer last 1000 entries)
    - Disconnect/reconnect handling
 
 **Acceptance Criteria**:
-- ✅ Dashboard accessible at http://localhost:8080
+- ✅ Dashboard accessible at http://localhost:3000
 - ✅ Status updates in real-time (1s polling)
 - ✅ Logs stream without page refresh
 - ✅ Start/Stop controls functional
@@ -4175,7 +4175,7 @@ Sprint 12 (Launch)
 - Resource browser API complete
 
 **M1.4 - MVP Ready** (End of Sprint 4)
-- Sidecar UI deployed at localhost:8080
+- Sidecar UI deployed at localhost:3000
 - End-to-end workflow tested
 - Documentation written (README + quickstart)
 

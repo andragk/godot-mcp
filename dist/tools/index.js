@@ -9,4 +9,5 @@ LaunchEditorSchema, RunProjectSchema, StopExecutionSchema, GetVersionSchema, Lis
 editorControlTools, 
 // Tool handler class
 EditorControlTools, } from './editor-control.js';
+export { CreateScriptInputSchema, ModifyScriptInputSchema, ValidateScriptInputSchema, ScriptOperationsTools, } from './script-operations.js';
 //# sourceMappingURL=index.js.map

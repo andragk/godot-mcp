@@ -83,7 +83,7 @@ import { EventEmitter } from 'events';
 export class WebUIServer extends EventEmitter {
   private app = express();
   
-  async start(port: number = 8080) {
+  async start(port: number = 3000) {
     // Statische Dateien bereitstellen (Tailwind + Alpine.js)
     this.app.use(express.static('public'));
     

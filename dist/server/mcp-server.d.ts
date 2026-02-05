@@ -1,3 +1,4 @@
+import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 /**
  * MCP Server for Godot Engine
  * Orchestrates MCP protocol, tool execution, and resource management
@@ -9,7 +10,10 @@ export declare class GodotMCPServer {
     private readonly toolRegistry;
     private readonly requestHandler;
     private readonly lifecycleManager;
-    constructor();
+    constructor(options?: {
+        exitOnShutdown?: boolean;
+        registerSignalHandlers?: boolean;
+    });
     /**
      * Register all available tools using centralized registration
      */
@@ -25,7 +29,7 @@ export declare class GodotMCPServer {
     /**
      * Start the MCP server with stdio transport
      */
-    start(): Promise<void>;
+    start(transport?: Transport): Promise<void>;
     /**
      * Stop the MCP server and cleanup resources
      */

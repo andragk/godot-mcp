@@ -68,6 +68,7 @@ interface GodotClientConfig {
     baseUrl: string;
     port: number;
     timeout: number;
+    sharedSecret?: string;
     retryStrategy: RetryStrategy;
     poolConfig: PoolConfig;
     circuitBreaker: {
@@ -100,6 +101,7 @@ export declare class GodotClient extends EventEmitter {
      * Get sanitized configuration summary for logging
      */
     private getConfigSummary;
+    private buildHeaders;
     /**
      * Send a JSON-RPC request to the Godot bridge
      * @param method - RPC method name

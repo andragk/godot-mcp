@@ -115,6 +115,47 @@ export function analyzeScript(content) {
     return metadata;
 }
 /**
+ * Analyze C# script content with basic pattern extraction
+ */
+export function analyzeCSharpScript(content) {
+    const lines = content.split('\n');
+    const metadata = {
+        functions: [],
+        signals: [],
+        constants: {},
+        exports: [],
+        lineCount: lines.length,
+        characterCount: content.length,
+    };
+    const classMatch = content.match(/class\s+(\w+)\s*(?::\s*([\w\.]+))?/);
+    if (classMatch) {
+        metadata.className = classMatch[1];
+        metadata.extends = classMatch[2];
+    }
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line || line.startsWith('//')) {
+            continue;
+        }
+        const methodMatch = line.match(/^(?:public|private|protected|internal|static|virtual|override|async|sealed|new|partial|extern|unsafe|readonly|\s)+\s*([\w<>\[\]]+)\s+(\w+)\s*\(([^)]*)\)/);
+        if (methodMatch) {
+            const params = methodMatch[3]
+                .split(',')
+                .map((p) => p.trim())
+                .filter((p) => p.length > 0)
+                .map((p) => p.split(' ').pop() || p);
+            metadata.functions.push({
+                name: methodMatch[2],
+                parameters: params,
+                returnType: methodMatch[1],
+                isStatic: line.includes(' static '),
+                lineNumber: i + 1,
+            });
+        }
+    }
+    return metadata;
+}
+/**
  * Parse function signature from line
  */
 function parseFunctionSignature(line, lineNumber) {

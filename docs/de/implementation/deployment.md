@@ -126,11 +126,11 @@ RUN addgroup -g 1001 -S nodejs && \
 USER nodejs
 
 # Port für Web UI
-EXPOSE 8080
+EXPOSE 3000
 
 # Health-Check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:8080/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+  CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
 CMD ["node", "dist/server.js"]
 ```
@@ -148,7 +148,7 @@ services:
     image: godot-mcp-server:latest
     container_name: godot-mcp
     ports:
-      - "8080:8080"
+      - "3000:3000"
     environment:
       - NODE_ENV=production
       - LOG_LEVEL=info
@@ -173,7 +173,7 @@ docker build -t godot-mcp-server:latest .
 # Container ausführen
 docker run -d `
   --name godot-mcp `
-  -p 8080:8080 `
+  -p 3000:3000 `
   -e NODE_ENV=production `
   godot-mcp-server:latest
 
@@ -340,7 +340,7 @@ git push origin v1.0.0
 NODE_ENV=production
 LOG_LEVEL=info
 GODOT_BRIDGE_URL=http://localhost:7777
-WEB_UI_PORT=8080
+WEB_UI_PORT=3000
 
 # Optional: Observability
 OTEL_EXPORTER_OTLP_ENDPOINT=https://api.honeycomb.io
@@ -358,7 +358,7 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
   GODOT_BRIDGE_URL: z.string().url().default('http://localhost:7777'),
-  WEB_UI_PORT: z.coerce.number().int().min(1024).max(65535).default(8080),
+  WEB_UI_PORT: z.coerce.number().int().min(1024).max(65535).default(3000),
 });
 
 export const env = envSchema.parse(process.env);

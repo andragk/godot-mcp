@@ -111,11 +111,11 @@ declare const ModifyOperationSchema: z.ZodDiscriminatedUnion<"operation", [z.Zod
     operation: z.ZodLiteral<"remove_node">;
     nodePath: z.ZodString;
 }, "strip", z.ZodTypeAny, {
-    operation: "remove_node";
     nodePath: string;
+    operation: "remove_node";
 }, {
-    operation: "remove_node";
     nodePath: string;
+    operation: "remove_node";
 }>, z.ZodObject<{
     operation: z.ZodLiteral<"modify_property">;
     nodePath: z.ZodString;
@@ -135,40 +135,40 @@ declare const ModifyOperationSchema: z.ZodDiscriminatedUnion<"operation", [z.Zod
         value: number[] | Record<string, number>;
         type: "Vector2" | "Vector3" | "Color" | "Transform2D" | "Transform3D";
     };
+    nodePath: string;
     property: string;
     operation: "modify_property";
-    nodePath: string;
 }, {
     value: string | number | boolean | {
         value: number[] | Record<string, number>;
         type: "Vector2" | "Vector3" | "Color" | "Transform2D" | "Transform3D";
     };
+    nodePath: string;
     property: string;
     operation: "modify_property";
-    nodePath: string;
 }>, z.ZodObject<{
     operation: z.ZodLiteral<"rename_node">;
     nodePath: z.ZodString;
     newName: z.ZodString;
 }, "strip", z.ZodTypeAny, {
-    operation: "rename_node";
     nodePath: string;
+    operation: "rename_node";
     newName: string;
 }, {
-    operation: "rename_node";
     nodePath: string;
+    operation: "rename_node";
     newName: string;
 }>, z.ZodObject<{
     operation: z.ZodLiteral<"reparent_node">;
     nodePath: z.ZodString;
     newParentPath: z.ZodString;
 }, "strip", z.ZodTypeAny, {
-    operation: "reparent_node";
     nodePath: string;
+    operation: "reparent_node";
     newParentPath: string;
 }, {
-    operation: "reparent_node";
     nodePath: string;
+    operation: "reparent_node";
     newParentPath: string;
 }>]>;
 /**
@@ -213,11 +213,11 @@ export declare const ModifySceneInputSchema: z.ZodObject<{
         operation: z.ZodLiteral<"remove_node">;
         nodePath: z.ZodString;
     }, "strip", z.ZodTypeAny, {
-        operation: "remove_node";
         nodePath: string;
+        operation: "remove_node";
     }, {
-        operation: "remove_node";
         nodePath: string;
+        operation: "remove_node";
     }>, z.ZodObject<{
         operation: z.ZodLiteral<"modify_property">;
         nodePath: z.ZodString;
@@ -237,40 +237,40 @@ export declare const ModifySceneInputSchema: z.ZodObject<{
             value: number[] | Record<string, number>;
             type: "Vector2" | "Vector3" | "Color" | "Transform2D" | "Transform3D";
         };
+        nodePath: string;
         property: string;
         operation: "modify_property";
-        nodePath: string;
     }, {
         value: string | number | boolean | {
             value: number[] | Record<string, number>;
             type: "Vector2" | "Vector3" | "Color" | "Transform2D" | "Transform3D";
         };
+        nodePath: string;
         property: string;
         operation: "modify_property";
-        nodePath: string;
     }>, z.ZodObject<{
         operation: z.ZodLiteral<"rename_node">;
         nodePath: z.ZodString;
         newName: z.ZodString;
     }, "strip", z.ZodTypeAny, {
-        operation: "rename_node";
         nodePath: string;
+        operation: "rename_node";
         newName: string;
     }, {
-        operation: "rename_node";
         nodePath: string;
+        operation: "rename_node";
         newName: string;
     }>, z.ZodObject<{
         operation: z.ZodLiteral<"reparent_node">;
         nodePath: z.ZodString;
         newParentPath: z.ZodString;
     }, "strip", z.ZodTypeAny, {
-        operation: "reparent_node";
         nodePath: string;
+        operation: "reparent_node";
         newParentPath: string;
     }, {
-        operation: "reparent_node";
         nodePath: string;
+        operation: "reparent_node";
         newParentPath: string;
     }>]>, "many">;
     createBackup: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
@@ -278,6 +278,8 @@ export declare const ModifySceneInputSchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     projectPath: string;
     scenePath: string;
+    createBackup: boolean;
+    validateAfter: boolean;
     operations: ({
         node: {
             name: string;
@@ -288,27 +290,25 @@ export declare const ModifySceneInputSchema: z.ZodObject<{
         operation: "add_node";
         parentPath: string;
     } | {
-        operation: "remove_node";
         nodePath: string;
+        operation: "remove_node";
     } | {
         value: string | number | boolean | {
             value: number[] | Record<string, number>;
             type: "Vector2" | "Vector3" | "Color" | "Transform2D" | "Transform3D";
         };
+        nodePath: string;
         property: string;
         operation: "modify_property";
-        nodePath: string;
     } | {
-        operation: "rename_node";
         nodePath: string;
+        operation: "rename_node";
         newName: string;
     } | {
-        operation: "reparent_node";
         nodePath: string;
+        operation: "reparent_node";
         newParentPath: string;
     })[];
-    createBackup: boolean;
-    validateAfter: boolean;
 }, {
     projectPath: string;
     scenePath: string;
@@ -322,23 +322,23 @@ export declare const ModifySceneInputSchema: z.ZodObject<{
         operation: "add_node";
         parentPath: string;
     } | {
-        operation: "remove_node";
         nodePath: string;
+        operation: "remove_node";
     } | {
         value: string | number | boolean | {
             value: number[] | Record<string, number>;
             type: "Vector2" | "Vector3" | "Color" | "Transform2D" | "Transform3D";
         };
+        nodePath: string;
         property: string;
         operation: "modify_property";
-        nodePath: string;
     } | {
-        operation: "rename_node";
         nodePath: string;
+        operation: "rename_node";
         newName: string;
     } | {
-        operation: "reparent_node";
         nodePath: string;
+        operation: "reparent_node";
         newParentPath: string;
     })[];
     createBackup?: boolean | undefined;

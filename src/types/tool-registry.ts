@@ -9,7 +9,7 @@ import type { z } from 'zod';
 export interface ToolMetadata {
   name: string;
   version: string;
-  category: 'connectivity' | 'editor' | 'project' | 'system' | 'node_operations' | 'scene_operations';
+  category: 'connectivity' | 'editor' | 'project' | 'system' | 'node_operations' | 'scene_operations' | 'script_operations';
   securityLevel: 'safe' | 'requires-review' | 'privileged';
   description: string;
 }
@@ -84,6 +84,31 @@ export class ToolRegistry {
     return Array.from(this.tools.values()).map((tool) => ({
       name: tool.metadata.name,
       description: tool.metadata.description,
+      inputSchema: tool.inputSchema,
+    }));
+  }
+
+  /**
+   * Get tool summaries with metadata for Web UI usage
+   */
+  getAllToolSummaries(): Array<{
+    name: string;
+    description: string;
+    category: ToolMetadata['category'];
+    securityLevel: ToolMetadata['securityLevel'];
+    version: string;
+    inputSchema: {
+      type: 'object';
+      properties: Record<string, unknown>;
+      required?: string[];
+    };
+  }> {
+    return Array.from(this.tools.values()).map((tool) => ({
+      name: tool.metadata.name,
+      description: tool.metadata.description,
+      category: tool.metadata.category,
+      securityLevel: tool.metadata.securityLevel,
+      version: tool.metadata.version,
       inputSchema: tool.inputSchema,
     }));
   }

@@ -38,7 +38,7 @@ export async function scanDirectory(
     extensions,
     maxDepth = Infinity,
     pattern,
-    excludeDirs = ['node_modules', '.git', '.godot', 'build', 'dist'],
+    excludeDirs = ['node_modules', '.git', '.godot', '.import', '.mono', 'build', 'dist'],
   } = options;
 
   const results: FileMetadata[] = [];
@@ -206,7 +206,7 @@ export async function generateDirectoryTree(
 
     try {
       const entries = await readdir(currentPath, { withFileTypes: true });
-      const excludeDirs = ['node_modules', '.git', '.godot', 'build', 'dist'];
+      const excludeDirs = ['node_modules', '.git', '.godot', '.import', '.mono', 'build', 'dist'];
 
       for (const entry of entries) {
         if (entry.isDirectory() && excludeDirs.includes(entry.name)) {

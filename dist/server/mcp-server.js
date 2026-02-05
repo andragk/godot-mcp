@@ -26,7 +26,7 @@ export class GodotMCPServer {
     toolRegistry;
     requestHandler;
     lifecycleManager;
-    constructor() {
+    constructor(options) {
         // Initialize core dependencies
         this.godotClient = new GodotClient({
             port: 7777,
@@ -50,6 +50,9 @@ export class GodotMCPServer {
         this.lifecycleManager = new LifecycleManager(this.server, async () => {
             const health = await this.godotClient.healthCheck();
             return health.status === 'healthy';
+        }, {
+            exitOnShutdown: options?.exitOnShutdown ?? false,
+            registerSignalHandlers: options?.registerSignalHandlers ?? true,
         });
         // Setup server
         this.registerTools();
@@ -166,13 +169,13 @@ export class GodotMCPServer {
     /**
      * Start the MCP server with stdio transport
      */
-    async start() {
+    async start(transport) {
         // Initialize lifecycle manager
         await this.lifecycleManager.initialize();
         await this.lifecycleManager.start();
         // Create and connect transport
-        const transport = createStdioTransport();
-        await this.server.connect(transport);
+        const activeTransport = transport ?? createStdioTransport();
+        await this.server.connect(activeTransport);
         logger.info('MCP server started with stdio transport', {
             version: this.lifecycleManager.getVersion(),
         });
@@ -208,7 +211,7 @@ export class GodotMCPServer {
  * Main entry point for the MCP server
  */
 async function main() {
-    const server = new GodotMCPServer();
+    const server = new GodotMCPServer({ exitOnShutdown: true, registerSignalHandlers: true });
     // Start the server (lifecycle manager handles shutdown signals)
     await server.start();
 }

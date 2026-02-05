@@ -23,10 +23,16 @@ export interface HealthStatus {
 export declare class LifecycleManager {
     private readonly server;
     private readonly healthCheckFn?;
+    private static signalsRegistered;
     private readonly startTime;
     private isShuttingDown;
     private readonly version;
-    constructor(server: Server, healthCheckFn?: (() => Promise<boolean>) | undefined);
+    private readonly exitOnShutdown;
+    private readonly registerSignalHandlers;
+    constructor(server: Server, healthCheckFn?: (() => Promise<boolean>) | undefined, options?: {
+        exitOnShutdown?: boolean;
+        registerSignalHandlers?: boolean;
+    });
     /**
      * Initialize server and setup signal handlers
      */

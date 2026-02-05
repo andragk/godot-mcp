@@ -273,6 +273,7 @@ describe('EditorControlTools', () => {
       });
     });
 
+
     it('should validate search paths required', async () => {
       await expect(
         editorTools.listProjects({
@@ -282,6 +283,7 @@ describe('EditorControlTools', () => {
       ).rejects.toThrow();
     });
   });
+
 
   describe('analyzeProject', () => {
     it('should analyze project structure', async () => {

@@ -8,7 +8,7 @@ import { logger } from './logger.js';
  * Recursively scan directory for files matching criteria
  */
 export async function scanDirectory(dirPath, projectRoot, options = {}) {
-    const { extensions, maxDepth = Infinity, pattern, excludeDirs = ['node_modules', '.git', '.godot', 'build', 'dist'], } = options;
+    const { extensions, maxDepth = Infinity, pattern, excludeDirs = ['node_modules', '.git', '.godot', '.import', '.mono', 'build', 'dist'], } = options;
     const results = [];
     async function scan(currentPath, depth) {
         if (depth > maxDepth) {
@@ -143,7 +143,7 @@ export async function generateDirectoryTree(dirPath, projectRoot, maxDepth = 5) 
         }
         try {
             const entries = await readdir(currentPath, { withFileTypes: true });
-            const excludeDirs = ['node_modules', '.git', '.godot', 'build', 'dist'];
+            const excludeDirs = ['node_modules', '.git', '.godot', '.import', '.mono', 'build', 'dist'];
             for (const entry of entries) {
                 if (entry.isDirectory() && excludeDirs.includes(entry.name)) {
                     continue;

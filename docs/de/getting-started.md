@@ -131,7 +131,7 @@ Fügen Sie zu `.vscode/settings.json` hinzu:
 Öffnen Sie die Sidecar Web UI:
 
 ```
-http://localhost:8080
+http://localhost:3000
 ```
 
 Sie sollten sehen:
@@ -359,7 +359,7 @@ godot-mcp-server --project /pfad/zu/projekt
 |--------|-------------|----------|
 | `--project <pfad>` | Pfad zum Godot-Projekt-Root (erforderlich) | - |
 | `--port <nummer>` | Godot-Brücke HTTP-Port | `7777` |
-| `--ui-port <nummer>` | Sidecar Web UI Port | `8080` |
+| `--ui-port <nummer>` | Sidecar Web UI Port | `3000` |
 | `--log-level <level>` | Logging-Verbosity (debug/info/warn/error) | `info` |
 | `--cache-ttl <sekunden>` | Ressourcen-Cache TTL | `300` |
 | `--max-cache-size <mb>` | Maximale Cache-Größe in MB | `50` |
@@ -397,7 +397,7 @@ godot-mcp-server \
 
 **Symptom**: `Error: EADDRINUSE: address already in use`
 
-**Ursache**: Port 7777 oder 8080 bereits in Verwendung
+**Ursache**: Port 7777 oder 3000 bereits in Verwendung
 
 **Lösung**:
 

@@ -8,6 +8,8 @@ export declare class WebServer {
     private readonly serverManager;
     private readonly sseClientManager;
     private readonly sseHeartbeat;
+    private readonly toolExecutionService;
+    private isBroadcastingLog;
     private readonly startTime;
     private server;
     constructor(godotClient: GodotClient);
@@ -38,6 +40,13 @@ export declare class WebServer {
      * Setup Express routes
      */
     private setupRoutes;
+    private getClientKey;
+    private getClientIp;
+    private getApiKey;
+    private isLocalRequest;
+    private isValidApiKey;
+    private isTrustedClient;
+    private createRateLimiter;
     /**
      * Setup log streaming to SSE clients
      */
@@ -51,6 +60,10 @@ export declare class WebServer {
      * Setup heartbeat for SSE connections
      */
     private setupHeartbeat;
+    /**
+     * Map tool execution errors to HTTP status codes
+     */
+    private mapToolErrorToStatus;
     /**
      * Get server uptime in seconds
      */

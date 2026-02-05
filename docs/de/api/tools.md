@@ -1,3 +1,9 @@
+---
+title: API-Werkzeug-Referenz
+description: Vollstandige Spezifikation der MCP-Werkzeuge des Godot MCP Servers
+outline: deep
+---
+
 # API-Werkzeug-Referenz
 
 Vollständige Spezifikation für alle verfügbaren MCP-Werkzeuge.
@@ -33,57 +39,32 @@ Listet alle Szenendateien im Projekt auf.
 
 ```json
 {
+  "projectPath": {
+    "type": "string",
+    "description": "Absoluter Pfad zum Godot-Projektverzeichnis",
+    "required": true
+  },
   "directory": {
     "type": "string",
-    "description": "Optionales Unterverzeichnis zum Durchsuchen (z.B. 'scenes/levels')",
-    "default": ""
+    "description": "Optionales Unterverzeichnis relativ zum Projektstamm"
   },
-  "recursive": {
+  "sortBy": {
+    "type": "string",
+    "enum": ["path", "size", "modified"],
+    "default": "path"
+  },
+  "ascending": {
     "type": "boolean",
-    "description": "Unterverzeichnisse rekursiv durchsuchen",
     "default": true
   },
-  "include_metadata": {
+  "includeBinary": {
     "type": "boolean",
-    "description": "Dateigröße, Änderungszeit einschließen",
-    "default": false
-  }
-}
-```
-
-**Ausgabe**:
-
-```json
-{
-  "scenes": [
-    {
-      "path": "scenes/MainMenu.tscn",
-      "size": 4096,
-      "modified": "2026-02-04T10:30:00Z"
-    },
-    {
-      "path": "scenes/levels/Level1.tscn",
-      "size": 8192,
-      "modified": "2026-02-03T15:45:00Z"
-    }
-  ],
-  "count": 2
-}
-```
-
-**Beispiel**:
-
-```typescript
-list_scenes({
-  directory: "scenes/levels",
-  recursive: true,
-  include_metadata: true
-})
+    "description": "Binare .scn-Szenen einschliessen",
 ```
 
 **Fehler**:
-- `-32001`: Verzeichnis nicht gefunden
-- `-32002`: Zugriff verweigert
+- `ValidationError`: Ungultiger Projektpfad oder Directory-Traversal
+- `Error`: Projektpfad nicht zuganglich
 
 ---
 
@@ -198,9 +179,9 @@ Erstellt eine neue Szenendatei.
     "description": "Überschreiben, wenn Datei existiert",
     "default": false
   }
-}
-```
-
+        "editorPath": {
+          "type": "string",
+          "description": "Pfad zur Godot-Executable (auto-detektiert falls leer)"
 **Ausgabe**:
 
 ```json
@@ -209,14 +190,56 @@ Erstellt eine neue Szenendatei.
   "created": true,
   "backup": null
 }
-```
-
-**Beispiel**:
-
+        "version": "4.6.0",
+        "versionString": "Godot Engine v4.6.0.stable.official",
+        "status": "stable",
+        "build": "official",
+        "hash": "abcdef123456",
+        "year": 2025
 ```typescript
 create_scene({
   path: "scenes/TestLevel.tscn",
   root_node: {
+
+      ### select_folder
+
+      Oeffnet den Ordnerauswahldialog im Editor und gibt den Pfad zurueck.
+
+      **Eingabe-Schema**:
+
+      ```json
+      {
+        "title": {
+          "type": "string",
+          "description": "Dialogtitel"
+        },
+        "initialPath": {
+          "type": "string",
+          "description": "Startverzeichnis"
+        }
+      }
+      ```
+
+      **Ausgabe**:
+
+      ```json
+      {
+        "success": true,
+        "path": "/home/user/projects"
+      }
+      ```
+
+      **Fehlerausgabe**:
+
+      ```json
+      {
+        "success": false,
+        "canceled": true,
+        "error": "Selection canceled"
+      }
+      ```
+
+      ---
     name: "TestLevel",
     type: "Node2D",
     properties: {},
@@ -226,20 +249,16 @@ create_scene({
         type: "TileMap",
         properties: {
           tile_set: "res://tilesets/platformer.tres"
-        }
-      }
-    ]
-  },
-  overwrite: false
+        "searchPaths": {
+          "oneOf": [
+            { "type": "string", "description": "Zu durchsuchendes Verzeichnis" },
+            { "type": "array", "items": { "type": "string" }, "description": "Zu durchsuchende Verzeichnisse" }
+          ]
+        },
 })
 ```
 
-**Fehler**:
-- `-32001`: Datei existiert bereits (und overwrite=false)
-- `-32002`: Zugriff verweigert
-- `-32602`: Ungültige Node-Struktur
-
----
+          "default": false
 
 ### modify_scene
 
@@ -251,20 +270,20 @@ Modifiziert eine existierende Szenendatei.
 {
   "path": {
     "type": "string",
-    "description": "Pfad zur zu modifizierenden Szene",
-    "required": true
-  },
-  "operations": {
-    "type": "array",
-    "description": "Liste der Modifikationsoperationen",
-    "required": true,
-    "items": {
-      "oneOf": [
-        {
-          "type": "object",
-          "properties": {
+            "name": "Platformer Game"
+          }
+        ]
             "type": {"enum": ["add_node"]},
             "parent": {"type": "string"},
+
+      **Beispiel**:
+
+      ```typescript
+      list_godot_projects({
+        searchPaths: "C:/Users/Alex/Documents/Godot/Projects",
+        recursive: true
+      })
+      ```
             "node": {"type": "object"}
           }
         },
@@ -351,18 +370,33 @@ Listet alle Skriptdateien im Projekt auf.
 
 ```json
 {
+  "projectPath": {
+    "type": "string",
+    "description": "Absoluter Pfad zum Godot-Projektverzeichnis",
+    "required": true
+  },
   "directory": {
     "type": "string",
-    "default": ""
+    "description": "Optionales Unterverzeichnis relativ zum Projektstamm"
   },
-  "recursive": {
+  "pattern": {
+    "type": "string",
+    "description": "Optionales Regex-Muster zum Filtern von Dateinamen"
+  },
+  "sortBy": {
+    "type": "string",
+    "enum": ["path", "size", "modified", "lines"],
+    "default": "path"
+  },
+  "includeCSharp": {
     "type": "boolean",
+    "description": "Auch .cs-Skripte einschliessen",
     "default": true
   },
-  "language": {
-    "type": "string",
-    "enum": ["GDScript", "CSharp", "all"],
-    "default": "all"
+  "includeMetadata": {
+    "type": "boolean",
+    "description": "Klassennamen und Zeilenanzahl einschliessen",
+    "default": false
   }
 }
 ```
@@ -373,14 +407,30 @@ Listet alle Skriptdateien im Projekt auf.
 {
   "scripts": [
     {
-      "path": "scripts/Player.gd",
-      "language": "GDScript",
+      "path": "C:/Projects/MyGame/scripts/Player.gd",
+      "relativePath": "scripts/Player.gd",
       "size": 2048,
-      "modified": "2026-02-04T10:30:00Z"
+      "modifiedTime": "2026-02-04T10:30:00.000Z",
+      "extension": ".gd",
+      "className": "Player",
+      "linesOfCode": 120
     }
   ],
-  "count": 1
+  "totalCount": 1,
+  "totalSize": 2048
 }
+```
+
+**Beispiel**:
+
+```typescript
+list_scripts({
+  projectPath: "C:/Projects/MyGame",
+  directory: "scripts",
+  sortBy: "lines",
+  includeCSharp: true,
+  includeMetadata: true
+})
 ```
 
 ---
@@ -393,16 +443,29 @@ Liest eine Skriptdatei und gibt ihren Inhalt und Struktur zurück.
 
 ```json
 {
-  "path": {
+  "projectPath": {
     "type": "string",
-    "description": "Relativer Pfad zum Skript (z.B. 'scripts/Player.gd')",
-    "required": true,
-    "pattern": "^[^./][^/]*(/[^/]+)*\\.(gd|cs)$"
+    "description": "Absoluter Pfad zum Godot-Projektverzeichnis",
+    "required": true
   },
-  "parse_structure": {
+  "scriptPath": {
+    "type": "string",
+    "description": "Skriptpfad relativ zum Projektstamm (.gd oder .cs)",
+    "required": true
+  },
+  "includeMetadata": {
     "type": "boolean",
-    "description": "Klassenname, Funktionen, Signale extrahieren",
+    "description": "Skript-Metadaten analysieren",
     "default": true
+  },
+  "includeComplexity": {
+    "type": "boolean",
+    "description": "Komplexitätsmetriken einschliessen",
+    "default": false
+  },
+  "includeAnalysis": {
+    "type": "boolean",
+    "description": "Veraltet; alias für includeMetadata"
   }
 }
 ```
@@ -411,41 +474,46 @@ Liest eine Skriptdatei und gibt ihren Inhalt und Struktur zurück.
 
 ```json
 {
+  "content": "extends CharacterBody2D\nclass_name Player\n...",
   "metadata": {
-    "path": "scripts/Player.gd",
-    "language": "GDScript",
-    "modified": "2026-02-04T10:30:00Z",
-    "size": 2048,
-    "line_count": 120
-  },
-  "content": "class_name Player\nextends CharacterBody2D\n...",
-  "structure": {
-    "class_name": "Player",
+    "className": "Player",
     "extends": "CharacterBody2D",
-    "signals": [
-      {
-        "name": "health_changed",
-        "params": [{"name": "new_health", "type": "int"}]
-      }
-    ],
-    "constants": [
-      {"name": "MAX_SPEED", "type": "int", "value": "300"}
-    ],
-    "variables": [
-      {"name": "max_health", "type": "int", "export": true, "default": "100"}
-    ],
+    "docstring": "Player movement controller",
     "functions": [
       {
         "name": "_ready",
-        "return_type": "void",
-        "params": [],
-        "line_start": 15,
-        "line_end": 17
+        "parameters": [],
+        "returnType": "void",
+        "isStatic": false,
+        "lineNumber": 12
       }
-    ]
+    ],
+    "signals": ["health_changed"],
+    "constants": {"MAX_SPEED": "300"},
+    "exports": ["speed"],
+    "lineCount": 120,
+    "characterCount": 3580
+  },
+  "complexity": {
+    "functionCount": 6,
+    "averageFunctionLength": 12,
+    "maxFunctionLength": 28,
+    "signalCount": 1,
+    "exportCount": 1,
+    "cyclomaticComplexity": 5
+  },
+  "fileInfo": {
+    "path": "C:/Projects/MyGame/scripts/Player.gd",
+    "size": 2048,
+    "modified": "2026-02-04T10:30:00.000Z",
+    "encoding": "utf-8"
   }
 }
 ```
+
+**Hinweise**:
+- `includeAnalysis` ist veraltet; verwende `includeMetadata`.
+- `complexity` wird nur geliefert, wenn `includeMetadata` und `includeComplexity` true sind.
 
 ---
 
@@ -457,21 +525,71 @@ Erstellt eine neue Skriptdatei.
 
 ```json
 {
-  "path": {
+  "projectPath": {
     "type": "string",
+    "description": "Absoluter Pfad zum Godot-Projektverzeichnis",
+    "required": true
+  },
+  "scriptPath": {
+    "type": "string",
+    "description": "Skriptpfad relativ zum Projektstamm (.gd oder .cs)",
     "required": true
   },
   "content": {
     "type": "string",
-    "description": "Skriptinhalt",
-    "required": true
+    "description": "Optionaler Skriptinhalt (überschreibt template)"
   },
   "template": {
     "type": "string",
-    "enum": ["empty", "node", "character_body_2d", "area_2d"],
-    "description": "Vordefinierte Vorlage verwenden (überschreibt content)"
+    "enum": ["empty", "node", "character_body_2d", "area_2d", "resource"],
+    "description": "Vorlage fuer Skriptgeruest",
+    "default": "node"
+  },
+  "overwrite": {
+    "type": "boolean",
+    "description": "Vorhandenes Skript ueberschreiben",
+    "default": false
+  },
+  "attachToScene": {
+    "type": "object",
+    "description": "Skript an eine Szene-Node anheften",
+    "properties": {
+      "scenePath": {"type": "string"},
+      "nodePath": {"type": "string"}
+    }
+  },
+  "validate": {
+    "type": "boolean",
+    "description": "Skript nach Erstellung validieren",
+    "default": true
+  },
+  "editorPath": {
+    "type": "string",
+    "description": "Optionaler Pfad zur Godot-Editor-Executable"
   }
 }
+```
+
+**Ausgabe**:
+
+```json
+{
+  "success": true,
+  "scriptPath": "C:/Projects/MyGame/scripts/NewScript.gd",
+  "validationPassed": true,
+  "warnings": []
+}
+```
+
+**Beispiel**:
+
+```typescript
+create_script({
+  projectPath: "C:/Projects/MyGame",
+  scriptPath: "scripts/player.gd",
+  template: "character_body_2d",
+  validate: false
+})
 ```
 
 ---
@@ -484,22 +602,114 @@ Modifiziert eine existierende Skriptdatei.
 
 ```json
 {
-  "path": {
+  "projectPath": {
     "type": "string",
+    "description": "Absoluter Pfad zum Godot-Projektverzeichnis",
+    "required": true
+  },
+  "scriptPath": {
+    "type": "string",
+    "description": "Skriptpfad relativ zum Projektstamm (.gd oder .cs)",
     "required": true
   },
   "changes": {
     "type": "array",
+    "description": "Zeilenbasierte Aenderungen",
     "items": {
-      "type": "object",
-      "properties": {
-        "type": {"enum": ["replace", "insert", "delete"]},
-        "start_line": {"type": "number"},
-        "end_line": {"type": "number"},
-        "new_content": {"type": "string"}
-      }
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {"const": "insert"},
+            "startLine": {"type": "number"},
+            "newContent": {"type": "string"}
+          }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {"const": "replace"},
+            "startLine": {"type": "number"},
+            "endLine": {"type": "number"},
+            "newContent": {"type": "string"}
+          }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {"const": "delete"},
+            "startLine": {"type": "number"},
+            "endLine": {"type": "number"}
+          }
+        }
+      ]
     }
+  },
+  "createBackup": {
+    "type": "boolean",
+    "description": "Backup vor Aenderung erstellen",
+    "default": true
+  },
+  "validateAfter": {
+    "type": "boolean",
+    "description": "Skript nach Aenderung validieren",
+    "default": true
+  },
+  "editorPath": {
+    "type": "string",
+    "description": "Optionaler Pfad zur Godot-Editor-Executable"
   }
+}
+```
+
+**Ausgabe**:
+
+```json
+{
+  "success": true,
+  "scriptPath": "C:/Projects/MyGame/scripts/weapon.gd",
+  "backupCreated": true,
+  "backupPath": "C:/Projects/MyGame/.godot/mcp-backups/20260205_121520_weapon.gd.backup",
+  "validationPassed": true,
+  "warnings": []
+}
+```
+
+---
+
+### validate_script
+
+Validiert eine Skriptdatei mit Godot (falls konfiguriert) oder Basispruefungen.
+
+**Eingabe-Schema**:
+
+```json
+{
+  "projectPath": {
+    "type": "string",
+    "description": "Absoluter Pfad zum Godot-Projektverzeichnis",
+    "required": true
+  },
+  "scriptPath": {
+    "type": "string",
+    "description": "Skriptpfad relativ zum Projektstamm (.gd oder .cs)",
+    "required": true
+  },
+  "editorPath": {
+    "type": "string",
+    "description": "Optionaler Pfad zur Godot-Editor-Executable"
+  }
+}
+```
+
+**Ausgabe**:
+
+```json
+{
+  "valid": true,
+  "mode": "godot",
+  "errors": [],
+  "warnings": []
 }
 ```
 

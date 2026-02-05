@@ -60,6 +60,7 @@ export class GodotClient extends EventEmitter {
             baseUrl: config.baseUrl || 'http://localhost',
             port: config.port || 7777,
             timeout: config.timeout || 5000,
+            sharedSecret: config.sharedSecret ?? process.env.MCP_SHARED_SECRET,
             retryStrategy: {
                 maxRetries: config.retryStrategy?.maxRetries ?? 3,
                 baseDelay: config.retryStrategy?.baseDelay ?? 1000,
@@ -114,7 +115,17 @@ export class GodotClient extends EventEmitter {
             maxRetries: this.config.retryStrategy.maxRetries,
             poolConnections: this.config.poolConfig.connections,
             circuitBreakerThreshold: this.config.circuitBreaker.failureThreshold,
+            sharedSecretEnabled: Boolean(this.config.sharedSecret),
         };
+    }
+    buildHeaders(correlationId) {
+        const headers = {
+            'X-Correlation-ID': correlationId,
+        };
+        if (this.config.sharedSecret) {
+            headers['X-API-Key'] = this.config.sharedSecret;
+        }
+        return headers;
     }
     /**
      * Send a JSON-RPC request to the Godot bridge
@@ -239,7 +250,7 @@ export class GodotClient extends EventEmitter {
                 headers: {
                     'Content-Type': 'application/json',
                     'Content-Length': String(Buffer.byteLength(body)),
-                    'X-Correlation-ID': correlationId,
+                    ...this.buildHeaders(correlationId),
                 },
                 body,
                 signal: controller.signal,
@@ -294,7 +305,7 @@ export class GodotClient extends EventEmitter {
                 method: 'GET',
                 signal: controller.signal,
                 headers: {
-                    'X-Correlation-ID': correlationId,
+                    ...this.buildHeaders(correlationId),
                 },
             });
             clearTimeout(timeoutId);
@@ -338,7 +349,7 @@ export class GodotClient extends EventEmitter {
                 method: 'GET',
                 signal: controller.signal,
                 headers: {
-                    'X-Correlation-ID': correlationId,
+                    ...this.buildHeaders(correlationId),
                 },
             });
             clearTimeout(timeoutId);

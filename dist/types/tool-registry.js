@@ -43,6 +43,19 @@ export class ToolRegistry {
         }));
     }
     /**
+     * Get tool summaries with metadata for Web UI usage
+     */
+    getAllToolSummaries() {
+        return Array.from(this.tools.values()).map((tool) => ({
+            name: tool.metadata.name,
+            description: tool.metadata.description,
+            category: tool.metadata.category,
+            securityLevel: tool.metadata.securityLevel,
+            version: tool.metadata.version,
+            inputSchema: tool.inputSchema,
+        }));
+    }
+    /**
      * Get tools by category
      */
     getByCategory(category) {

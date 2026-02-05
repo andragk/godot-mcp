@@ -11,15 +11,15 @@ const consoleFormat = winston.format.combine(winston.format.timestamp({ format: 
     return `${timestamp} [${level}] ${message} ${metaStr}`;
 }));
 /**
- * JSON format for file output
+ * Base format for all transports
  */
-const jsonFormat = winston.format.combine(winston.format.timestamp(), winston.format.errors({ stack: true }), winston.format.json());
+const baseFormat = winston.format.combine(winston.format.errors({ stack: true }), winston.format((info) => sanitizeLogInfo(info))());
 /**
  * Main application logger instance
  */
 export const logger = winston.createLogger({
     level: LOG_LEVEL,
-    format: jsonFormat,
+    format: baseFormat,
     defaultMeta: { service: 'godot-mcp' },
     transports: [
         new winston.transports.Console({
@@ -49,5 +49,45 @@ export function logError(error, message, context) {
         stack: error.stack,
         name: error.name,
     });
+}
+function sanitizeLogInfo(info) {
+    const seen = new WeakSet();
+    const maxDepth = 6;
+    const sanitizeValue = (value, depth) => {
+        if (depth > maxDepth) {
+            return '[MaxDepth]';
+        }
+        if (value instanceof Error) {
+            return {
+                name: value.name,
+                message: value.message,
+                stack: value.stack,
+            };
+        }
+        if (typeof value === 'bigint') {
+            return value.toString();
+        }
+        if (typeof value !== 'object' || value === null) {
+            return value;
+        }
+        if (seen.has(value)) {
+            return '[Circular]';
+        }
+        seen.add(value);
+        if (Array.isArray(value)) {
+            return value.map((item) => sanitizeValue(item, depth + 1));
+        }
+        const result = {};
+        for (const [key, entry] of Object.entries(value)) {
+            if (typeof entry === 'function') {
+                continue;
+            }
+            result[key] = sanitizeValue(entry, depth + 1);
+        }
+        return result;
+    };
+    const sanitized = sanitizeValue(info, 0);
+    Object.assign(info, sanitized);
+    return info;
 }
 //# sourceMappingURL=logger.js.map

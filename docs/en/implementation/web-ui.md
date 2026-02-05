@@ -392,7 +392,7 @@ this.app.use(express.static('public'));
 ### Manual Testing
 
 1. Start Node.js server: `npm run dev`
-2. Open browser: `http://localhost:8080`
+2. Open browser: `http://localhost:3000`
 3. Verify:
    - Status badge shows "running" (green)
    - Metrics update every second

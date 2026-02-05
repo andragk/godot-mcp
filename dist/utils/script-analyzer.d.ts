@@ -26,6 +26,10 @@ export interface ScriptMetadata {
  */
 export declare function analyzeScript(content: string): ScriptMetadata;
 /**
+ * Analyze C# script content with basic pattern extraction
+ */
+export declare function analyzeCSharpScript(content: string): ScriptMetadata;
+/**
  * Extract function at specific line number
  */
 export declare function extractFunctionAtLine(content: string, targetLine: number): string | null;

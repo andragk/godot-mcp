@@ -19,12 +19,15 @@ extends Node
 ## - ProjectDiscoveryHandler: Project discovery and analysis
 
 const PORT := 7777
+const MAX_REQUEST_BYTES := 1024 * 1024
 const VERSION := "0.2.0"
 
 ## Core components
 var server: TCPServer
 var clients: Array[StreamPeerTCP] = []
 var start_time: int
+var bind_address: String = "127.0.0.1"
+var shared_secret: String = ""
 
 ## Specialized handlers (following SRP)
 var logger: MCPLogger
@@ -46,6 +49,16 @@ var plugin_handler: PluginManagementHandler
 
 func _ready() -> void:
 	start_time = Time.get_ticks_msec()
+
+	# WHY: Use localhost binding by default for safety
+	var env_bind = OS.get_environment("MCP_BIND_ADDRESS")
+	if env_bind != "":
+		bind_address = env_bind
+
+	# WHY: Optional shared secret for /rpc authentication
+	var env_secret = OS.get_environment("MCP_SHARED_SECRET")
+	if env_secret != "":
+		shared_secret = env_secret
 	
 	# WHY: Initialize all specialized handlers first
 	# Dependency injection pattern makes testing easier
@@ -53,7 +66,7 @@ func _ready() -> void:
 	
 	# WHY: Start TCP server on configured port
 	server = TCPServer.new()
-	var err := server.listen(PORT)
+	var err := server.listen(PORT, bind_address)
 	
 	if err != OK:
 		logger.error("Failed to start server", {
@@ -124,6 +137,10 @@ func _process(_delta: float) -> void:
 func _handle_client_request(client: StreamPeerTCP) -> void:
 	# Read request data
 	var request_string := client.get_utf8_string(client.get_available_bytes())
+	if request_string.length() > MAX_REQUEST_BYTES:
+		logger.warn("Request rejected: payload too large", {"size": request_string.length()})
+		_send_response(client, response_builder.build_error_response(413, "Payload Too Large"))
+		return
 	
 	# Parse HTTP request using specialized parser
 	# WHY: Parsing is complex - delegating to HTTPRequestParser follows SRP
@@ -159,6 +176,9 @@ func _route_request(client: StreamPeerTCP, request: HTTPRequestParser.ParsedRequ
 		
 		"/rpc":
 			if request.method == "POST":
+				if not _is_authorized(request.headers):
+					_send_error(client, 401, "Unauthorized")
+					return
 				_handle_rpc(client, request.body)
 			else:
 				_send_error(client, 405, "Method Not Allowed")
@@ -227,6 +247,21 @@ func _handle_rpc(client: StreamPeerTCP, body: String) -> void:
 	# WHY: Method routing done in this class to keep routing centralized
 	var response := _route_rpc_method(rpc_request)
 	_send_json(client, 200, response)
+
+
+## Check request authorization for protected endpoints
+##
+## WHY: Shared secret protects editor control endpoints when enabled.
+func _is_authorized(headers: Dictionary) -> bool:
+	if shared_secret == "":
+		return true
+
+	var api_key := headers.get("x-api-key", "")
+	var auth_header := headers.get("authorization", "")
+	if auth_header.begins_with("Bearer "):
+		auth_header = auth_header.substr(7, auth_header.length() - 7)
+
+	return api_key == shared_secret or auth_header == shared_secret
 
 
 ## Route JSON-RPC method to appropriate handler
@@ -574,6 +609,8 @@ func _handle_stop_execution(id: Variant, params: Variant) -> Dictionary:
 func _handle_get_godot_version(id: Variant, _params: Variant) -> Dictionary:
 	var result := editor_handler.get_godot_version()
 	return jsonrpc_handler.create_response(id, result)
+
+
 
 
 ## Handle list_projects RPC method

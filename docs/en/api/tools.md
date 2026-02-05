@@ -1,3 +1,9 @@
+---
+title: API Tools Reference
+description: Complete specification for MCP tools exposed by the Godot MCP server
+outline: deep
+---
+
 # API Tools Reference
 
 Complete specification for all available MCP tools.
@@ -33,19 +39,27 @@ List all scene files in the project.
 
 ```json
 {
+  "projectPath": {
+    "type": "string",
+    "description": "Absolute path to the Godot project directory",
+    "required": true
+  },
   "directory": {
     "type": "string",
-    "description": "Optional subdirectory to search (e.g., 'scenes/levels')",
-    "default": ""
+    "description": "Optional subdirectory relative to project root"
   },
-  "recursive": {
+  "sortBy": {
+    "type": "string",
+    "enum": ["path", "size", "modified"],
+    "default": "path"
+  },
+  "ascending": {
     "type": "boolean",
-    "description": "Search subdirectories recursively",
     "default": true
   },
-  "include_metadata": {
+  "includeBinary": {
     "type": "boolean",
-    "description": "Include file size, modified time",
+    "description": "Include binary .scn scenes",
     "default": false
   }
 }
@@ -57,17 +71,22 @@ List all scene files in the project.
 {
   "scenes": [
     {
-      "path": "scenes/MainMenu.tscn",
+      "path": "C:/Projects/MyGame/scenes/MainMenu.tscn",
+      "relativePath": "scenes/MainMenu.tscn",
       "size": 4096,
-      "modified": "2026-02-04T10:30:00Z"
+      "modifiedTime": "2026-02-04T10:30:00.000Z",
+      "extension": ".tscn"
     },
     {
-      "path": "scenes/levels/Level1.tscn",
+      "path": "C:/Projects/MyGame/scenes/levels/Level1.tscn",
+      "relativePath": "scenes/levels/Level1.tscn",
       "size": 8192,
-      "modified": "2026-02-03T15:45:00Z"
+      "modifiedTime": "2026-02-03T15:45:00.000Z",
+      "extension": ".tscn"
     }
   ],
-  "count": 2
+  "totalCount": 2,
+  "totalSize": 12288
 }
 ```
 
@@ -75,15 +94,17 @@ List all scene files in the project.
 
 ```typescript
 list_scenes({
+  projectPath: "C:/Projects/MyGame",
   directory: "scenes/levels",
-  recursive: true,
-  include_metadata: true
+  sortBy: "path",
+  ascending: true,
+  includeBinary: false
 })
 ```
 
 **Errors**:
-- `-32001`: Directory not found
-- `-32002`: Permission denied
+- `ValidationError`: Invalid project path or directory traversal
+- `Error`: Project path not accessible
 
 ---
 
@@ -361,18 +382,33 @@ List all script files in the project.
 
 ```json
 {
+  "projectPath": {
+    "type": "string",
+    "description": "Absolute path to the Godot project directory",
+    "required": true
+  },
   "directory": {
     "type": "string",
-    "default": ""
+    "description": "Optional subdirectory relative to project root"
   },
-  "recursive": {
+  "pattern": {
+    "type": "string",
+    "description": "Optional regex pattern to filter filenames"
+  },
+  "sortBy": {
+    "type": "string",
+    "enum": ["path", "size", "modified", "lines"],
+    "default": "path"
+  },
+  "includeCSharp": {
     "type": "boolean",
+    "description": "Include .cs scripts",
     "default": true
   },
-  "language": {
-    "type": "string",
-    "enum": ["GDScript", "CSharp", "all"],
-    "default": "all"
+  "includeMetadata": {
+    "type": "boolean",
+    "description": "Include class name and line counts",
+    "default": false
   }
 }
 ```
@@ -383,14 +419,30 @@ List all script files in the project.
 {
   "scripts": [
     {
-      "path": "scripts/Player.gd",
-      "language": "GDScript",
+      "path": "C:/Projects/MyGame/scripts/Player.gd",
+      "relativePath": "scripts/Player.gd",
       "size": 2048,
-      "modified": "2026-02-04T10:30:00Z"
+      "modifiedTime": "2026-02-04T10:30:00.000Z",
+      "extension": ".gd",
+      "className": "Player",
+      "linesOfCode": 120
     }
   ],
-  "count": 1
+  "totalCount": 1,
+  "totalSize": 2048
 }
+```
+
+**Example**:
+
+```typescript
+list_scripts({
+  projectPath: "C:/Projects/MyGame",
+  directory: "scripts",
+  sortBy: "lines",
+  includeCSharp: true,
+  includeMetadata: true
+})
 ```
 
 ---
@@ -403,16 +455,29 @@ Read a script file and return its content and structure.
 
 ```json
 {
-  "path": {
+  "projectPath": {
     "type": "string",
-    "description": "Relative path to script (e.g., 'scripts/Player.gd')",
-    "required": true,
-    "pattern": "^[^./][^/]*(/[^/]+)*\\.(gd|cs)$"
+    "description": "Absolute path to the Godot project directory",
+    "required": true
   },
-  "parse_structure": {
+  "scriptPath": {
+    "type": "string",
+    "description": "Script path relative to project root (.gd or .cs)",
+    "required": true
+  },
+  "includeMetadata": {
     "type": "boolean",
-    "description": "Extract class name, functions, signals",
+    "description": "Include script metadata analysis",
     "default": true
+  },
+  "includeComplexity": {
+    "type": "boolean",
+    "description": "Include complexity metrics",
+    "default": false
+  },
+  "includeAnalysis": {
+    "type": "boolean",
+    "description": "Deprecated alias for includeMetadata"
   }
 }
 ```
@@ -421,41 +486,46 @@ Read a script file and return its content and structure.
 
 ```json
 {
+  "content": "extends CharacterBody2D\nclass_name Player\n...",
   "metadata": {
-    "path": "scripts/Player.gd",
-    "language": "GDScript",
-    "modified": "2026-02-04T10:30:00Z",
-    "size": 2048,
-    "line_count": 120
-  },
-  "content": "class_name Player\nextends CharacterBody2D\n...",
-  "structure": {
-    "class_name": "Player",
+    "className": "Player",
     "extends": "CharacterBody2D",
-    "signals": [
-      {
-        "name": "health_changed",
-        "params": [{"name": "new_health", "type": "int"}]
-      }
-    ],
-    "constants": [
-      {"name": "MAX_SPEED", "type": "int", "value": "300"}
-    ],
-    "variables": [
-      {"name": "max_health", "type": "int", "export": true, "default": "100"}
-    ],
+    "docstring": "Player movement controller",
     "functions": [
       {
         "name": "_ready",
-        "return_type": "void",
-        "params": [],
-        "line_start": 15,
-        "line_end": 17
+        "parameters": [],
+        "returnType": "void",
+        "isStatic": false,
+        "lineNumber": 12
       }
-    ]
+    ],
+    "signals": ["health_changed"],
+    "constants": {"MAX_SPEED": "300"},
+    "exports": ["speed"],
+    "lineCount": 120,
+    "characterCount": 3580
+  },
+  "complexity": {
+    "functionCount": 6,
+    "averageFunctionLength": 12,
+    "maxFunctionLength": 28,
+    "signalCount": 1,
+    "exportCount": 1,
+    "cyclomaticComplexity": 5
+  },
+  "fileInfo": {
+    "path": "C:/Projects/MyGame/scripts/Player.gd",
+    "size": 2048,
+    "modified": "2026-02-04T10:30:00.000Z",
+    "encoding": "utf-8"
   }
 }
 ```
+
+**Notes**:
+- `includeAnalysis` is deprecated; use `includeMetadata`.
+- `complexity` is only present when `includeMetadata` and `includeComplexity` are true.
 
 ---
 
@@ -467,19 +537,47 @@ Create a new script file.
 
 ```json
 {
-  "path": {
+  "projectPath": {
     "type": "string",
+    "description": "Absolute path to the Godot project directory",
+    "required": true
+  },
+  "scriptPath": {
+    "type": "string",
+    "description": "Script path relative to project root (.gd or .cs)",
     "required": true
   },
   "content": {
     "type": "string",
-    "description": "Script content",
-    "required": true
+    "description": "Optional script content (overrides template)"
   },
   "template": {
     "type": "string",
-    "enum": ["empty", "node", "character_body_2d", "area_2d"],
-    "description": "Use predefined template (overrides content)"
+    "enum": ["empty", "node", "character_body_2d", "area_2d", "resource"],
+    "description": "Template to use when content is omitted",
+    "default": "node"
+  },
+  "overwrite": {
+    "type": "boolean",
+    "description": "Overwrite existing script",
+    "default": false
+  },
+  "attachToScene": {
+    "type": "object",
+    "description": "Attach script to a scene node",
+    "properties": {
+      "scenePath": {"type": "string"},
+      "nodePath": {"type": "string"}
+    }
+  },
+  "validate": {
+    "type": "boolean",
+    "description": "Validate script after creation",
+    "default": true
+  },
+  "editorPath": {
+    "type": "string",
+    "description": "Optional path to Godot editor executable"
   }
 }
 ```
@@ -488,10 +586,22 @@ Create a new script file.
 
 ```json
 {
-  "path": "scripts/NewScript.gd",
-  "created": true,
-  "line_count": 25
+  "success": true,
+  "scriptPath": "C:/Projects/MyGame/scripts/NewScript.gd",
+  "validationPassed": true,
+  "warnings": []
 }
+```
+
+**Example**:
+
+```typescript
+create_script({
+  projectPath: "C:/Projects/MyGame",
+  scriptPath: "scripts/player.gd",
+  template: "character_body_2d",
+  validate: false
+})
 ```
 
 ---
@@ -504,22 +614,114 @@ Modify an existing script file.
 
 ```json
 {
-  "path": {
+  "projectPath": {
     "type": "string",
+    "description": "Absolute path to the Godot project directory",
+    "required": true
+  },
+  "scriptPath": {
+    "type": "string",
+    "description": "Script path relative to project root (.gd or .cs)",
     "required": true
   },
   "changes": {
     "type": "array",
+    "description": "Line-based edits to apply",
     "items": {
-      "type": "object",
-      "properties": {
-        "type": {"enum": ["replace", "insert", "delete"]},
-        "start_line": {"type": "number"},
-        "end_line": {"type": "number"},
-        "new_content": {"type": "string"}
-      }
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {"const": "insert"},
+            "startLine": {"type": "number"},
+            "newContent": {"type": "string"}
+          }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {"const": "replace"},
+            "startLine": {"type": "number"},
+            "endLine": {"type": "number"},
+            "newContent": {"type": "string"}
+          }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {"const": "delete"},
+            "startLine": {"type": "number"},
+            "endLine": {"type": "number"}
+          }
+        }
+      ]
     }
+  },
+  "createBackup": {
+    "type": "boolean",
+    "description": "Create backup before modification",
+    "default": true
+  },
+  "validateAfter": {
+    "type": "boolean",
+    "description": "Validate script after modification",
+    "default": true
+  },
+  "editorPath": {
+    "type": "string",
+    "description": "Optional path to Godot editor executable"
   }
+}
+```
+
+**Output**:
+
+```json
+{
+  "success": true,
+  "scriptPath": "C:/Projects/MyGame/scripts/weapon.gd",
+  "backupCreated": true,
+  "backupPath": "C:/Projects/MyGame/.godot/mcp-backups/20260205_121520_weapon.gd.backup",
+  "validationPassed": true,
+  "warnings": []
+}
+```
+
+---
+
+### validate_script
+
+Validate a script file using Godot (if configured) or basic checks.
+
+**Input Schema**:
+
+```json
+{
+  "projectPath": {
+    "type": "string",
+    "description": "Absolute path to the Godot project directory",
+    "required": true
+  },
+  "scriptPath": {
+    "type": "string",
+    "description": "Script path relative to project root (.gd or .cs)",
+    "required": true
+  },
+  "editorPath": {
+    "type": "string",
+    "description": "Optional path to Godot editor executable"
+  }
+}
+```
+
+**Output**:
+
+```json
+{
+  "valid": true,
+  "mode": "godot",
+  "errors": [],
+  "warnings": []
 }
 ```
 
@@ -941,7 +1143,7 @@ Retrieve the installed Godot version.
 
 ```json
 {
-  "executable_path": {
+  "editorPath": {
     "type": "string",
     "description": "Path to Godot executable (auto-detected if omitted)"
   }
@@ -952,10 +1154,12 @@ Retrieve the installed Godot version.
 
 ```json
 {
-  "version": "4.6.0.stable",
-  "full_name": "Godot Engine v4.6.0.stable.official",
-  "mono": false,
-  "executable_path": "/usr/local/bin/godot"
+  "version": "4.6.0",
+  "versionString": "Godot Engine v4.6.0.stable.official",
+  "status": "stable",
+  "build": "official",
+  "hash": "abcdef123456",
+  "year": 2025
 }
 ```
 
@@ -969,20 +1173,16 @@ Find Godot projects in a specified directory.
 
 ```json
 {
-  "search_path": {
-    "type": "string",
-    "description": "Directory to search",
-    "required": true
+  "searchPaths": {
+    "oneOf": [
+      { "type": "string", "description": "Directory to search" },
+      { "type": "array", "items": { "type": "string" }, "description": "Directories to search" }
+    ]
   },
   "recursive": {
     "type": "boolean",
     "description": "Search subdirectories",
-    "default": true
-  },
-  "max_depth": {
-    "type": "number",
-    "description": "Maximum recursion depth",
-    "default": 3
+    "default": false
   }
 }
 ```
@@ -994,19 +1194,19 @@ Find Godot projects in a specified directory.
   "projects": [
     {
       "path": "/home/user/projects/platformer",
-      "name": "Platformer Game",
-      "godot_version": "4.6.0",
-      "main_scene": "res://scenes/MainMenu.tscn"
-    },
-    {
-      "path": "/home/user/projects/rpg",
-      "name": "RPG Adventure",
-      "godot_version": "4.5.0",
-      "main_scene": "res://scenes/TitleScreen.tscn"
+      "name": "Platformer Game"
     }
-  ],
-  "count": 2
+  ]
 }
+```
+
+**Example**:
+
+```typescript
+list_godot_projects({
+  searchPaths: "C:/Users/Alex/Documents/Godot/Projects",
+  recursive: true
+})
 ```
 
 ---

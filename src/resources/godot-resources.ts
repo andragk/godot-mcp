@@ -52,32 +52,30 @@ export function parseGodotUri(uri: string): GodotUri {
   }
 
   // Remove godot:// prefix and split
-  const parts = uri.substring(8).split('/').filter(p => p.length > 0);
-  
-  if (parts.length < 2) {
+  const rawPath = decodeURIComponent(uri.substring(8));
+  const segments = rawPath.split('/');
+
+  if (segments.length < 2) {
     throw new Error(`Invalid godot:// URI format: ${uri}`);
   }
 
-  // First part up to a known type is the project path
   // Known types: project, scenes, scripts, nodes
   const knownTypes: GodotResourceType[] = ['project', 'scenes', 'scripts', 'nodes'];
-  let typeIndex = -1;
-  let type: GodotResourceType | undefined;
-
-  for (let i = 0; i < parts.length; i++) {
-    if (knownTypes.includes(parts[i] as GodotResourceType)) {
-      typeIndex = i;
-      type = parts[i] as GodotResourceType;
-      break;
-    }
-  }
+  const typeIndex = segments.findIndex((segment) => knownTypes.includes(segment as GodotResourceType));
+  const type = typeIndex >= 0 ? (segments[typeIndex] as GodotResourceType) : undefined;
 
   if (typeIndex === -1 || !type) {
     throw new Error(`Invalid resource type in URI: ${uri}`);
   }
 
-  const projectPath = '/' + parts.slice(0, typeIndex).join('/');
-  const remainingParts = parts.slice(typeIndex + 1);
+  const projectSegments = segments.slice(0, typeIndex).filter((segment) => segment.length > 0);
+  let projectPath = projectSegments.join('/');
+
+  if (rawPath.startsWith('/') && !projectPath.match(/^[A-Za-z]:/)) {
+    projectPath = `/${projectPath}`;
+  }
+
+  const remainingParts = segments.slice(typeIndex + 1).filter((segment) => segment.length > 0);
 
   const result: GodotUri = {
     type,
@@ -154,7 +152,8 @@ export async function listScenesResource(projectPath: string): Promise<ResourceC
   const sceneList = await listScenes({
     projectPath,
     sortBy: 'path',
-    ascending: true
+    ascending: true,
+    includeBinary: false
   });
   
   const scenes = sceneList.scenes.map(scene => ({
@@ -220,7 +219,9 @@ export async function listScriptsResource(projectPath: string): Promise<Resource
   
   const scriptList = await listScripts({
     projectPath,
-    sortBy: 'path'
+    sortBy: 'path',
+    includeCSharp: true,
+    includeMetadata: false
   });
   
   const scripts = scriptList.scripts.map(script => ({

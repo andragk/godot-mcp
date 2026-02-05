@@ -3,7 +3,7 @@
  */
 import { z } from 'zod';
 import { resolve, join } from 'node:path';
-import { access, constants } from 'node:fs/promises';
+import { access, constants, stat } from 'node:fs/promises';
 import { logger } from '../utils/logger.js';
 import { LRUCache } from '../utils/lru-cache.js';
 import {
@@ -25,6 +25,7 @@ import {
 } from '../utils/scene-parser.js';
 import {
   analyzeScript,
+  analyzeCSharpScript,
   calculateComplexity,
   type ScriptMetadata,
   type ComplexityMetrics,
@@ -83,6 +84,7 @@ export const ListScenesInputSchema = z.object({
   directory: z.string().optional().describe('Subdirectory to search within (relative to project)'),
   sortBy: z.enum(['path', 'size', 'modified']).optional().default('path').describe('Sort criteria'),
   ascending: z.boolean().optional().default(true).describe('Sort order'),
+  includeBinary: z.boolean().optional().default(false).describe('Include binary .scn scenes'),
 });
 
 /**
@@ -91,7 +93,7 @@ export const ListScenesInputSchema = z.object({
 export async function listScenes(
   input: z.infer<typeof ListScenesInputSchema>
 ): Promise<{ scenes: FileMetadata[]; totalCount: number; totalSize: number }> {
-  const { projectPath, directory, sortBy, ascending } = input;
+  const { projectPath, directory, sortBy, ascending, includeBinary } = input;
 
   // Validate project path
   await validatePath(projectPath);
@@ -112,8 +114,9 @@ export async function listScenes(
   }
 
   // Scan for .tscn files
+  const sceneExtensions = includeBinary ? ['.tscn', '.scn'] : ['.tscn'];
   const scenes = await scanDirectory(scanPath, projectPath, {
-    extensions: ['.tscn'],
+    extensions: sceneExtensions,
   });
 
   // Sort scenes
@@ -166,7 +169,7 @@ export async function readScene(
   content: SceneData;
   hierarchy: NodeHierarchy | null;
   stats: SceneStats;
-  metadata: { path: string; size: number; modified: Date };
+  metadata: { path: string; size: number; modified: Date; binary?: boolean };
 }> {
   const { projectPath, scenePath } = input;
 
@@ -180,6 +183,31 @@ export async function readScene(
 
   // Validate scene path
   await validatePath(absoluteScenePath, { baseDir: projectPath });
+
+  const extension = absoluteScenePath.split('.').pop()?.toLowerCase();
+
+  if (extension === 'scn') {
+    const fileStats = await stat(absoluteScenePath);
+    const emptyScene: SceneData = {
+      format: 0,
+      loadSteps: 0,
+      nodes: [],
+      externalResources: [],
+      connectionCount: 0,
+    };
+
+    return {
+      content: emptyScene,
+      hierarchy: null,
+      stats: getSceneStats(emptyScene),
+      metadata: {
+        path: absoluteScenePath,
+        size: fileStats.size,
+        modified: fileStats.mtime,
+        binary: true,
+      },
+    };
+  }
 
   // Check cache
   const modTime = await getFileModificationTime(absoluteScenePath);
@@ -236,6 +264,8 @@ export const ListScriptsInputSchema = z.object({
   directory: z.string().optional().describe('Subdirectory to search within'),
   pattern: z.string().optional().describe('Filename pattern to match (regex)'),
   sortBy: z.enum(['path', 'size', 'modified', 'lines']).optional().default('path'),
+  includeCSharp: z.boolean().optional().default(true).describe('Include .cs scripts'),
+  includeMetadata: z.boolean().optional().default(false).describe('Include script metadata'),
 });
 
 /**
@@ -248,7 +278,7 @@ export async function listScripts(
   totalCount: number;
   totalSize: number;
 }> {
-  const { projectPath, directory, pattern, sortBy } = input;
+  const { projectPath, directory, pattern, sortBy, includeCSharp, includeMetadata } = input;
 
   // Validate project path
   await validatePath(projectPath);
@@ -272,40 +302,44 @@ export async function listScripts(
   const patternRegex = pattern ? new RegExp(pattern) : undefined;
 
   // Scan for .gd files
+  const scriptExtensions = includeCSharp ? ['.gd', '.cs'] : ['.gd'];
   const scripts = await scanDirectory(scanPath, projectPath, {
-    extensions: ['.gd'],
+    extensions: scriptExtensions,
     pattern: patternRegex,
   });
 
   // Enhance with script metadata (class name, LOC)
-  const enhancedScripts = await Promise.all(
-    scripts.map(async (script) => {
-      try {
-        // Check cache for script metadata
-        const modTime = await getFileModificationTime(script.path);
-        const cacheKey = `${script.path}:${modTime}`;
-        let metadata = scriptCache.get(cacheKey);
+  type ScriptListItem = FileMetadata & { className?: string; linesOfCode?: number };
+  const enhancedScripts: ScriptListItem[] = includeMetadata
+    ? await Promise.all(
+        scripts.map(async (script) => {
+          try {
+            const modTime = await getFileModificationTime(script.path);
+            const cacheKey = `${script.path}:${modTime}`;
+            let metadata = scriptCache.get(cacheKey);
 
-        if (!metadata) {
-          const content = await readFileContent(script.path);
-          metadata = analyzeScript(content);
-          const metaSize = JSON.stringify(metadata).length;
-          scriptCache.set(cacheKey, metadata, metaSize);
-        }
+            if (!metadata) {
+              const content = await readFileContent(script.path);
+              const ext = script.extension.toLowerCase();
+              metadata = ext === '.cs' ? analyzeCSharpScript(content) : analyzeScript(content);
+              const metaSize = JSON.stringify(metadata).length;
+              scriptCache.set(cacheKey, metadata, metaSize);
+            }
 
-        return {
-          ...script,
-          className: metadata.className,
-          linesOfCode: metadata.lineCount,
-        };
-      } catch (error) {
-        logger.warn(`Failed to analyze script: ${script.path}`, {
-          error: error instanceof Error ? error.message : String(error),
-        });
-        return script;
-      }
-    })
-  );
+            return {
+              ...script,
+              className: metadata.className,
+              linesOfCode: metadata.lineCount,
+            };
+          } catch (error) {
+            logger.warn(`Failed to analyze script: ${script.path}`, {
+              error: error instanceof Error ? error.message : String(error),
+            });
+            return { ...script };
+          }
+        })
+      )
+    : scripts.map((script) => ({ ...script }));
 
   // Sort scripts
   enhancedScripts.sort((a, b) => {
@@ -317,7 +351,7 @@ export async function listScripts(
       case 'modified':
         return a.modifiedTime.getTime() - b.modifiedTime.getTime();
       case 'lines':
-        return ('linesOfCode' in a ? a.linesOfCode || 0 : 0) - ('linesOfCode' in b ? b.linesOfCode || 0 : 0);
+        return (a.linesOfCode ?? 0) - (b.linesOfCode ?? 0);
       default:
         return 0;
     }
@@ -345,7 +379,9 @@ export async function listScripts(
 export const ReadScriptInputSchema = z.object({
   projectPath: z.string().describe('Absolute path to Godot project directory'),
   scriptPath: z.string().describe('Path to script file (relative to project or absolute)'),
-  includeAnalysis: z.boolean().optional().default(true).describe('Include code analysis metadata'),
+  includeMetadata: z.boolean().optional().default(true).describe('Include script metadata analysis'),
+  includeComplexity: z.boolean().optional().default(false).describe('Include complexity metrics'),
+  includeAnalysis: z.boolean().optional().describe('Deprecated: use includeMetadata instead'),
 });
 
 /**
@@ -359,7 +395,7 @@ export async function readScript(
   complexity?: ComplexityMetrics;
   fileInfo: { path: string; size: number; modified: Date; encoding: string };
 }> {
-  const { projectPath, scriptPath, includeAnalysis } = input;
+  const { projectPath, scriptPath, includeMetadata, includeComplexity, includeAnalysis } = input;
 
   // Validate project path
   await validatePath(projectPath);
@@ -386,11 +422,17 @@ export async function readScript(
   }
 
   // Analyze script
-  const metadata = analyzeScript(content);
+  const extension = absoluteScriptPath.split('.').pop()?.toLowerCase() ?? 'gd';
+  const metadata = extension === 'cs'
+    ? analyzeCSharpScript(content)
+    : analyzeScript(content);
 
   // Calculate complexity if requested
+  const shouldIncludeMetadata = includeMetadata ?? includeAnalysis ?? true;
+  const shouldIncludeComplexity = includeComplexity ?? false;
+
   let complexity: ComplexityMetrics | undefined;
-  if (includeAnalysis) {
+  if (shouldIncludeMetadata && shouldIncludeComplexity) {
     complexity = calculateComplexity(content, metadata);
   }
 
@@ -403,7 +445,7 @@ export async function readScript(
 
   return {
     content,
-    metadata,
+    metadata: shouldIncludeMetadata ? metadata : { ...metadata, functions: [], signals: [], constants: {}, exports: [] },
     complexity,
     fileInfo: {
       path: absoluteScriptPath,

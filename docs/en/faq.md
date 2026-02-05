@@ -35,7 +35,7 @@ Yes, with proper safeguards:
 - Godot bridge runs entirely on your machine
 - **But**: AI clients (Claude Desktop, Copilot) require internet for LLM inference
 
-You can use the Sidecar Web UI (localhost:8080) to test tools without an AI client.
+You can use the Sidecar Web UI (localhost:3000) to test tools without an AI client.
 
 ### Which Godot versions are supported?
 
@@ -71,11 +71,11 @@ node --version
 ```bash
 # macOS/Linux
 lsof -i :7777
-lsof -i :8080
+lsof -i :3000
 
 # Windows PowerShell
 netstat -ano | findstr :7777
-netstat -ano | findstr :8080
+netstat -ano | findstr :3000
 ```
 
 If ports are in use, either kill the process or use different ports:
@@ -629,7 +629,7 @@ Create a `.godot-mcp-server.json` config file in your project root for persisten
 ```json
 {
   "port": 7777,
-  "uiPort": 8080,
+  "uiPort": 3000,
   "logLevel": "info",
   "cacheTTL": 300,
   "maxCacheSize": 50

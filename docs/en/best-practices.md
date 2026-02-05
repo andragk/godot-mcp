@@ -332,13 +332,13 @@ Flush queue (process in order)
 **Queue size monitoring**:
 
 ```bash
-curl -s http://localhost:8080/api/status | jq '.queue_size'
+curl -s http://localhost:3000/api/status | jq '.queue_size'
 ```
 
 **Alert on queue overflow**:
 
 ```bash
-if [ $(curl -s http://localhost:8080/api/status | jq '.queue_size') -gt 50 ]; then
+if [ $(curl -s http://localhost:3000/api/status | jq '.queue_size') -gt 50 ]; then
   echo "⚠️ Request queue is filling up!"
 fi
 ```
@@ -364,7 +364,7 @@ godot-mcp-server \
 tail -f ~/.godot-mcp-server/logs/server.log
 
 # Browser: Open Sidecar UI
-open http://localhost:8080
+open http://localhost:3000
 ```
 
 ### Testing Changes
@@ -539,7 +539,7 @@ jq -s 'map(select(.tool == "read_scene")) | map(.latency_ms) | add/length' \
 
 ### Metrics Dashboard
 
-**Sidecar Web UI** (`http://localhost:8080`) displays:
+**Sidecar Web UI** (`http://localhost:3000`) displays:
 
 - **Request rate**: req/s (real-time graph)
 - **Error rate**: % failed requests
@@ -551,7 +551,7 @@ jq -s 'map(select(.tool == "read_scene")) | map(.latency_ms) | add/length' \
 **Export metrics** (Phase 2: Prometheus format):
 
 ```bash
-curl http://localhost:8080/metrics
+curl http://localhost:3000/metrics
 
 # Output:
 # godot_mcp_requests_total{tool="read_scene"} 1247
@@ -710,7 +710,7 @@ RUN npm ci --production
 
 COPY . .
 
-EXPOSE 7777 8080
+EXPOSE 7777 3000
 
 CMD ["godot-mcp-server", "--project", "/project", "--bind", "0.0.0.0"]
 ```
@@ -720,7 +720,7 @@ CMD ["godot-mcp-server", "--project", "/project", "--bind", "0.0.0.0"]
 ```bash
 docker run -d \
   -p 7777:7777 \
-  -p 8080:8080 \
+  -p 3000:3000 \
   -v /path/to/project:/project \
   -e MCP_AUTH_KEY=your-secret-key \
   godot-mcp-server:latest

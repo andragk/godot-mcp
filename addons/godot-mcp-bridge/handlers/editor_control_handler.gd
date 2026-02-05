@@ -31,8 +31,9 @@ func launch_editor(project_path: String, editor_path: String = "", additional_ar
 		return _error("Godot executable not found")
 	
 	# Build command arguments
+	# WHY: --editor ensures the editor opens instead of running the game
 	# WHY: --path tells Godot which project to open
-	var args: PackedStringArray = PackedStringArray(["--path", project_path])
+	var args: PackedStringArray = PackedStringArray(["--editor", "--path", project_path])
 	for arg in additional_args:
 		args.append(str(arg))
 	
@@ -107,18 +108,34 @@ func run_project(project_path: String, scene: String = "", debug: bool = true) -
 func stop_execution(process_id: int, force: bool = false) -> Dictionary:
 	if process_id == -1:
 		return _error("process_id is required")
-	
-	# WHY: GDScript doesn't provide process termination APIs
-	# This would need OS-specific implementation (e.g., taskkill on Windows)
-	_logger.warn("Process termination not fully supported in GDScript", {
+
+	var termination := _terminate_process(process_id, force)
+	if not termination.get("success", false):
+		_logger.warn("Failed to terminate process", {
+			"process_id": process_id,
+			"force": force,
+			"exit_code": termination.get("exit_code"),
+			"output": termination.get("output")
+		})
+		return {
+			"success": false,
+			"message": termination.get("message", "Failed to terminate process"),
+			"processId": process_id,
+			"exitCode": termination.get("exit_code"),
+			"output": termination.get("output")
+		}
+
+	_logger.info("Terminated process", {
 		"process_id": process_id,
-		"force": force
+		"force": force,
+		"exit_code": termination.get("exit_code")
 	})
-	
+
 	return {
-		"success": false,
-		"message": "Process termination requires OS-specific implementation",
-		"processId": process_id
+		"success": true,
+		"processId": process_id,
+		"exitCode": termination.get("exit_code"),
+		"output": termination.get("output")
 	}
 
 
@@ -128,14 +145,17 @@ func stop_execution(process_id: int, force: bool = false) -> Dictionary:
 ## for compatibility checking.
 func get_godot_version() -> Dictionary:
 	var version_info := Engine.get_version_info()
+	var major := int(version_info.get("major", 0))
+	var minor := int(version_info.get("minor", 0))
+	var patch := int(version_info.get("patch", 0))
 	
 	return {
-		"version": "%d.%d.%d" % [version_info.major, version_info.minor, version_info.patch],
-		"versionString": version_info.string,
-		"status": version_info.status,
-		"build": version_info.build,
-		"hash": version_info.hash,
-		"year": version_info.year
+		"version": "%d.%d.%d" % [major, minor, patch],
+		"versionString": str(version_info.get("string", "")),
+		"status": str(version_info.get("status", "")),
+		"build": str(version_info.get("build", "")),
+		"hash": str(version_info.get("hash", "")),
+		"year": int(version_info.get("year", 0))
 	}
 
 
@@ -172,6 +192,47 @@ func _detect_godot_executable() -> String:
 			return path
 	
 	return ""
+
+
+## Terminate a process with OS-specific commands
+##
+## WHY: Godot doesn't expose direct kill APIs across platforms.
+## Use system tools with predictable exit codes.
+func _terminate_process(process_id: int, force: bool) -> Dictionary:
+	var os_name := OS.get_name()
+	var output: Array = []
+	var exit_code := -1
+	var args: PackedStringArray = PackedStringArray()
+	var command := ""
+
+	if os_name == "Windows":
+		command = "taskkill"
+		args.append("/PID")
+		args.append(str(process_id))
+		args.append("/T")
+		if force:
+			args.append("/F")
+	elif os_name == "macOS" or os_name == "Linux" or os_name == "FreeBSD":
+		command = "kill"
+		args.append("-9" if force else "-15")
+		args.append(str(process_id))
+	else:
+		return {
+			"success": false,
+			"message": "Unsupported OS for process termination",
+			"exit_code": exit_code,
+			"output": output
+		}
+
+	# WHY: OS.execute returns exit code and fills output when blocking
+	exit_code = OS.execute(command, args, output, true)
+	var success = exit_code == 0
+	return {
+		"success": success,
+		"message": "Process terminated" if success else "Process termination failed",
+		"exit_code": exit_code,
+		"output": output
+	}
 
 
 func _error(message: String) -> Dictionary:

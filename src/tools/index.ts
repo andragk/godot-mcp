@@ -15,3 +15,10 @@ export {
   // Tool handler class
   EditorControlTools,
 } from './editor-control.js';
+
+export {
+  CreateScriptInputSchema,
+  ModifyScriptInputSchema,
+  ValidateScriptInputSchema,
+  ScriptOperationsTools,
+} from './script-operations.js';

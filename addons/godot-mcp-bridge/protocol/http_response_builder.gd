@@ -53,7 +53,9 @@ func build_error_response(status_code: int, message: String) -> String:
 func _get_status_text(code: int) -> String:
 	match code:
 		200: return "OK"
+		401: return "Unauthorized"
 		400: return "Bad Request"
+		413: return "Payload Too Large"
 		404: return "Not Found"
 		405: return "Method Not Allowed"
 		500: return "Internal Server Error"

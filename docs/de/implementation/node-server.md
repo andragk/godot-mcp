@@ -92,8 +92,8 @@ async function main() {
 
   // Web-UI starten (Sidecar)
   const webServer = new WebUIServer();
-  await webServer.start(8080);
-  logger.info('Web UI verfügbar unter http://localhost:8080');
+  await webServer.start(3000);
+  logger.info('Web UI verfügbar unter http://localhost:3000');
 
   // stdio-Transport verbinden
   const transport = new StdioServerTransport();

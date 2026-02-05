@@ -302,7 +302,7 @@ godot-mcp-server \
 tail -f ~/.godot-mcp-server/logs/server.log
 
 # Browser: Sidecar UI öffnen
-open http://localhost:8080
+open http://localhost:3000
 ```
 
 ### Änderungen testen

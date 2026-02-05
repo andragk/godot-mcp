@@ -278,8 +278,8 @@ X-RateLimit-Reset: 1643990400
 **Default Allowed Origins**:
 ```typescript
 const ALLOWED_ORIGINS = [
-  'http://localhost:8080',
-  'http://127.0.0.1:8080',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
   ...process.env.ALLOWED_ORIGINS?.split(',') ?? []
 ];
 ```
@@ -472,7 +472,7 @@ app.use(express.json({ limit: '100kb' }));
 **Required Variables**:
 ```bash
 # Server Configuration
-PORT=8080                     # Web UI server port (default: 8080)
+PORT=3000                     # Web UI server port (default: 3000)
 HOST=127.0.0.1                # Bind address (MUST be localhost for MVP)
 NODE_ENV=development          # Environment: development | production
 
@@ -497,7 +497,7 @@ LOG_FORMAT=json               # Log format: json | pretty
 **Production Example**:
 ```bash
 # .env.production
-PORT=8080
+PORT=3000
 HOST=127.0.0.1
 NODE_ENV=production
 GODOT_PORT=7777
@@ -510,7 +510,7 @@ LOG_FORMAT=json
 **Development Example**:
 ```bash
 # .env.development
-PORT=8080
+PORT=3000
 HOST=127.0.0.1
 NODE_ENV=development
 GODOT_PORT=7777

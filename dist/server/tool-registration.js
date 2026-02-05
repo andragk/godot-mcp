@@ -9,6 +9,7 @@ import { LaunchEditorSchema, RunProjectSchema, StopExecutionSchema, GetVersionSc
 import { ListScenesInputSchema, ReadSceneInputSchema, ListScriptsInputSchema, ReadScriptInputSchema, GetProjectStructureInputSchema, listScenes, readScene, listScripts, readScript, getProjectStructure, getCacheMetrics, } from '../tools/read-tools.js';
 import { searchNodes, getNodeProperties, } from '../tools/node-operations.js';
 import { CreateSceneInputSchema, ModifySceneInputSchema, SceneOperationsTools, } from '../tools/scene-operations.js';
+import { CreateScriptInputSchema, ModifyScriptInputSchema, ValidateScriptInputSchema, ScriptOperationsTools, } from '../tools/script-operations.js';
 /**
  * Empty schema for tools with no arguments
  */
@@ -232,9 +233,10 @@ export function registerEditorTools(registry, editorTools) {
             type: 'object',
             properties: {
                 searchPaths: {
-                    type: 'array',
-                    items: { type: 'string' },
-                    description: 'Directories to search for Godot projects',
+                    oneOf: [
+                        { type: 'string', description: 'Directory to search' },
+                        { type: 'array', items: { type: 'string' }, description: 'Directories to search' }
+                    ],
                 },
                 recursive: {
                     type: 'boolean',
@@ -309,6 +311,11 @@ export function registerReadTools(registry) {
                     description: 'Sort order',
                     default: true,
                 },
+                includeBinary: {
+                    type: 'boolean',
+                    description: 'Include binary .scn scenes',
+                    default: false,
+                },
             },
             required: ['projectPath'],
         },
@@ -379,6 +386,11 @@ export function registerReadTools(registry) {
                     type: 'boolean',
                     description: 'Include script metadata (class name, functions)',
                     default: false,
+                },
+                includeCSharp: {
+                    type: 'boolean',
+                    description: 'Include .cs scripts',
+                    default: true,
                 },
             },
             required: ['projectPath'],
@@ -629,8 +641,7 @@ export function registerSceneTools(registry) {
         },
         handler: async (args, correlationId) => {
             logger.info('Executing create_scene', { correlationId, scenePath: args.scenePath });
-            const result = await sceneOps.createScene(args);
-            return result;
+            return await sceneOps.createScene(args);
         },
     });
     registry.register({
@@ -740,8 +751,101 @@ export function registerSceneTools(registry) {
                 scenePath: args.scenePath,
                 operationCount: args.operations?.length
             });
-            const result = await sceneOps.modifyScene(args);
-            return result;
+            return await sceneOps.modifyScene(args);
+        },
+    });
+}
+/**
+ * Register script operations tools
+ */
+export function registerScriptTools(registry) {
+    const scriptOps = new ScriptOperationsTools();
+    registry.register({
+        metadata: {
+            name: 'create_script',
+            version: '1.0.0',
+            category: 'script_operations',
+            securityLevel: 'requires-review',
+            description: 'Create a new Godot script file with optional template and validation',
+        },
+        schema: CreateScriptInputSchema,
+        inputSchema: {
+            type: 'object',
+            properties: {
+                projectPath: { type: 'string', description: 'Absolute path to the Godot project directory' },
+                scriptPath: { type: 'string', description: 'Script path relative to project root (.gd or .cs)' },
+                content: { type: 'string', description: 'Optional script content (overrides template)' },
+                template: {
+                    type: 'string',
+                    enum: ['empty', 'node', 'character_body_2d', 'area_2d', 'resource'],
+                    description: 'Script template to use when content is omitted',
+                },
+                overwrite: { type: 'boolean', description: 'Overwrite existing file', default: false },
+                attachToScene: {
+                    type: 'object',
+                    description: 'Attach script to a scene node',
+                    properties: {
+                        scenePath: { type: 'string', description: 'Scene path relative to project root' },
+                        nodePath: { type: 'string', description: 'Node path within the scene' },
+                    },
+                },
+                validate: { type: 'boolean', description: 'Validate script syntax after create', default: true },
+                editorPath: { type: 'string', description: 'Optional path to Godot editor executable' },
+            },
+            required: ['projectPath', 'scriptPath'],
+        },
+        handler: async (args, correlationId) => {
+            logger.info('Executing create_script', { correlationId, scriptPath: args.scriptPath });
+            return await scriptOps.createScript(args);
+        },
+    });
+    registry.register({
+        metadata: {
+            name: 'modify_script',
+            version: '1.0.0',
+            category: 'script_operations',
+            securityLevel: 'requires-review',
+            description: 'Modify a Godot script file with line-based edits and validation',
+        },
+        schema: ModifyScriptInputSchema,
+        inputSchema: {
+            type: 'object',
+            properties: {
+                projectPath: { type: 'string', description: 'Absolute path to the Godot project directory' },
+                scriptPath: { type: 'string', description: 'Script path relative to project root (.gd or .cs)' },
+                changes: { type: 'array', description: 'Line-based edits to apply' },
+                createBackup: { type: 'boolean', description: 'Create backup before modification', default: true },
+                validateAfter: { type: 'boolean', description: 'Validate script after modification', default: true },
+                editorPath: { type: 'string', description: 'Optional path to Godot editor executable' },
+            },
+            required: ['projectPath', 'scriptPath', 'changes'],
+        },
+        handler: async (args, correlationId) => {
+            logger.info('Executing modify_script', { correlationId, scriptPath: args.scriptPath });
+            return await scriptOps.modifyScript(args);
+        },
+    });
+    registry.register({
+        metadata: {
+            name: 'validate_script',
+            version: '1.0.0',
+            category: 'script_operations',
+            securityLevel: 'safe',
+            description: 'Validate GDScript or C# script syntax',
+        },
+        schema: ValidateScriptInputSchema,
+        inputSchema: {
+            type: 'object',
+            properties: {
+                projectPath: { type: 'string', description: 'Absolute path to the Godot project directory' },
+                scriptPath: { type: 'string', description: 'Script path relative to project root (.gd or .cs)' },
+                editorPath: { type: 'string', description: 'Optional path to Godot editor executable' },
+            },
+            required: ['projectPath', 'scriptPath'],
+        },
+        handler: async (args, correlationId) => {
+            logger.info('Executing validate_script', { correlationId, scriptPath: args.scriptPath });
+            return await scriptOps.validateScript(args);
         },
     });
 }
@@ -754,6 +858,7 @@ export function registerAllTools(registry, godotClient, editorTools) {
     registerReadTools(registry);
     registerNodeTools(registry);
     registerSceneTools(registry);
+    registerScriptTools(registry);
     logger.info('Tool registration complete', {
         service: 'godot-mcp',
         toolCount: registry.getToolNames().length

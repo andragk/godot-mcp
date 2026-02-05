@@ -1,3 +1,6 @@
 {
+    "files.exclude": {
+        "**/*.uid": true
+    },
     "godotTools.editorPath.godot4": "c:\\Users\\Alex\\Documents\\Godot\\Binary\\Godot_v4.6-stable_win64.exe\\Godot_v4.6-stable_win64_console.exe"
 }

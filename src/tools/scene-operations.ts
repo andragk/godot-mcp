@@ -157,12 +157,19 @@ export class SceneOperationsTools {
 
     try {
       // Validate project path
-      await validatePath(projectPath, { 
+      const validatedProjectPath = await validatePath(projectPath, { 
         mustExist: true, 
         allowAbsolute: true
       });
 
-      const fullScenePath = path.resolve(projectPath, scenePath);
+      const fullScenePath = await validatePath(scenePath, {
+        baseDir: validatedProjectPath,
+        allowedExtensions: ['tscn'],
+      });
+
+      const relativeScenePath = path
+        .relative(validatedProjectPath, fullScenePath)
+        .replace(/\\/g, '/');
       
       // Check if scene already exists
       try {
@@ -212,7 +219,7 @@ export class SceneOperationsTools {
 
       logger.info('Scene created successfully', {
         service: 'godot-mcp',
-        scenePath: fullScenePath,
+        scenePath: relativeScenePath,
         nodeCount,
         validationPassed: validationResult.valid
       });
@@ -261,12 +268,19 @@ export class SceneOperationsTools {
 
     try {
       // Validate project path
-      await validatePath(projectPath, { 
+      const validatedProjectPath = await validatePath(projectPath, { 
         mustExist: true, 
         allowAbsolute: true
       });
 
-      const fullScenePath = path.resolve(projectPath, scenePath);
+      const fullScenePath = await validatePath(scenePath, {
+        baseDir: validatedProjectPath,
+        allowedExtensions: ['tscn'],
+      });
+
+      const relativeScenePath = path
+        .relative(validatedProjectPath, fullScenePath)
+        .replace(/\\/g, '/');
       
       // Check if scene exists
       try {
@@ -284,8 +298,8 @@ export class SceneOperationsTools {
       let backupPath: string | undefined;
       if (createBackup) {
         const backup = await this.backupManager.createBackup(
-          projectPath,
-          scenePath,
+          validatedProjectPath,
+          relativeScenePath,
           'modify_scene',
           { operationCount: operations.length }
         );
@@ -322,7 +336,7 @@ export class SceneOperationsTools {
               service: 'godot-mcp',
               backupPath
             });
-            await this.backupManager.restoreBackup(projectPath, backupPath);
+            await this.backupManager.restoreBackup(validatedProjectPath, backupPath);
           }
           
           throw new InternalError(
@@ -347,7 +361,7 @@ export class SceneOperationsTools {
             
             // Rollback
             if (backupPath) {
-              await this.backupManager.restoreBackup(projectPath, backupPath);
+              await this.backupManager.restoreBackup(validatedProjectPath, backupPath);
             } else {
               // Restore original content if no backup was created
               await fs.writeFile(fullScenePath, originalContent, 'utf-8');
@@ -370,7 +384,7 @@ export class SceneOperationsTools {
 
       logger.info('Scene modified successfully', {
         service: 'godot-mcp',
-        scenePath: fullScenePath,
+        scenePath: relativeScenePath,
         operationsApplied,
         backupCreated: !!backupPath,
         warningsCount: warnings.length

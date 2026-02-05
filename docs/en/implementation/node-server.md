@@ -92,8 +92,8 @@ async function main() {
 
   // Start Web UI (Sidecar)
   const webServer = new WebUIServer();
-  await webServer.start(8080);
-  logger.info('Web UI available at http://localhost:8080');
+  await webServer.start(3000);
+  logger.info('Web UI available at http://localhost:3000');
 
   // Connect stdio transport
   const transport = new StdioServerTransport();
@@ -456,7 +456,7 @@ import { logger } from '../infrastructure/logger.js';
 export class WebUIServer extends EventEmitter {
   private app = express();
 
-  async start(port: number = 8080) {
+  async start(port: number = 3000) {
     // Middleware
     this.app.use(express.json());
     this.app.use(express.static('public'));

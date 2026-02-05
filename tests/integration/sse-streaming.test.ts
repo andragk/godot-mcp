@@ -371,6 +371,7 @@ describe('SSE Streaming Integration', () => {
       await client2.connect(`${baseUrl}/api/logs/stream`);
 
       // Disconnect client1
+      client.clearEvents();
       client.disconnect();
       await new Promise(resolve => setTimeout(resolve, 200));
 
@@ -402,7 +403,7 @@ describe('SSE Streaming Integration', () => {
     it('should handle client that immediately disconnects', async () => {
       const client = new MockSSEClient();
       
-      await client.connect(`${baseUrl}/events`);
+      await client.connect(`${baseUrl}/api/logs/stream`);
       client.disconnect();
       
       // Server should not crash

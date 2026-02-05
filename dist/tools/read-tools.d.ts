@@ -25,16 +25,19 @@ export declare const ListScenesInputSchema: z.ZodObject<{
     directory: z.ZodOptional<z.ZodString>;
     sortBy: z.ZodDefault<z.ZodOptional<z.ZodEnum<["path", "size", "modified"]>>>;
     ascending: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+    includeBinary: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
 }, "strip", z.ZodTypeAny, {
     projectPath: string;
     sortBy: "path" | "size" | "modified";
     ascending: boolean;
+    includeBinary: boolean;
     directory?: string | undefined;
 }, {
     projectPath: string;
     directory?: string | undefined;
     sortBy?: "path" | "size" | "modified" | undefined;
     ascending?: boolean | undefined;
+    includeBinary?: boolean | undefined;
 }>;
 /**
  * List all scene files in project
@@ -68,6 +71,7 @@ export declare function readScene(input: z.infer<typeof ReadSceneInputSchema>): 
         path: string;
         size: number;
         modified: Date;
+        binary?: boolean;
     };
 }>;
 /**
@@ -78,9 +82,13 @@ export declare const ListScriptsInputSchema: z.ZodObject<{
     directory: z.ZodOptional<z.ZodString>;
     pattern: z.ZodOptional<z.ZodString>;
     sortBy: z.ZodDefault<z.ZodOptional<z.ZodEnum<["path", "size", "modified", "lines"]>>>;
+    includeCSharp: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+    includeMetadata: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
 }, "strip", z.ZodTypeAny, {
     projectPath: string;
     sortBy: "path" | "size" | "modified" | "lines";
+    includeCSharp: boolean;
+    includeMetadata: boolean;
     pattern?: string | undefined;
     directory?: string | undefined;
 }, {
@@ -88,6 +96,8 @@ export declare const ListScriptsInputSchema: z.ZodObject<{
     pattern?: string | undefined;
     directory?: string | undefined;
     sortBy?: "path" | "size" | "modified" | "lines" | undefined;
+    includeCSharp?: boolean | undefined;
+    includeMetadata?: boolean | undefined;
 }>;
 /**
  * List all script files in project
@@ -106,14 +116,20 @@ export declare function listScripts(input: z.infer<typeof ListScriptsInputSchema
 export declare const ReadScriptInputSchema: z.ZodObject<{
     projectPath: z.ZodString;
     scriptPath: z.ZodString;
-    includeAnalysis: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+    includeMetadata: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+    includeComplexity: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+    includeAnalysis: z.ZodOptional<z.ZodBoolean>;
 }, "strip", z.ZodTypeAny, {
     projectPath: string;
+    includeMetadata: boolean;
     scriptPath: string;
-    includeAnalysis: boolean;
+    includeComplexity: boolean;
+    includeAnalysis?: boolean | undefined;
 }, {
     projectPath: string;
     scriptPath: string;
+    includeMetadata?: boolean | undefined;
+    includeComplexity?: boolean | undefined;
     includeAnalysis?: boolean | undefined;
 }>;
 /**

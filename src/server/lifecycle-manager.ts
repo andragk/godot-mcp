@@ -24,15 +24,24 @@ export interface HealthStatus {
  * Lifecycle Manager for MCP Server
  */
 export class LifecycleManager {
+  private static signalsRegistered = false;
   private readonly startTime: Date;
   private isShuttingDown = false;
   private readonly version = '0.1.0';
+  private readonly exitOnShutdown: boolean;
+  private readonly registerSignalHandlers: boolean;
 
   constructor(
     private readonly server: Server,
-    private readonly healthCheckFn?: () => Promise<boolean>
+    private readonly healthCheckFn?: () => Promise<boolean>,
+    options?: {
+      exitOnShutdown?: boolean;
+      registerSignalHandlers?: boolean;
+    }
   ) {
     this.startTime = new Date();
+    this.exitOnShutdown = options?.exitOnShutdown ?? false;
+    this.registerSignalHandlers = options?.registerSignalHandlers ?? true;
   }
 
   /**
@@ -40,7 +49,10 @@ export class LifecycleManager {
    */
   async initialize(): Promise<void> {
     // Setup graceful shutdown handlers
-   this.setupSignalHandlers();
+    if (this.registerSignalHandlers && !LifecycleManager.signalsRegistered) {
+      this.setupSignalHandlers();
+      LifecycleManager.signalsRegistered = true;
+    }
 
     logger.info('Server initialized', {
       service: 'godot-mcp',
@@ -96,7 +108,9 @@ export class LifecycleManager {
         service: 'godot-mcp'
       });
 
-      process.exit(0);
+      if (this.exitOnShutdown) {
+        process.exit(0);
+      }
     } catch (error) {
       logger.error('Error during shutdown', {
         service: 'godot-mcp',
@@ -104,7 +118,9 @@ export class LifecycleManager {
       });
       
       // Force exit on error
-      process.exit(1);
+      if (this.exitOnShutdown) {
+        process.exit(1);
+      }
     }
   }
 

@@ -10,73 +10,208 @@ Die Sidecar Web UI bietet ein browserbasiertes Dashboard zur Überwachung und St
 
 ## Basis-URL
 
-**Lokaler Zugriff:** `http://localhost:8080`
+---
+
+## Cache & SSE Monitoring
+
+### GET /api/cache/metrics
+
+Gibt Cache-Metriken fuer Datei-, Szenen- und Skript-Caches zurueck.
+
+**Antwort:**
+```json
+{
+  "fileCache": {
+    "hits": 120,
+    "misses": 30,
+    "evictions": 4,
+    "currentSize": 1048576,
+    "entryCount": 42,
+    "hitRatio": 0.8
+  },
+  "sceneCache": {
+    "hits": 18,
+    "misses": 5,
+    "evictions": 0,
+    "currentSize": 262144,
+    "entryCount": 6,
+    "hitRatio": 0.78
+  },
+  "scriptCache": {
+    "hits": 40,
+    "misses": 12,
+    "evictions": 1,
+    "currentSize": 131072,
+    "entryCount": 8,
+    "hitRatio": 0.77
+  }
+}
+```
+
+---
+
+### GET /api/sse/stats
+
+Gibt Statistiken fuer SSE-Clients und Heartbeat-Aktivitaet zurueck.
+
+**Antwort:**
+```json
+{
+  "clients": {
+    "totalClients": 2,
+    "totalEventsSent": 18,
+    "clients": [
+      {
+        "id": "client-1700000000000-0.123",
+        "connectedAt": "2026-02-04T10:00:00.000Z",
+        "lastActivity": "2026-02-04T10:05:00.000Z",
+        "eventsSent": 12,
+        "sessionDuration": 300000
+      }
+    ]
+  },
+  "heartbeat": {
+    "isRunning": true,
+    "interval": 30000,
+    "heartbeatsSent": 10,
+    "subscribers": 2
+  }
+}
+```
+
+**Lokaler Zugriff:** `http://localhost:3000`
 
 **Protokoll:** HTTP/1.1  
 **Format:** JSON
 
+## Authentifizierung & Zugriffskontrolle
+
+**Aktuelles Verhalten:**
+- Anfragen muessen von localhost (127.0.0.1/::1) stammen.
+- Wenn `MCP_API_KEY` gesetzt ist, via `X-API-Key` oder `Authorization: Bearer <key>` senden.
+
+:::warning
+Schreib-Endpunkte und der SSE-Log-Stream erzwingen localhost-Zugriff. Remote-Zugriff wird mit `403` abgewiesen.
+:::
+
+## Rate Limits
+
+**Aktuelles Verhalten:**
+- Limits werden nach API-Key (falls vorhanden) oder sonst nach Client-IP gezaehlt.
+- Localhost-Anfragen und gueltige API-Keys umgehen das Rate-Limit.
+- Lese-Endpunkte: 100 Anfragen pro 15 Minuten (`RATE_LIMIT_MAX_READS`, `RATE_LIMIT_WINDOW`).
+- Schreib-Endpunkte: 20 Anfragen pro 15 Minuten (`RATE_LIMIT_MAX_WRITES`, `RATE_LIMIT_WINDOW`).
+- Tool-Ausfuehrung (`/api/execute`): 30 Anfragen pro Minute pro Tool und Client.
+- Lifecycle-Steuerung (`/api/server/*`): 10 Anfragen pro 5 Minuten pro Client.
+- SSE-Verbindungsversuche (`/api/logs/stream`): 10 Anfragen pro Minute pro Client.
+
 ## Endpunkt-Überblick
+
+**Aktuelles Verhalten:** Die Web UI stellt folgende Endpunkte im laufenden Server bereit.
 
 | Endpunkt | Methode | Beschreibung |
 |----------|--------|-------------|
-| `/api/status` | GET | Server-Status und Metriken |
-| `/api/lifecycle/start` | POST | MCP-Server starten |
-| `/api/lifecycle/stop` | POST | MCP-Server stoppen |
-| `/api/lifecycle/restart` | POST | MCP-Server neustarten |
-| `/api/connections` | GET | Aktive MCP-Clients auflisten |
+| `/api/health` | GET | Basis-Health-Check |
+| `/api/status` | GET | Status-Zusammenfassung der Web UI |
+| `/api/bridge/health` | GET | Godot-Bridge-Health |
+| `/api/bridge/version` | GET | Godot-Bridge-Version |
+| `/api/server/start` | POST | MCP-Serverprozess starten |
+| `/api/server/stop` | POST | MCP-Serverprozess stoppen |
+| `/api/server/restart` | POST | MCP-Serverprozess neu starten |
+| `/api/server/status` | GET | Status des MCP-Serverprozesses |
+| `/api/cache/metrics` | GET | Cache-Metriken-Snapshot |
+| `/api/sse/stats` | GET | SSE-Client- und Heartbeat-Statistiken |
 | `/api/logs/stream` | GET (SSE) | Echtzeit-Log-Streaming |
+| `/api/tools` | GET | MCP-Tools fuer den Tool Explorer |
+| `/api/execute` | POST | MCP-Tool aus der Web UI ausfuehren |
+
+**Geplante Erweiterung:** Die folgenden Endpunkte sind in zukuenftigen UI-Modulen vorgesehen, aber noch nicht implementiert.
+
+| Endpunkt | Methode | Beschreibung |
+|----------|--------|-------------|
+| `/api/connections` | GET | Aktive MCP-Clients auflisten |
 | `/api/logs/history` | GET | Historische Logs |
 | `/api/settings` | GET/PUT | Server-Konfiguration |
+| `/api/resources` | GET | Ressourcen-Browser |
+| `/api/resources/content` | GET | Ressourcen-Inhaltsvorschau |
 
 ## Status & Monitoring
 
 ### GET /api/status
 
-Gibt aktuellen Server-Status und Performance-Metriken zurück.
+Gibt aktuellen Server-Status und Basis-Metriken zurück.
 
 **Antwort:**
 ```json
 {
-  "status": "running",
-  "uptime_ms": 3600000,
-  "version": "1.0.0",
-  "godot": {
-    "connected": true,
-    "version": "4.6.0.stable",
-    "project_path": "/home/user/MyGame",
-    "project_name": "My Awesome Game"
-  },
-  "mcp": {
-    "clients_connected": 2,
-    "requests_total": 1542,
-    "requests_success": 1520,
-    "requests_errors": 22
-  },
-  "performance": {
-    "latency_p50_ms": 25,
-    "latency_p95_ms": 45,
-    "latency_p99_ms": 120,
-    "requests_per_second": 12.5
-  },
-  "cache": {
-    "size": 42,
-    "max_size": 100,
-    "hit_rate": 0.72,
-    "memory_mb": 8.5
-  }
+  "uptime": 3600,
+  "bridgeConnected": true,
+  "activeSessions": 2,
+  "lastActivity": "2026-02-04T10:05:23.000Z"
 }
 ```
 
-**Status-Werte:**
-- `starting` - Server initialisiert
-- `running` - Betriebsbereit
-- `stopping` - Fährt ordnungsgemäß herunter
-- `stopped` - Nicht laufend
-- `error` - Fehlerzustand
+**Antwort-Codes:**
+- `200` - Erfolg
+- `500` - Dienst nicht verfuegbar
+
+---
+
+### GET /api/health
+
+Basis-Health-Check fuer den Web-UI-Server.
+
+**Antwort:**
+```json
+{
+  "status": "ok",
+  "uptime": 3600
+}
+```
+
+---
+
+### GET /api/bridge/health
+
+Gibt den aktuellen Health-Status der Godot-Bridge zurueck.
+
+**Antwort:**
+```json
+{
+  "status": "healthy",
+  "port": 7777,
+  "uptime": 5234,
+  "lastCheck": "2026-02-04T10:05:23.000Z",
+  "error": null
+}
+```
+
+**Antwort-Codes:**
+- `200` - Erfolg
+- `503` - Bridge nicht verfuegbar
+
+---
+
+### GET /api/bridge/version
+
+Gibt die Versionszeichenkette der Godot-Bridge zurueck.
+
+**Antwort:**
+```json
+{
+  "version": "4.6.0"
+}
+```
+
+**Antwort-Codes:**
+- `200` - Erfolg
+- `503` - Bridge nicht verfuegbar
 
 ### GET /api/connections
 
 Listet alle aktiven MCP-Client-Verbindungen auf.
+
+**Geplante Erweiterung:** Dieser Endpunkt ist in der aktuellen Web UI nicht implementiert.
 
 **Antwort:**
 ```json
@@ -99,14 +234,39 @@ Listet alle aktiven MCP-Client-Verbindungen auf.
 
 ## Lebenszyklus-Verwaltung
 
-### POST /api/lifecycle/start
+### POST /api/server/start
 
-Startet den MCP-Server, falls er gestoppt ist.
+Startet den MCP-Serverprozess.
+
+**Antwort:**
+```json
+{
+  "success": true,
+  "message": "MCP server started",
+  "info": {
+    "state": "running",
+    "pid": 12345,
+    "startedAt": "2026-02-04T10:00:00.000Z",
+    "uptime": 2,
+    "restartCount": 0
+  }
+}
+```
+
+**Antwort-Codes:**
+- `200` - Erfolgreich gestartet
+- `500` - Start fehlgeschlagen
+
+---
+
+### POST /api/server/stop
+
+Stoppt den MCP-Serverprozess.
 
 **Request-Body:**
 ```json
 {
-  "wait_for_godot": true      // Optional: Auf Godot-Verbindung warten
+  "force": false
 }
 ```
 
@@ -114,27 +274,61 @@ Startet den MCP-Server, falls er gestoppt ist.
 ```json
 {
   "success": true,
-  "message": "MCP server started successfully",
-  "pid": 12345,
-  "started_at": "2026-02-04T10:00:00Z"
+  "message": "MCP server stopped",
+  "info": {
+    "state": "stopped",
+    "stoppedAt": "2026-02-04T10:05:00.000Z",
+    "restartCount": 0
+  }
 }
 ```
 
-### POST /api/lifecycle/stop
+**Antwort-Codes:**
+- `200` - Erfolgreich gestoppt
+- `500` - Stop fehlgeschlagen
 
-Stoppt den MCP-Server ordnungsgemäß.
+---
 
-**Request-Body:**
+### POST /api/server/restart
+
+Startet den MCP-Serverprozess neu (Stop + Start).
+
+**Antwort:**
 ```json
 {
-  "force": false,             // Optional: Sofortiges Herunterfahren erzwingen
-  "timeout_ms": 5000          // Optional: Schonfrist vor erzwungenem Kill
+  "success": true,
+  "message": "MCP server restarted",
+  "info": {
+    "state": "running",
+    "pid": 12346,
+    "startedAt": "2026-02-04T10:06:00.000Z",
+    "restartCount": 1
+  }
 }
 ```
 
-### POST /api/lifecycle/restart
+**Antwort-Codes:**
+- `200` - Erfolgreich neu gestartet
+- `500` - Neustart fehlgeschlagen
 
-Startet den MCP-Server neu (Stop + Start).
+---
+
+### GET /api/server/status
+
+Gibt den aktuellen Status des MCP-Serverprozesses zurueck.
+
+**Antwort:**
+```json
+{
+  "state": "running",
+  "pid": 12345,
+  "startedAt": "2026-02-04T10:00:00.000Z",
+  "stoppedAt": null,
+  "uptime": 3600,
+  "restartCount": 0,
+  "lastError": null
+}
+```
 
 ## Logging
 
@@ -142,10 +336,12 @@ Startet den MCP-Server neu (Stop + Start).
 
 Echtzeit-Log-Streaming mit Server-Sent Events (SSE).
 
+**Aktuelles Verhalten:** Erfordert localhost-Zugriff und optionalen API-Key (siehe Abschnitt Authentifizierung).
+
 **Beispiel-Request:**
 ```http
 GET /api/logs/stream HTTP/1.1
-Host: localhost:8080
+Host: localhost:3000
 Accept: text/event-stream
 ```
 
@@ -169,6 +365,12 @@ interface LogEvent {
   message: string;
   context: Record<string, any>;
 }
+
+interface SSEEventEnvelope {
+  event: "log" | "status" | "metric" | "error" | "info" | "heartbeat";
+  data: LogEvent | Record<string, unknown>;
+  id?: string;
+}
 ```
 
 **Client-seitige Verwendung (JavaScript):**
@@ -189,6 +391,8 @@ eventSource.onerror = () => {
 
 Ruft historische Logs mit Filterung und Paginierung ab.
 
+**Geplante Erweiterung:** Dieser Endpunkt ist noch nicht verfuegbar. Fuer Echtzeit-Logs `/api/logs/stream` verwenden.
+
 **Query-Parameter:**
 - `level`: Nach Log-Level filtern (`debug`, `info`, `warn`, `error`)
 - `start_time`: ISO 8601-Zeitstempel (Logs nach dieser Zeit filtern)
@@ -203,6 +407,8 @@ GET /api/logs/history?level=error&limit=50&page=1
 ```
 
 ## Konfiguration
+
+**Geplante Erweiterung:** Diese Endpunkte sind in der aktuellen Web UI nicht implementiert.
 
 ### GET /api/settings
 
@@ -253,6 +459,57 @@ Aktualisiert Server-Konfiguration (erfordert Neustart für einige Einstellungen)
 }
 ```
 
+---
+
+## Fehlerbehandlung
+
+### Standard-Fehlerantwort
+
+```json
+{
+  "error": "Service temporarily unavailable"
+}
+```
+
+`/api/execute` gibt bei fehlgeschlagener Tool-Ausfuehrung eine strukturierte Antwort zurueck (siehe Tool-Explorer-Abschnitt).
+
+### Fehlercodes
+
+| HTTP-Status | Beschreibung |
+|-------------|-------------|
+| 400 | Validierungsfehler oder fehlende Pflichtfelder |
+| 401 | API-Key fehlt oder ist ungueltig |
+| 403 | Localhost-Zugriffsbeschraenkung |
+| 404 | Tool nicht gefunden |
+| 429 | Rate Limit ueberschritten |
+| 500 | Interner Serverfehler |
+| 503 | Bridge nicht verfuegbar |
+| 504 | Tool-Ausfuehrung hat Zeitlimit ueberschritten |
+
+---
+
+## Rate Limiting
+
+**Aktuelles Verhalten:**
+- Lese-Endpunkte: 100 Anfragen pro 15 Minuten
+- Schreib-Endpunkte: 20 Anfragen pro 15 Minuten
+
+**Rate-Limit-Header:**
+```http
+RateLimit-Limit: 100
+RateLimit-Remaining: 95
+RateLimit-Reset: 1612451200
+```
+
+**Antwort (Rate Limited):**
+```json
+{
+  "error": "Too many requests, please try again later"
+}
+```
+
+**HTTP-Status:** `429 Too Many Requests`
+
 ## Alpine.js-Integrationsbeispiel
 
 ```html
@@ -265,16 +522,20 @@ Aktualisiert Server-Konfiguration (erfordert Neustart für einige Einstellungen)
   <!-- Metriken -->
   <div class="metrics">
     <div>
-      <span>Anfragen:</span>
-      <span x-text="metrics.requests_total"></span>
+      <span>Aktive Sessions:</span>
+      <span x-text="metrics.activeSessions"></span>
+    </div>
+    <div>
+      <span>Uptime (s):</span>
+      <span x-text="metrics.uptime"></span>
     </div>
   </div>
 
   <!-- Steuerungen -->
-  <button @click="startServer()" :disabled="status === 'running'">
+  <button @click="startServer()" :disabled="status === 'bridge_connected'">
     Starten
   </button>
-  <button @click="stopServer()" :disabled="status !== 'running'">
+  <button @click="stopServer()" :disabled="status !== 'bridge_connected'">
     Stoppen
   </button>
 
@@ -319,20 +580,19 @@ function dashboard() {
     },
     
     async startServer() {
-      await fetch('/api/lifecycle/start', { method: 'POST' });
+      await fetch('/api/server/start', { method: 'POST' });
       await this.pollStatus();
     },
     
     async stopServer() {
-      await fetch('/api/lifecycle/stop', { method: 'POST' });
+      await fetch('/api/server/stop', { method: 'POST' });
       await this.pollStatus();
     },
     
     get statusColor() {
       return {
-        'bg-green-500': this.status === 'running',
-        'bg-yellow-500': this.status === 'starting',
-        'bg-red-500': this.status === 'error'
+        'bg-green-500': this.status === 'bridge_connected',
+        'bg-red-500': this.status === 'bridge_disconnected'
       };
     }
   };
@@ -344,8 +604,8 @@ function dashboard() {
 
 **Antwortzeiten:**
 - Status-Endpunkt: <10ms
-- Logs (Historie): <50ms
-- Lebenszyklus-Operationen: 500-2000ms (inkl. Server-Start/Stop-Zeit)
+- Logs (Stream): <50ms
+- Server-Start/Stop: 500-2000ms (inkl. Prozess-Startzeit)
 
 **SSE-Verbindung:**
 - Heartbeat alle 30s (um Verbindung aufrechtzuerhalten)
@@ -380,6 +640,9 @@ Interaktive Schnittstelle zum Entdecken und Testen von MCP-Tools direkt aus dem 
     {
       "name": "read_scene",
       "description": "Godot-Szenendatei lesen und parsen",
+      "category": "scene_operations",
+      "securityLevel": "safe",
+      "version": "1.0.0",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -391,14 +654,13 @@ Interaktive Schnittstelle zum Entdecken und Testen von MCP-Tools direkt aus dem 
         "required": ["path"]
       }
     }
-  ],
-  "total": 15
+  ]
 }
 ```
 
 #### Interaktive Tool-Tests
 
-**Endpunkt:** `POST /api/tools/invoke`
+**Endpunkt:** `POST /api/execute`
 
 **Request:**
 ```json
@@ -414,13 +676,26 @@ Interaktive Schnittstelle zum Entdecken und Testen von MCP-Tools direkt aus dem 
 ```json
 {
   "success": true,
-  "result": {
+  "data": {
     "type": "Node2D",
     "name": "Player",
     "children": [...]
   },
-  "execution_time_ms": 45,
-  "timestamp": "2026-02-04T10:00:00Z"
+  "correlationId": "corr-1700000000000-abc123",
+  "durationMs": 45
+}
+```
+
+**Fehlerantwort:**
+```json
+{
+  "success": false,
+  "error": {
+    "name": "ValidationError",
+    "message": "Invalid arguments"
+  },
+  "correlationId": "corr-1700000000000-abc123",
+  "durationMs": 12
 }
 ```
 
@@ -435,6 +710,8 @@ Interaktiver JSON-Schema-Viewer mit:
 ---
 
 ### 2. Ressourcenverwaltung
+
+**Geplante Erweiterung:** Nicht im aktuellen Web-UI-Server implementiert.
 
 Durchsuchen, Vorschau und Suche von MCP-Ressourcen, die vom Server bereitgestellt werden.
 
@@ -503,6 +780,8 @@ Erweiterte Filterfunktionen:
 ---
 
 ### 3. Echtzeit-Logging & Monitoring
+
+**Geplante Erweiterung:** Nicht im aktuellen Web-UI-Server implementiert.
 
 Umfassende Logging-Infrastruktur mit kategorisierter Ausgabe und Performance-Tracking.
 
@@ -608,6 +887,8 @@ GET /api/metrics/stream
 ---
 
 ### 4. Konfiguration & Sicherheit
+
+**Geplante Erweiterung:** Nicht im aktuellen Web-UI-Server implementiert.
 
 Umgebungsvariablen, Client-Zugriff und Prompt-Vorlagen verwalten.
 
@@ -763,6 +1044,8 @@ Content-Type: application/json
 
 ### 5. Verbindungs- & Session-Verwaltung
 
+**Geplante Erweiterung:** Nicht im aktuellen Web-UI-Server implementiert.
+
 Aktive Client-Verbindungen mit detaillierter Session-Verfolgung überwachen und steuern.
 
 #### Aktive Client-Liste
@@ -874,6 +1157,8 @@ Echtzeit-Session-Analysen:
 
 ### 6. Service-Status & Lebenszyklus-Steuerung
 
+**Geplante Erweiterung:** Nicht im aktuellen Web-UI-Server implementiert.
+
 Umfassende Prozessverwaltung mit visuellen Statusanzeigen und Gesundheitsüberwachung.
 
 #### Statusanzeigen
@@ -970,32 +1255,24 @@ Umfassende Prozessverwaltung mit visuellen Statusanzeigen und Gesundheitsüberwa
 
 **Server starten:**
 ```http
-POST /api/lifecycle/start
+POST /api/server/start
 ```
 
 **Server stoppen:**
 ```http
-POST /api/lifecycle/stop
+POST /api/server/stop
 ```
 
 **Server neustarten:**
 ```http
-POST /api/lifecycle/restart
-```
-
-**Konfiguration neu laden:**
-```http
-POST /api/lifecycle/reload
-Content-Type: application/json
-
-{
-  "preserve_connections": true
-}
+POST /api/server/restart
 ```
 
 ---
 
 ### 7. Erweiterte Protokollierung & Observability
+
+**Geplante Erweiterung:** Nicht im aktuellen Web-UI-Server implementiert.
 
 Professionelles Logging mit Traffic-Inspektion, Kategorisierung und Exportfunktionen.
 
@@ -1130,6 +1407,43 @@ GET /api/logs/export?format=json&start_time=2026-02-04T09:00:00Z&end_time=2026-0
 
 ---
 
+## Statische Assets
+
+Die Web UI stellt statische Dateien aus dem Verzeichnis `/public` bereit:
+
+- `GET /` - Dashboard HTML
+- `GET /tool-explorer.html` - Tool-Explorer-UI
+- `GET /tool-explorer.js` - Tool-Explorer-Skript
+- `GET /styles/output.css` - Tailwind CSS Output
+- `GET /styles/input.css` - Tailwind CSS Quelle
+
+---
+
+## WebSocket-API (Phase 2)
+
+**Geplante Erweiterung:** WebSocket-Unterstuetzung ist noch nicht verfuegbar.
+
+In Phase 2 wird WebSocket-Unterstuetzung fuer bidirektionale Kommunikation hinzugefuegt:
+
+**Endpunkt:** `ws://localhost:3000/ws`
+
+**Nachrichtentypen:**
+- `subscribe` - Events abonnieren
+- `unsubscribe` - Abonnement beenden
+- `command` - Server-Befehl ausfuehren
+- `notification` - Server-seitige Ereignisse
+
+**Beispiel:**
+```json
+{
+  "type": "subscribe",
+  "channel": "tools",
+  "filter": {"tool_name": "read_scene"}
+}
+```
+
+---
+
 ## UI-Integrationsleitfaden
 
 ### Dashboard-Layout
@@ -1164,9 +1478,8 @@ Wiederverwendbare Komponenten für konsistente UI:
 ```html
 <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
       :class="{
-        'bg-green-100 text-green-800': status === 'running',
-        'bg-yellow-100 text-yellow-800': status === 'starting',
-        'bg-red-100 text-red-800': status === 'error'
+        'bg-green-100 text-green-800': status === 'bridge_connected',
+        'bg-red-100 text-red-800': status === 'bridge_disconnected'
       }">
   <svg class="w-2 h-2 mr-2" fill="currentColor" viewBox="0 0 8 8">
     <circle cx="4" cy="4" r="3"/>
@@ -1178,8 +1491,8 @@ Wiederverwendbare Komponenten für konsistente UI:
 **Metrik-Karte:**
 ```html
 <div class="bg-white rounded-lg shadow p-6">
-  <h3 class="text-sm font-medium text-gray-500 mb-2">Gesamtanfragen</h3>
-  <p class="text-3xl font-bold text-gray-900" x-text="metrics.requests_total"></p>
+  <h3 class="text-sm font-medium text-gray-500 mb-2">Aktive Sessions</h3>
+  <p class="text-3xl font-bold text-gray-900" x-text="metrics.activeSessions"></p>
   <p class="text-sm text-gray-600 mt-1">
     <span class="text-green-600">↑ 12%</span> seit letzter Stunde
   </p>
@@ -1204,8 +1517,11 @@ document.addEventListener('alpine:init', () => {
     async pollStatus() {
       const res = await fetch('/api/status');
       const data = await res.json();
-      this.status = data.status;
-      this.metrics = data.mcp;
+      this.status = data.bridgeConnected ? 'bridge_connected' : 'bridge_disconnected';
+      this.metrics = {
+        activeSessions: data.activeSessions,
+        uptime: data.uptime
+      };
     }
   });
 });
@@ -1215,7 +1531,7 @@ document.addEventListener('alpine:init', () => {
 ```html
 <div x-data>
   <span x-text="$store.server.status"></span>
-  <span x-text="$store.server.metrics.requests_total"></span>
+  <span x-text="$store.server.metrics.activeSessions"></span>
 </div>
 ```
 
@@ -1225,12 +1541,17 @@ document.addEventListener('alpine:init', () => {
 
 ### CORS-Konfiguration
 
-Für Entwicklung localhost-Origins erlauben:
+**Aktuelles Verhalten:** CORS ist aktiv und nutzt eine Allowlist (localhost plus `ALLOWED_ORIGINS`).
+
+Allowlisted Origins fuer Entwicklung:
 
 ```javascript
 // server.js
 app.use(cors({
-  origin: ['http://localhost:8080', 'http://127.0.0.1:8080'],
+  origin: [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000'
+  ],
   methods: ['GET', 'POST', 'PUT'],
   credentials: true
 }));
@@ -1238,14 +1559,46 @@ app.use(cors({
 
 ### Content Security Policy
 
-Restriktive CSP-Header setzen:
+**Aktuelles Verhalten:** CSP-Header werden via Helmet erzwungen, um Skript-, Style- und Font-Quellen einzuschraenken.
+
+Aktuelle CSP-Konfiguration:
 
 ```html
 <meta http-equiv="Content-Security-Policy" 
-      content="default-src 'self'; 
-               script-src 'self' 'unsafe-inline' cdn.tailwindcss.com cdn.jsdelivr.net; 
-               style-src 'self' 'unsafe-inline' cdn.tailwindcss.com; 
-               connect-src 'self';">
+  content="default-src 'self';
+       style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+       script-src 'self' 'unsafe-inline' 'unsafe-eval';
+       img-src 'self' data: https:;
+       connect-src 'self';
+       font-src 'self' https://fonts.gstatic.com;
+       object-src 'none';
+       media-src 'self';
+       frame-src 'none';">
+```
+
+### Eingabevalidierung
+
+**Geplante Erweiterung:** Nicht im aktuellen Web-UI-Server implementiert.
+
+Eingaben immer validieren und bereinigen:
+
+```javascript
+function validateToolArguments(tool, args) {
+  // Validate against JSON Schema
+  const valid = validate(tool.inputSchema, args);
+  if (!valid) {
+    throw new Error('Invalid arguments');
+  }
+  
+  // Sanitize string inputs
+  for (const [key, value] of Object.entries(args)) {
+    if (typeof value === 'string') {
+      args[key] = sanitizeHtml(value);
+    }
+  }
+  
+  return args;
+}
 ```
 
 ---

@@ -131,7 +131,7 @@ Create a `.env` file in your project directory (where you run `godot-mcp-server`
 # .env
 
 # Server Configuration
-PORT=8080                     # Web UI server port
+PORT=3000                     # Web UI server port
 HOST=127.0.0.1                # Bind address (localhost only)
 NODE_ENV=development          # Environment: development | production
 
@@ -158,7 +158,7 @@ LOG_FORMAT=pretty             # Log format: json | pretty
 **Development Setup** (Minimal Security):
 ```bash
 # .env.development
-PORT=8080
+PORT=3000
 HOST=127.0.0.1
 NODE_ENV=development
 GODOT_PORT=7777
@@ -169,14 +169,14 @@ LOG_FORMAT=pretty
 **Production Setup** (Enhanced Security):
 ```bash
 # .env.production
-PORT=8080
+PORT=3000
 HOST=127.0.0.1
 NODE_ENV=production
 GODOT_PORT=7777
 
 # Security
 MCP_API_KEY=your-secure-random-key-here  # Generate with: openssl rand -hex 32
-ALLOWED_ORIGINS=http://localhost:8080,http://127.0.0.1:8080
+ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 
 # Logging
 LOG_LEVEL=warn
@@ -187,13 +187,13 @@ LOG_FORMAT=json
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `PORT` | `8080` | Web UI HTTP server port |
+| `PORT` | `3000` | Web UI HTTP server port |
 | `HOST` | `127.0.0.1` | Server bind address (MUST be localhost) |
 | `NODE_ENV` | `development` | Environment mode (affects logging/errors) |
 | `GODOT_PORT` | `7777` | Godot bridge HTTP server port |
 | `BRIDGE_TIMEOUT` | `5000` | Bridge request timeout (ms) |
 | `MCP_API_KEY` | (optional) | Authentication token for Web UI |
-| `ALLOWED_ORIGINS` | `localhost:8080` | CORS allowed origins (comma-separated) |
+| `ALLOWED_ORIGINS` | `localhost:3000` | CORS allowed origins (comma-separated) |
 | `RATE_LIMIT_WINDOW` | `900000` | Rate limit window (15 minutes) |
 | `RATE_LIMIT_MAX_READS` | `100` | Max read requests per window |
 | `RATE_LIMIT_MAX_WRITES` | `20` | Max write requests per window |
@@ -268,7 +268,7 @@ Add to `.vscode/settings.json`:
 Open the Sidecar Web UI:
 
 ```
-http://localhost:8080
+http://localhost:3000
 ```
 
 You should see:
@@ -495,7 +495,7 @@ godot-mcp-server --project /path/to/project
 |--------|-------------|---------|
 | `--project <path>` | Path to Godot project root (required) | - |
 | `--port <number>` | Godot bridge HTTP port | `7777` |
-| `--ui-port <number>` | Sidecar Web UI port | `8080` |
+| `--ui-port <number>` | Sidecar Web UI port | `3000` |
 | `--log-level <level>` | Logging verbosity (debug/info/warn/error) | `info` |
 | `--cache-ttl <seconds>` | Resource cache TTL | `300` |
 | `--max-cache-size <mb>` | Maximum cache size in MB | `50` |
@@ -533,7 +533,7 @@ godot-mcp-server \
 
 **Symptom**: `Error: EADDRINUSE: address already in use`
 
-**Cause**: Port 7777 or 8080 already in use
+**Cause**: Port 7777 or 3000 already in use
 
 **Solution**:
 

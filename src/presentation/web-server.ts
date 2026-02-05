@@ -12,6 +12,7 @@ import { getCacheMetrics } from '../tools/read-tools.js';
 import type { ServerStatus, LogEntry } from '../types/index.js';
 import { SSEHeartbeat } from './sse-heartbeat.js';
 import { SSEClientManager } from './sse-client-manager.js';
+import { ToolExecutionService } from './tool-execution-service.js';
 import {
   MCPError,
   ValidationError,
@@ -27,8 +28,8 @@ import {
  * Allowed origins for CORS
  */
 const ALLOWED_ORIGINS: readonly string[] = Object.freeze([
-  'http://localhost:8080',
-  'http://127.0.0.1:8080',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
   ...(process.env.ALLOWED_ORIGINS?.split(',').map((o) => o.trim()) ?? []),
 ]);
 
@@ -42,6 +43,16 @@ const API_KEY = process.env.MCP_API_KEY;
  */
 const MAX_BODY_SIZE = '100kb';
 
+const RATE_LIMIT_WINDOW_MS = Number.parseInt(process.env.RATE_LIMIT_WINDOW ?? '', 10) || 15 * 60 * 1000;
+const RATE_LIMIT_MAX_READS = Number.parseInt(process.env.RATE_LIMIT_MAX_READS ?? '', 10) || 100;
+const RATE_LIMIT_MAX_WRITES = Number.parseInt(process.env.RATE_LIMIT_MAX_WRITES ?? '', 10) || 20;
+const EXECUTE_WINDOW_MS = 60 * 1000;
+const EXECUTE_MAX = Math.max(30, RATE_LIMIT_MAX_WRITES);
+const LIFECYCLE_WINDOW_MS = 5 * 60 * 1000;
+const LIFECYCLE_MAX = Math.max(5, Math.floor(RATE_LIMIT_MAX_WRITES / 2));
+const SSE_WINDOW_MS = 60 * 1000;
+const SSE_MAX = 10;
+
 /**
  * Web server for dashboard and API endpoints
  */
@@ -51,6 +62,8 @@ export class WebServer {
   private readonly serverManager: MCPServerProcessManager;
   private readonly sseClientManager: SSEClientManager;
   private readonly sseHeartbeat: SSEHeartbeat;
+  private readonly toolExecutionService: ToolExecutionService;
+  private isBroadcastingLog = false;
   private readonly startTime: Date;
   private server: ReturnType<typeof this.app.listen> | null = null;
 
@@ -60,6 +73,7 @@ export class WebServer {
     this.serverManager = new MCPServerProcessManager();
     this.sseClientManager = new SSEClientManager();
     this.sseHeartbeat = new SSEHeartbeat({ interval: 30000 });
+    this.toolExecutionService = new ToolExecutionService(godotClient);
     this.startTime = new Date();
 
     this.setupMiddleware();
@@ -78,11 +92,11 @@ export class WebServer {
         contentSecurityPolicy: {
           directives: {
             defaultSrc: ["'self'"],
-            styleSrc: ["'self'", "'unsafe-inline'"],
+            styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
             scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // unsafe-eval required for Alpine.js expressions
             imgSrc: ["'self'", 'data:', 'https:'],
             connectSrc: ["'self'"],
-            fontSrc: ["'self'"],
+            fontSrc: ["'self'", 'https://fonts.gstatic.com'],
             objectSrc: ["'none'"],
             mediaSrc: ["'self'"],
             frameSrc: ["'none'"],
@@ -246,23 +260,22 @@ export class WebServer {
    * Setup Express routes
    */
   private setupRoutes(): void {
-    // Rate limiters
-    const readLimiter = rateLimit({
-      windowMs: 15 * 60 * 1000, // 15 minutes
-      max: 100, // 100 requests per window
-      standardHeaders: true,
-      legacyHeaders: false,
-      message: { error: 'Too many requests, please try again later' },
+    const readLimiter = this.createRateLimiter('read', RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX_READS, (req) =>
+      this.getClientKey(req)
+    );
+    const executeLimiter = this.createRateLimiter('execute', EXECUTE_WINDOW_MS, EXECUTE_MAX, (req) => {
+      const toolName = typeof req.body?.tool === 'string' ? req.body.tool : 'unknown';
+      return `${this.getClientKey(req)}:tool:${toolName}`;
     });
-
-    // Write limiter for POST/PUT/DELETE endpoints
-    const writeLimiter = rateLimit({
-      windowMs: 15 * 60 * 1000, // 15 minutes
-      max: 20, // 20 requests per window
-      standardHeaders: true,
-      legacyHeaders: false,
-      message: { error: 'Too many requests, please try again later' },
-    });
+    const lifecycleLimiter = this.createRateLimiter(
+      'lifecycle',
+      LIFECYCLE_WINDOW_MS,
+      LIFECYCLE_MAX,
+      (req) => this.getClientKey(req)
+    );
+    const sseLimiter = this.createRateLimiter('sse', SSE_WINDOW_MS, SSE_MAX, (req) =>
+      this.getClientKey(req)
+    );
 
     // Static file serving
     this.app.use(express.static('public'));
@@ -293,7 +306,7 @@ export class WebServer {
     // SSE endpoint for log streaming (authentication + read limiter)
     this.app.get(
       '/api/logs/stream',
-      readLimiter,
+      sseLimiter,
       this.authenticateRequest.bind(this),
       (req: Request, res: Response) => {
         res.setHeader('Content-Type', 'text/event-stream');
@@ -341,7 +354,7 @@ export class WebServer {
     });
 
     // MCP Server lifecycle endpoints
-    this.app.post('/api/server/start', writeLimiter, this.authenticateRequest.bind(this), async (_req: Request, res: Response) => {
+    this.app.post('/api/server/start', lifecycleLimiter, this.authenticateRequest.bind(this), async (_req: Request, res: Response) => {
       try {
         await this.serverManager.start();
         const info = this.serverManager.getInfo();
@@ -352,7 +365,7 @@ export class WebServer {
       }
     });
 
-    this.app.post('/api/server/stop', writeLimiter, this.authenticateRequest.bind(this), async (req: Request, res: Response) => {
+    this.app.post('/api/server/stop', lifecycleLimiter, this.authenticateRequest.bind(this), async (req: Request, res: Response) => {
       try {
         const force = req.body?.force === true;
         await this.serverManager.stop(force);
@@ -364,7 +377,7 @@ export class WebServer {
       }
     });
 
-    this.app.post('/api/server/restart', writeLimiter, this.authenticateRequest.bind(this), async (_req: Request, res: Response) => {
+    this.app.post('/api/server/restart', lifecycleLimiter, this.authenticateRequest.bind(this), async (_req: Request, res: Response) => {
       try {
         await this.serverManager.restart();
         const info = this.serverManager.getInfo();
@@ -399,14 +412,15 @@ export class WebServer {
 
     // Tool Explorer API endpoints
     this.app.get('/api/tools', readLimiter, (_req: Request, res: Response) => {
-      // Return list of available MCP tools
-      // This will be populated by the MCP server's tool registry
-      res.json({ 
-        tools: [] // Placeholder - will be populated from MCP server  
-      });
+      const tools = this.toolExecutionService.listTools();
+      res.json({ tools });
     });
 
-    this.app.post('/api/execute', writeLimiter, async (req: Request, res: Response) => {
+    this.app.post(
+      '/api/execute',
+      executeLimiter,
+      this.authenticateRequest.bind(this),
+      async (req: Request, res: Response) => {
       try {
         const { tool, arguments: args } = req.body;
         
@@ -415,13 +429,15 @@ export class WebServer {
           return;
         }
 
-        // Execute tool via MCP server (placeholder)
-        // In production, this would call the MCP server's tool execution
-        res.json({ 
-          result: 'Tool execution not yet implemented',
-          tool,
-          arguments: args
-        });
+        const execution = await this.toolExecutionService.executeTool(tool, args);
+
+        if (!execution.success) {
+          const statusCode = this.mapToolErrorToStatus(execution.error?.name);
+          res.status(statusCode).json(execution);
+          return;
+        }
+
+        res.json(execution);
       } catch (error) {
         logError(error instanceof Error ? error : new Error(String(error)), 'Tool execution failed');
         res.status(500).json({ error: error instanceof Error ? error.message : 'Tool execution failed' });
@@ -533,6 +549,83 @@ export class WebServer {
     });
   }
 
+  private getClientKey(req: Request): string {
+    const apiKey = this.getApiKey(req);
+
+    if (apiKey && apiKey.length > 0) {
+      return `key:${apiKey}`;
+    }
+
+    return `ip:${this.getClientIp(req)}`;
+  }
+
+  private getClientIp(req: Request): string {
+    const forwardedFor = req.headers['x-forwarded-for'];
+    const forwardedIp = typeof forwardedFor === 'string'
+      ? forwardedFor.split(',')[0].trim()
+      : undefined;
+    return forwardedIp || req.ip || req.socket.remoteAddress || 'unknown';
+  }
+
+  private getApiKey(req: Request): string | undefined {
+    const apiKeyHeader = req.headers['x-api-key'];
+    const authHeader = req.headers.authorization;
+    if (typeof apiKeyHeader === 'string') {
+      return apiKeyHeader;
+    }
+    return authHeader?.replace('Bearer ', '');
+  }
+
+  private isLocalRequest(req: Request): boolean {
+    const clientIp = this.getClientIp(req);
+    return (
+      clientIp === '127.0.0.1' ||
+      clientIp === '::1' ||
+      clientIp === '::ffff:127.0.0.1' ||
+      clientIp.startsWith('127.') ||
+      clientIp === 'localhost'
+    );
+  }
+
+  private isValidApiKey(req: Request): boolean {
+    if (!API_KEY) {
+      return false;
+    }
+    const apiKey = this.getApiKey(req);
+    return apiKey === API_KEY;
+  }
+
+  private isTrustedClient(req: Request): boolean {
+    return this.isLocalRequest(req) || this.isValidApiKey(req);
+  }
+
+  private createRateLimiter(
+    name: string,
+    windowMs: number,
+    max: number,
+    keyGenerator: (req: Request) => string
+  ) {
+    return rateLimit({
+      windowMs,
+      max,
+      standardHeaders: true,
+      legacyHeaders: false,
+      keyGenerator,
+      skip: (req) => this.isTrustedClient(req),
+      handler: (req, res, _next, options) => {
+        logger.warn('Rate limit exceeded', {
+          limiter: name,
+          key: keyGenerator(req),
+          path: req.path,
+          method: req.method,
+        });
+        res.status(options.statusCode).json({
+          error: 'Too many requests, please try again later',
+        });
+      },
+    });
+  }
+
   /**
    * Setup log streaming to SSE clients
    */
@@ -559,7 +652,14 @@ export class WebServer {
         context: meta.length > 0 ? (meta[0] as Record<string, unknown>) : undefined,
       };
 
-      self.broadcastLog(logEntry);
+      if (!self.isBroadcastingLog) {
+        self.isBroadcastingLog = true;
+        try {
+          self.broadcastLog(logEntry);
+        } finally {
+          self.isBroadcastingLog = false;
+        }
+      }
 
       return logger;
     };
@@ -587,6 +687,25 @@ export class WebServer {
     
     // Start heartbeat
     this.sseHeartbeat.start();
+  }
+
+  /**
+   * Map tool execution errors to HTTP status codes
+   */
+  private mapToolErrorToStatus(errorName?: string): number {
+    switch (errorName) {
+      case 'ToolNotFoundError':
+        return 404;
+      case 'ValidationError':
+        return 400;
+      case 'TimeoutError':
+        return 504;
+      case 'NetworkError':
+      case 'CircuitBreakerError':
+        return 503;
+      default:
+        return 500;
+    }
   }
 
   /**

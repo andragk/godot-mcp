@@ -20,6 +20,7 @@ import { registerAllTools } from './tool-registration.js';
 import { RequestHandler } from './request-handler.js';
 import { LifecycleManager } from './lifecycle-manager.js';
 import { createStdioTransport } from './protocol/stdio-transport.js';
+import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 
 /**
  * MCP Server for Godot Engine
@@ -33,7 +34,7 @@ export class GodotMCPServer {
   private readonly requestHandler: RequestHandler;
   private readonly lifecycleManager: LifecycleManager;
 
-  constructor() {
+  constructor(options?: { exitOnShutdown?: boolean; registerSignalHandlers?: boolean }) {
     // Initialize core dependencies
     this.godotClient = new GodotClient({
       port: 7777,
@@ -65,6 +66,10 @@ export class GodotMCPServer {
       async () => {
         const health = await this.godotClient.healthCheck();
         return health.status === 'healthy';
+      },
+      {
+        exitOnShutdown: options?.exitOnShutdown ?? false,
+        registerSignalHandlers: options?.registerSignalHandlers ?? true,
       }
     );
 
@@ -199,14 +204,14 @@ export class GodotMCPServer {
   /**
    * Start the MCP server with stdio transport
    */
-  async start(): Promise<void> {
+  async start(transport?: Transport): Promise<void> {
     // Initialize lifecycle manager
     await this.lifecycleManager.initialize();
     await this.lifecycleManager.start();
     
     // Create and connect transport
-    const transport = createStdioTransport();
-    await this.server.connect(transport);
+    const activeTransport = transport ?? createStdioTransport();
+    await this.server.connect(activeTransport);
     
     logger.info('MCP server started with stdio transport', {
       version: this.lifecycleManager.getVersion(),
@@ -249,7 +254,7 @@ export class GodotMCPServer {
  * Main entry point for the MCP server
  */
 async function main(): Promise<void> {
-  const server = new GodotMCPServer();
+  const server = new GodotMCPServer({ exitOnShutdown: true, registerSignalHandlers: true });
 
   // Start the server (lifecycle manager handles shutdown signals)
   await server.start();

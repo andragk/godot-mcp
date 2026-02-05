@@ -30,7 +30,7 @@ describe('WebServer', () => {
     // Create mock Godot client
     mockGodotClient = {
       healthCheck: vi.fn().mockResolvedValue({ status: 'healthy', uptime: 1000 }),
-      sendRequest: vi.fn().mockResolvedValue({ result: 'ok' }),
+      sendRequest: vi.fn().mockResolvedValue({ status: 'pong' }),
     } as unknown as GodotClient;
 
     webServer = new WebServer(mockGodotClient);
@@ -80,6 +80,37 @@ describe('WebServer', () => {
       // The endpoint is manually tested and works correctly
       // Testing SSE streaming is complex and prone to timeout issues
     });
+
+    it('should list tools via /api/tools', async () => {
+      const app = (webServer as any).app;
+      const response = await request(app).get('/api/tools');
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('tools');
+      expect(Array.isArray(response.body.tools)).toBe(true);
+      expect(response.body.tools.length).toBeGreaterThan(0);
+    });
+
+    it('should execute tools via /api/execute', async () => {
+      const app = (webServer as any).app;
+      const response = await request(app)
+        .post('/api/execute')
+        .send({ tool: 'ping', arguments: {} });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('success', true);
+      expect(response.body).toHaveProperty('data');
+    });
+
+    it('should return error for unknown tool', async () => {
+      const app = (webServer as any).app;
+      const response = await request(app)
+        .post('/api/execute')
+        .send({ tool: 'unknown_tool', arguments: {} });
+
+      expect([400, 404, 500]).toContain(response.status);
+      expect(response.body).toHaveProperty('success', false);
+    });
   });
 
   describe('static file serving', () => {
@@ -97,7 +128,7 @@ describe('WebServer', () => {
       const app = (webServer as any).app;
       const response = await request(app)
         .get('/api/health')
-        .set('Origin', 'http://localhost:8080');
+        .set('Origin', 'http://localhost:3000');
       
       expect(response.headers['access-control-allow-origin']).toBeDefined();
     });

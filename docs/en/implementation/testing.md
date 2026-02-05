@@ -478,7 +478,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Full MCP Workflow', () => {
   test('should show server status on dashboard', async ({ page }) => {
-    await page.goto('http://localhost:8080');
+    await page.goto('http://localhost:3000');
 
     // Wait for status to load
     await page.waitForSelector('.status-badge');
@@ -489,7 +489,7 @@ test.describe('Full MCP Workflow', () => {
   });
 
   test('should stream logs in real-time', async ({ page }) => {
-    await page.goto('http://localhost:8080');
+    await page.goto('http://localhost:3000');
 
     // Initial log count
     const initialLogs = await page.locator('.log-line').count();

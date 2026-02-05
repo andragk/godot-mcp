@@ -5,20 +5,28 @@ import { logger } from '../utils/logger.js';
 export class LifecycleManager {
     server;
     healthCheckFn;
+    static signalsRegistered = false;
     startTime;
     isShuttingDown = false;
     version = '0.1.0';
-    constructor(server, healthCheckFn) {
+    exitOnShutdown;
+    registerSignalHandlers;
+    constructor(server, healthCheckFn, options) {
         this.server = server;
         this.healthCheckFn = healthCheckFn;
         this.startTime = new Date();
+        this.exitOnShutdown = options?.exitOnShutdown ?? false;
+        this.registerSignalHandlers = options?.registerSignalHandlers ?? true;
     }
     /**
      * Initialize server and setup signal handlers
      */
     async initialize() {
         // Setup graceful shutdown handlers
-        this.setupSignalHandlers();
+        if (this.registerSignalHandlers && !LifecycleManager.signalsRegistered) {
+            this.setupSignalHandlers();
+            LifecycleManager.signalsRegistered = true;
+        }
         logger.info('Server initialized', {
             service: 'godot-mcp',
             version: this.version,
@@ -63,7 +71,9 @@ export class LifecycleManager {
             logger.info('Server shut down successfully', {
                 service: 'godot-mcp'
             });
-            process.exit(0);
+            if (this.exitOnShutdown) {
+                process.exit(0);
+            }
         }
         catch (error) {
             logger.error('Error during shutdown', {
@@ -71,7 +81,9 @@ export class LifecycleManager {
                 error: error instanceof Error ? error.message : String(error)
             });
             // Force exit on error
-            process.exit(1);
+            if (this.exitOnShutdown) {
+                process.exit(1);
+            }
         }
     }
     /**

@@ -99,6 +99,7 @@ interface GodotClientConfig {
   baseUrl: string;
   port: number;
   timeout: number;
+  sharedSecret?: string;
   retryStrategy: RetryStrategy;
   poolConfig: PoolConfig;
   circuitBreaker: {
@@ -136,6 +137,7 @@ export class GodotClient extends EventEmitter {
       baseUrl: config.baseUrl || 'http://localhost',
       port: config.port || 7777,
       timeout: config.timeout || 5000,
+      sharedSecret: config.sharedSecret ?? process.env.MCP_SHARED_SECRET,
       retryStrategy: {
         maxRetries: config.retryStrategy?.maxRetries ?? 3,
         baseDelay: config.retryStrategy?.baseDelay ?? 1000,
@@ -195,7 +197,20 @@ export class GodotClient extends EventEmitter {
       maxRetries: this.config.retryStrategy.maxRetries,
       poolConnections: this.config.poolConfig.connections,
       circuitBreakerThreshold: this.config.circuitBreaker.failureThreshold,
+      sharedSecretEnabled: Boolean(this.config.sharedSecret),
     };
+  }
+
+  private buildHeaders(correlationId: string): Record<string, string> {
+    const headers: Record<string, string> = {
+      'X-Correlation-ID': correlationId,
+    };
+
+    if (this.config.sharedSecret) {
+      headers['X-API-Key'] = this.config.sharedSecret;
+    }
+
+    return headers;
   }
 
   /**
@@ -357,7 +372,7 @@ export class GodotClient extends EventEmitter {
           headers: {
             'Content-Type': 'application/json',
             'Content-Length': String(Buffer.byteLength(body)),
-            'X-Correlation-ID': correlationId,
+            ...this.buildHeaders(correlationId),
           },
           body,
           signal: controller.signal,
@@ -436,7 +451,7 @@ export class GodotClient extends EventEmitter {
           method: 'GET',
           signal: controller.signal,
           headers: {
-            'X-Correlation-ID': correlationId,
+            ...this.buildHeaders(correlationId),
           },
         }
       );
@@ -492,7 +507,7 @@ export class GodotClient extends EventEmitter {
           method: 'GET',
           signal: controller.signal,
           headers: {
-            'X-Correlation-ID': correlationId,
+            ...this.buildHeaders(correlationId),
           },
         }
       );

@@ -51,13 +51,13 @@ export declare const GetVersionSchema: z.ZodObject<{
     editorPath?: string | undefined;
 }>;
 export declare const ListProjectsSchema: z.ZodObject<{
-    searchPaths: z.ZodArray<z.ZodString, "many">;
+    searchPaths: z.ZodEffects<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, string[], string | string[]>;
     recursive: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
 }, "strip", z.ZodTypeAny, {
     recursive: boolean;
     searchPaths: string[];
 }, {
-    searchPaths: string[];
+    searchPaths: string | string[];
     recursive?: boolean | undefined;
 }>;
 export declare const AnalyzeProjectSchema: z.ZodObject<{
@@ -181,11 +181,17 @@ export declare const editorControlTools: ({
         type: string;
         properties: {
             searchPaths: {
-                type: string;
-                items: {
+                oneOf: ({
                     type: string;
-                };
-                description: string;
+                    description: string;
+                    items?: undefined;
+                } | {
+                    type: string;
+                    items: {
+                        type: string;
+                    };
+                    description: string;
+                })[];
             };
             recursive: {
                 type: string;

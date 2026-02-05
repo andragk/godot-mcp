@@ -22,6 +22,10 @@ export declare function registerNodeTools(registry: ToolRegistry): void;
  */
 export declare function registerSceneTools(registry: ToolRegistry): void;
 /**
+ * Register script operations tools
+ */
+export declare function registerScriptTools(registry: ToolRegistry): void;
+/**
  * Register all tools in the registry
  */
 export declare function registerAllTools(registry: ToolRegistry, godotClient: GodotClient, editorTools: EditorControlTools): void;

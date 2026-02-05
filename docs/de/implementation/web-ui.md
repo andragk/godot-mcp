@@ -394,7 +394,7 @@ npm run dev
 
 ### Dashboard öffnen
 
-Browser öffnen unter: `http://localhost:8080`
+Browser öffnen unter: `http://localhost:3000`
 
 ### Tool-Aufrufe simulieren
 

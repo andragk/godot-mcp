@@ -452,7 +452,7 @@ describe('End-to-End Workflow', () => {
   });
 
   it('sollte Web-UI-Endpunkte bedienen', async () => {
-    const healthResponse = await fetch('http://localhost:8080/api/health');
+    const healthResponse = await fetch('http://localhost:3000/api/health');
     const health = await healthResponse.json();
     
     expect(health.status).toBe('healthy');

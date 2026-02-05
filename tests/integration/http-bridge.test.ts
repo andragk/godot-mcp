@@ -121,6 +121,19 @@ class MockGodotBridge {
           return;
         }
 
+        if (method === 'unknown_method') {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            jsonrpc: '2.0',
+            id: requestId,
+            error: {
+              code: -32601,
+              message: 'Method not found'
+            }
+          }));
+          return;
+        }
+
         // Generic success response
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
@@ -189,6 +202,13 @@ describe('HTTP Bridge Communication Integration', () => {
   let bridgeClient: GodotClient;
   const bridgePort = 18778;
   const bridgeUrl = `http://localhost:${bridgePort}`;
+  const noRetryStrategy = {
+    maxRetries: 0,
+    baseDelay: 0,
+    maxDelay: 0,
+    jitterFactor: 0,
+    retryableErrors: new Set(['ECONNREFUSED', 'ETIMEDOUT', 'ENOTFOUND', 'NETWORK_ERROR'])
+  };
 
   beforeAll(async () => {
     mockBridge = new MockGodotBridge(bridgePort);
@@ -202,7 +222,7 @@ describe('HTTP Bridge Communication Integration', () => {
   });
 
   beforeEach(() => {
-    bridgeClient = new GodotClient({ port: bridgePort });
+    bridgeClient = new GodotClient({ port: bridgePort, retryStrategy: noRetryStrategy });
     mockBridge.clearRequestLog();
     mockBridge.setResponseDelay(0);
     mockBridge.setFailureMode(false);
@@ -335,7 +355,8 @@ describe('HTTP Bridge Communication Integration', () => {
       // Create client with short timeout
       const shortTimeoutClient = new GodotClient({
         port: bridgePort,
-        timeout: 1000 // 1 second
+        timeout: 1000, // 1 second
+        retryStrategy: noRetryStrategy
       });
       
       await expect(shortTimeoutClient.sendRequest('get_version', {}))
@@ -348,7 +369,8 @@ describe('HTTP Bridge Communication Integration', () => {
       
       const client = new GodotClient({
         port: bridgePort,
-        timeout: 2000 // 2 seconds
+        timeout: 2000, // 2 seconds
+        retryStrategy: noRetryStrategy
       });
       
       const result = await client.sendRequest('get_version', {});
@@ -363,7 +385,8 @@ describe('HTTP Bridge Communication Integration', () => {
       // Short timeout should fail
       const shortClient = new GodotClient({
         port: bridgePort,
-        timeout: 1000
+        timeout: 1000,
+        retryStrategy: noRetryStrategy
       });
       await expect(shortClient.sendRequest('get_version', {}))
         .rejects.toThrow();
@@ -375,7 +398,8 @@ describe('HTTP Bridge Communication Integration', () => {
       // Long timeout should succeed
       const longClient = new GodotClient({
         port: bridgePort,
-        timeout: 3000
+        timeout: 3000,
+        retryStrategy: noRetryStrategy
       });
       await expect(longClient.sendRequest('get_version', {}))
         .resolves.toBeDefined();
@@ -480,7 +504,8 @@ describe('HTTP Bridge Communication Integration', () => {
           failureThreshold: 3,
           successThreshold: 1,
           timeout: 1000
-        }
+        },
+        retryStrategy: noRetryStrategy
       });
       
       // Make requests until circuit opens
@@ -513,7 +538,8 @@ describe('HTTP Bridge Communication Integration', () => {
           failureThreshold: 2,
           successThreshold: 1,
           timeout: 500
-        }
+        },
+        retryStrategy: noRetryStrategy
       });
       
       // Open circuit

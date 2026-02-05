@@ -170,7 +170,7 @@ Zugriff auf Godot-Dateien über URI-Schema:
 
 ### 🖥️ Sidecar Web UI
 
-Besuchen Sie `http://localhost:8080` für umfassende Überwachung und Steuerung:
+Besuchen Sie `http://localhost:3000` für umfassende Überwachung und Steuerung:
 
 #### 🔍 **Werkzeug-Exploration & -Aufruf**
 - Interaktiver Werkzeugkatalog mit JSON-Schema-Viewer
@@ -214,7 +214,7 @@ Besuchen Sie `http://localhost:8080` für umfassende Überwachung und Steuerung:
 - Mehrstufige Filterung (debug/info/warn/error)
 - Logs exportieren (JSON/CSV/TXT) mit Zeitbereichsfilterung
 
-**Zugriff:** Browser öffnen unter `http://localhost:8080`, während der MCP-Server läuft.
+**Zugriff:** Browser öffnen unter `http://localhost:3000`, während der MCP-Server läuft.
 
 ---
 

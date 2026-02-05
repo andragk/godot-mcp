@@ -258,16 +258,16 @@ COPY --from=builder /app/package.json ./
 COPY godot-bridge /app/godot-bridge
 
 # Expose ports
-EXPOSE 7777 8080
+EXPOSE 7777 3000
 
 # Environment variables
 ENV NODE_ENV=production
 ENV GODOT_PROJECT_PATH=/app/godot-bridge
-ENV PORT=8080
+ENV PORT=3000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:8080/api/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"
+  CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"
 
 # Start both servers
 CMD ["sh", "-c", "godot --headless --path $GODOT_PROJECT_PATH & node dist/server.js"]
@@ -301,7 +301,7 @@ services:
     container_name: godot-mcp
     ports:
       - "7777:7777"  # Godot bridge
-      - "8080:8080"  # Web UI
+      - "3000:3000"  # Web UI
     volumes:
       - ./projects:/app/projects  # Mount Godot projects
     environment:
@@ -309,7 +309,7 @@ services:
       - LOG_LEVEL=info
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
       interval: 30s
       timeout: 3s
       retries: 3
@@ -426,7 +426,7 @@ Create `.env.production`:
 ```env
 # Server
 NODE_ENV=production
-PORT=8080
+PORT=3000
 
 # Godot Bridge
 GODOT_BRIDGE_URL=http://localhost:7777

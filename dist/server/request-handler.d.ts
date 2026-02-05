@@ -27,6 +27,23 @@ export declare class RequestHandler {
      */
     handleCallTool(request: CallToolRequest): Promise<CallToolResult>;
     /**
+     * Execute tool by name for internal callers (e.g., Web UI)
+     */
+    executeTool(name: string, args: unknown, correlationId?: string): Promise<{
+        success: boolean;
+        data?: unknown;
+        error?: {
+            name: string;
+            message: string;
+        };
+        correlationId: string;
+        durationMs: number;
+    }>;
+    /**
+     * Execute tool with validation and timeout handling
+     */
+    private executeToolByName;
+    /**
      * Execute a promise with a timeout
      * @throws TimeoutError if execution exceeds timeout
      */

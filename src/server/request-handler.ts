@@ -59,28 +59,7 @@ export class RequestHandler {
     });
 
     try {
-      // Get tool definition
-      const tool = this.toolRegistry.get(name);
-      if (!tool) {
-        throw new ToolNotFoundError(name);
-      }
-
-      // Validate arguments with Zod schema
-      let validatedArgs: unknown;
-      try {
-        validatedArgs = tool.schema.parse(args);
-      } catch (error) {
-        if (error instanceof z.ZodError) {
-          throw new ValidationError(JSON.stringify(error.errors, null, 2));
-        }
-        throw error;
-      }
-
-      // Execute tool handler with timeout
-      const result = await this.executeWithTimeout(
-        tool.handler(validatedArgs, correlationId),
-        30000 // 30 second default timeout
-      );
+      const result = await this.executeToolByName(name, args, correlationId);
 
       logger.info('Tool execution succeeded', {
         service: 'godot-mcp',
@@ -88,7 +67,6 @@ export class RequestHandler {
         tool: name
       });
 
-      // Build success response
       return {
         content: [
           {
@@ -97,17 +75,15 @@ export class RequestHandler {
           },
         ],
       };
-
     } catch (error: unknown) {
-      const err = error as Error;
-      
+      const err = error instanceof Error ? error : new Error(String(error));
+
       logError(err, 'Tool execution failed', {
         service: 'godot-mcp',
         correlationId,
         tool: name
       });
 
-      // Build error response in MCP format
       return {
         content: [
           {
@@ -126,6 +102,70 @@ export class RequestHandler {
         isError: true,
       };
     }
+  }
+
+  /**
+   * Execute tool by name for internal callers (e.g., Web UI)
+   */
+  async executeTool(
+    name: string,
+    args: unknown,
+    correlationId: string = generateCorrelationId()
+  ): Promise<{
+    success: boolean;
+    data?: unknown;
+    error?: { name: string; message: string };
+    correlationId: string;
+    durationMs: number;
+  }> {
+    const startTime = Date.now();
+
+    try {
+      const data = await this.executeToolByName(name, args, correlationId);
+      return {
+        success: true,
+        data,
+        correlationId,
+        durationMs: Date.now() - startTime,
+      };
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      return {
+        success: false,
+        error: { name: err.name || 'Error', message: err.message },
+        correlationId,
+        durationMs: Date.now() - startTime,
+      };
+    }
+  }
+
+  /**
+   * Execute tool with validation and timeout handling
+   */
+  private async executeToolByName(
+    name: string,
+    args: unknown,
+    correlationId: string
+  ): Promise<unknown> {
+    const tool = this.toolRegistry.get(name);
+    if (!tool) {
+      throw new ToolNotFoundError(name);
+    }
+
+    let validatedArgs: unknown;
+    try {
+      validatedArgs = tool.schema.parse(args);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        throw new ValidationError(JSON.stringify(error.errors, null, 2));
+      }
+      throw error;
+    }
+
+    return await this.executeWithTimeout(
+      tool.handler(validatedArgs, correlationId),
+      30000
+    );
   }
 
   /**

@@ -118,7 +118,7 @@ Access Godot files via URI scheme:
 
 ### 🖥️ Sidecar Web UI
 
-Visit `http://localhost:8080` to:
+Visit `http://localhost:3000` to:
 
 - Monitor server status and connection health
 - View real-time request/response logs

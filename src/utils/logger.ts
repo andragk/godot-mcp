@@ -18,12 +18,11 @@ const consoleFormat = winston.format.combine(
 );
 
 /**
- * JSON format for file output
+ * Base format for all transports
  */
-const jsonFormat = winston.format.combine(
-  winston.format.timestamp(),
+const baseFormat = winston.format.combine(
   winston.format.errors({ stack: true }),
-  winston.format.json()
+  winston.format((info) => sanitizeLogInfo(info))()
 );
 
 /**
@@ -31,7 +30,7 @@ const jsonFormat = winston.format.combine(
  */
 export const logger = winston.createLogger({
   level: LOG_LEVEL,
-  format: jsonFormat,
+  format: baseFormat,
   defaultMeta: { service: 'godot-mcp' },
   transports: [
     new winston.transports.Console({
@@ -67,4 +66,54 @@ export function logError(error: Error, message?: string, context?: Record<string
     stack: error.stack,
     name: error.name,
   });
+}
+
+function sanitizeLogInfo(info: winston.Logform.TransformableInfo): winston.Logform.TransformableInfo {
+  const seen = new WeakSet<object>();
+  const maxDepth = 6;
+
+  const sanitizeValue = (value: unknown, depth: number): unknown => {
+    if (depth > maxDepth) {
+      return '[MaxDepth]';
+    }
+
+    if (value instanceof Error) {
+      return {
+        name: value.name,
+        message: value.message,
+        stack: value.stack,
+      };
+    }
+
+    if (typeof value === 'bigint') {
+      return value.toString();
+    }
+
+    if (typeof value !== 'object' || value === null) {
+      return value;
+    }
+
+    if (seen.has(value)) {
+      return '[Circular]';
+    }
+
+    seen.add(value);
+
+    if (Array.isArray(value)) {
+      return value.map((item) => sanitizeValue(item, depth + 1));
+    }
+
+    const result: Record<string, unknown> = {};
+    for (const [key, entry] of Object.entries(value)) {
+      if (typeof entry === 'function') {
+        continue;
+      }
+      result[key] = sanitizeValue(entry, depth + 1);
+    }
+    return result;
+  };
+
+  const sanitized = sanitizeValue(info, 0) as Record<string, unknown>;
+  Object.assign(info, sanitized);
+  return info;
 }

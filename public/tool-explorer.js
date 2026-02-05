@@ -11,6 +11,7 @@ function toolExplorer() {
     executing: false,
     searchQuery: '',
     filterCategory: '',
+    lastExecution: null,
     
     async init() {
       await this.loadTools();
@@ -68,7 +69,8 @@ function toolExplorer() {
       if (this.selectedTool && this.selectedTool.inputSchema) {
         const properties = this.selectedTool.inputSchema.properties || {};
         Object.keys(properties).forEach(key => {
-          this.formData[key] = '';
+          const schema = properties[key];
+          this.formData[key] = schema.type === 'boolean' ? false : '';
         });
       }
     },
@@ -84,7 +86,8 @@ function toolExplorer() {
     getInputType(schema) {
       if (schema.type === 'number' || schema.type === 'integer') {
         return 'number';
-      } else if (schema.type === 'boolean') {
+      }
+      if (schema.type === 'boolean') {
         return 'checkbox';
       }
       return 'text';
@@ -136,22 +139,24 @@ function toolExplorer() {
         
         const endTime = performance.now();
         const executionTime = Math.round(endTime - startTime);
-        
-        if (response.ok) {
-          const data = await response.json();
+        const data = await response.json();
+
+        if (response.ok && data.success) {
           this.result = {
             success: true,
-            data: data,
-            executionTime
+            data: data.data,
+            executionTime,
+            correlationId: data.correlationId
           };
         } else {
-          const error = await response.json();
           this.result = {
             success: false,
-            error: error.error || 'Tool execution failed',
-            executionTime
+            error: data.error?.message || data.error || 'Tool execution failed',
+            executionTime,
+            correlationId: data.correlationId
           };
         }
+        this.lastExecution = data;
       } catch (error) {
         const endTime = performance.now();
         const executionTime = Math.round(endTime - startTime);
@@ -161,6 +166,7 @@ function toolExplorer() {
           error: error.message || 'Network error',
           executionTime
         };
+        this.lastExecution = null;
       } finally {
         this.executing = false;
       }

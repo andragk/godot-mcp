@@ -35,7 +35,7 @@ Ja, mit angemessenen Sicherheitsvorkehrungen:
 - Die Godot-Brücke läuft vollständig auf Ihrem Rechner
 - **Aber**: KI-Clients (Claude Desktop, Copilot) benötigen Internet für LLM-Inferenz
 
-Sie können die Sidecar Web UI (localhost:8080) verwenden, um Werkzeuge ohne KI-Client zu testen.
+Sie können die Sidecar Web UI (localhost:3000) verwenden, um Werkzeuge ohne KI-Client zu testen.
 
 ### Welche Godot-Versionen werden unterstützt?
 
@@ -71,11 +71,11 @@ node --version
 ```bash
 # macOS/Linux
 lsof -i :7777
-lsof -i :8080
+lsof -i :3000
 
 # Windows PowerShell
 netstat -ano | findstr :7777
-netstat -ano | findstr :8080
+netstat -ano | findstr :3000
 ```
 
 Falls Ports belegt sind, entweder Prozess beenden oder andere Ports verwenden:
@@ -329,7 +329,7 @@ Erstellen Sie eine `.godot-mcp-server.json` Konfigurationsdatei in Ihrem Projekt
 ```json
 {
   "port": 7777,
-  "uiPort": 8080,
+  "uiPort": 3000,
   "logLevel": "info",
   "cacheTTL": 300,
   "maxCacheSize": 50

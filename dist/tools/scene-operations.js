@@ -109,11 +109,17 @@ export class SceneOperationsTools {
         });
         try {
             // Validate project path
-            await validatePath(projectPath, {
+            const validatedProjectPath = await validatePath(projectPath, {
                 mustExist: true,
                 allowAbsolute: true
             });
-            const fullScenePath = path.resolve(projectPath, scenePath);
+            const fullScenePath = await validatePath(scenePath, {
+                baseDir: validatedProjectPath,
+                allowedExtensions: ['tscn'],
+            });
+            const relativeScenePath = path
+                .relative(validatedProjectPath, fullScenePath)
+                .replace(/\\/g, '/');
             // Check if scene already exists
             try {
                 await fs.access(fullScenePath);
@@ -150,7 +156,7 @@ export class SceneOperationsTools {
             const nodeCount = this.countNodes(rootNode);
             logger.info('Scene created successfully', {
                 service: 'godot-mcp',
-                scenePath: fullScenePath,
+                scenePath: relativeScenePath,
                 nodeCount,
                 validationPassed: validationResult.valid
             });
@@ -191,11 +197,17 @@ export class SceneOperationsTools {
         });
         try {
             // Validate project path
-            await validatePath(projectPath, {
+            const validatedProjectPath = await validatePath(projectPath, {
                 mustExist: true,
                 allowAbsolute: true
             });
-            const fullScenePath = path.resolve(projectPath, scenePath);
+            const fullScenePath = await validatePath(scenePath, {
+                baseDir: validatedProjectPath,
+                allowedExtensions: ['tscn'],
+            });
+            const relativeScenePath = path
+                .relative(validatedProjectPath, fullScenePath)
+                .replace(/\\/g, '/');
             // Check if scene exists
             try {
                 await fs.access(fullScenePath);
@@ -209,7 +221,7 @@ export class SceneOperationsTools {
             // Create backup if requested
             let backupPath;
             if (createBackup) {
-                const backup = await this.backupManager.createBackup(projectPath, scenePath, 'modify_scene', { operationCount: operations.length });
+                const backup = await this.backupManager.createBackup(validatedProjectPath, relativeScenePath, 'modify_scene', { operationCount: operations.length });
                 backupPath = backup.backupPath;
                 logger.info('Backup created', {
                     service: 'godot-mcp',
@@ -240,7 +252,7 @@ export class SceneOperationsTools {
                             service: 'godot-mcp',
                             backupPath
                         });
-                        await this.backupManager.restoreBackup(projectPath, backupPath);
+                        await this.backupManager.restoreBackup(validatedProjectPath, backupPath);
                     }
                     throw new InternalError(`Failed to apply operations: ${errorMsg}`);
                 }
@@ -259,7 +271,7 @@ export class SceneOperationsTools {
                         });
                         // Rollback
                         if (backupPath) {
-                            await this.backupManager.restoreBackup(projectPath, backupPath);
+                            await this.backupManager.restoreBackup(validatedProjectPath, backupPath);
                         }
                         else {
                             // Restore original content if no backup was created
@@ -277,7 +289,7 @@ export class SceneOperationsTools {
             await fs.writeFile(fullScenePath, sceneContent, 'utf-8');
             logger.info('Scene modified successfully', {
                 service: 'godot-mcp',
-                scenePath: fullScenePath,
+                scenePath: relativeScenePath,
                 operationsApplied,
                 backupCreated: !!backupPath,
                 warningsCount: warnings.length
