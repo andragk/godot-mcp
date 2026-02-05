@@ -1,5 +1,4 @@
 extends RefCounted
-class_name MCPLogger
 
 ## MCPLogger - Centralized logging for Godot MCP Bridge
 ##

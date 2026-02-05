@@ -70,11 +70,8 @@ func load_scene_in_editor(scene_path: String) -> Dictionary:
 	if not FileAccess.file_exists(res_path):
 		return _error("Scene file not found: " + res_path)
 	
-	# Open the scene
-	var result = _editor_interface.open_scene_from_path(res_path)
-	
-	if result != OK:
-		return _error("Failed to open scene: " + error_string(result))
+	# Open the scene (returns void)
+	_editor_interface.open_scene_from_path(res_path)
 	
 	_logger.info("Opened scene in editor", {"scene_path": res_path})
 	
@@ -173,11 +170,8 @@ func reload_current_scene() -> Dictionary:
 	if scene_path.is_empty():
 		return _error("Current scene has no file path")
 	
-	# Reload by closing and reopening
-	var result = _editor_interface.reload_scene_from_path(scene_path)
-	
-	if result != OK:
-		return _error("Failed to reload scene: " + error_string(result))
+	# Reload by closing and reopening (returns void)
+	_editor_interface.reload_scene_from_path(scene_path)
 	
 	_logger.info("Reloaded scene", {"scene_path": scene_path})
 	

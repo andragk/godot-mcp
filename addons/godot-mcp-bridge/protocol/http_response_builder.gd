@@ -1,5 +1,4 @@
 extends RefCounted
-class_name HTTPResponseBuilder
 
 ## HTTPResponseBuilder - Builds HTTP response strings
 ##
