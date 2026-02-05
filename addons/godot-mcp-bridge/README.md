@@ -71,18 +71,25 @@ Only operations that **must** run inside Godot are implemented here:
 
 ```
 addons/godot-mcp-bridge/
-├── plugin.gd                         # Plugin lifecycle management
-├── plugin.cfg                        # Plugin metadata
-├── http_server.gd                    # Main TCP coordinator (368 lines)
-├── http_server_original_backup.gd    # Backup of original monolithic version
+├── plugin.gd                                 # Plugin lifecycle management
+├── plugin.cfg                                # Plugin metadata
+├── http_server.gd                            # Main TCP coordinator (368 lines)
+├── README.md                                 # This file
 │
-├── logger.gd                         # MCPLogger - Centralized logging
-├── http_request_parser.gd            # HTTPRequestParser - HTTP parsing
-├── http_response_builder.gd          # HTTPResponseBuilder - Response building
-├── jsonrpc_handler.gd                # JSONRPCHandler - JSON-RPC 2.0 protocol
+├── core/                                     # Core infrastructure
+│   └── logger.gd                             # MCPLogger - Centralized logging
 │
-├── editor_control_handler.gd         # EditorControlHandler - Editor ops
-└── project_discovery_handler.gd      # ProjectDiscoveryHandler - Project ops
+├── protocol/                                 # Protocol layer (HTTP/JSON-RPC)
+│   ├── http_request_parser.gd                # HTTPRequestParser - HTTP parsing
+│   ├── http_response_builder.gd              # HTTPResponseBuilder - Response building
+│   └── jsonrpc_handler.gd                    # JSONRPCHandler - JSON-RPC 2.0 protocol
+│
+├── handlers/                                 # Business logic handlers
+│   ├── editor_control_handler.gd             # EditorControlHandler - Editor ops
+│   └── project_discovery_handler.gd          # ProjectDiscoveryHandler - Project ops
+│
+└── backup/                                   # Historical backups
+    └── http_server_original_backup.gd        # Original monolithic implementation
 ```
 
 ## Design Principles
@@ -122,26 +129,73 @@ project_handler = ProjectDiscoveryHandler.new(logger)
 
 ## Future Improvements
 
-1. **Directory Organization**: Move handlers into subdirectories:
-   ```
-   core/
-     logger.gd
-   protocol/
-     http_request_parser.gd
-     http_response_builder.gd
-     jsonrpc_handler.gd
-   handlers/
-     editor_control_handler.gd
-     project_discovery_handler.gd
-   ```
+### 1. Additional Handlers
 
-2. **GDScript Unit Tests**: Add unit tests for each handler
+**Scene Management Handler**:
+- `load_scene_in_editor` - Open scene in Godot editor
+- `get_current_scene` - Get currently open scene path
+- `save_current_scene` - Save editor scene
+- `close_scene` - Close scene in editor
 
-3. **More Operations**: Add Godot-specific operations that can't be done from TypeScript:
-   - Run tests in Godot test framework
-   - Profile scene performance
-   - Export projects
-   - Manage plugins
+**Script Execution Handler**:
+- `run_gdscript` - Execute GDScript code in editor context
+- `evaluate_expression` - Evaluate GDScript expression
+- `get_editor_settings` - Access editor configuration
+- `set_editor_settings` - Modify editor configuration
+
+**Node Inspection Handler**:
+- `get_node_tree` - Get complete node tree of open scene
+- `inspect_node` - Get all properties of a specific node
+- `modify_node_property` - Change node property in editor
+- `add_node_to_scene` - Add node to currently open scene
+
+**Resource Management Handler**:
+- `import_asset` - Trigger asset import
+- `get_import_settings` - Get import configuration
+- `set_import_settings` - Modify import configuration
+- `reimport_asset` - Force asset reimport
+
+**Build & Export Handler**:
+- `export_project` - Export project for target platform
+- `get_export_presets` - List export configurations
+- `create_export_preset` - Create new export preset
+- `run_custom_build_script` - Execute custom build steps
+
+**Testing Handler**:
+- `run_tests` - Execute GDScript unit tests
+- `run_scene_test` - Run specific scene for testing
+- `get_test_results` - Retrieve test execution results
+- `profile_scene` - Run performance profiling
+
+**Plugin Management Handler**:
+- `list_plugins` - Get installed plugins
+- `enable_plugin` - Enable plugin
+- `disable_plugin` - Disable plugin
+- `reload_plugin` - Reload plugin code
+
+### 2. Enhanced Protocol Support
+
+- **WebSocket Transport**: Alternative to HTTP for persistent connections
+- **Binary Protocol**: Optimize large data transfers (scene graphs, textures)
+- **Streaming Responses**: For long-running operations (project exports, tests)
+- **Authentication**: API keys or token-based auth for remote access
+- **Rate Limiting**: Prevent abuse of editor operations
+
+### 3. Developer Experience
+
+- **GDScript Unit Tests**: Add unit tests for each handler class
+- **Integration Tests**: Test full HTTP/JSON-RPC flow
+- **Performance Benchmarks**: Measure operation latency
+- **Documentation Generator**: Auto-generate API docs from code
+- **Example Client**: Reference implementation for calling bridge API
+
+### 4. Monitoring & Debugging
+
+- **Metrics Collection**: Track operation counts, latencies, errors
+- **Request Logging**: Configurable request/response logging
+- **Error Tracking**: Structured error reporting
+- **Health Monitoring**: Detailed health check with component status
+- **Debug Mode**: Verbose logging and request tracing
 
 ## Testing
 

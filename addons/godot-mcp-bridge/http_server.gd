@@ -20,12 +20,12 @@ extends Node
 
 ## WHY: Preload handler scripts to ensure type availability
 ## (class_name alone may not be immediately recognized by Godot)
-const MCPLoggerScript := preload("res://addons/godot-mcp-bridge/logger.gd")
-const HTTPRequestParserScript := preload("res://addons/godot-mcp-bridge/http_request_parser.gd")
-const HTTPResponseBuilderScript := preload("res://addons/godot-mcp-bridge/http_response_builder.gd")
-const JSONRPCHandlerScript := preload("res://addons/godot-mcp-bridge/jsonrpc_handler.gd")
-const EditorControlHandlerScript := preload("res://addons/godot-mcp-bridge/editor_control_handler.gd")
-const ProjectDiscoveryHandlerScript := preload("res://addons/godot-mcp-bridge/project_discovery_handler.gd")
+const MCPLoggerScript := preload("res://addons/godot-mcp-bridge/core/logger.gd")
+const HTTPRequestParserScript := preload("res://addons/godot-mcp-bridge/protocol/http_request_parser.gd")
+const HTTPResponseBuilderScript := preload("res://addons/godot-mcp-bridge/protocol/http_response_builder.gd")
+const JSONRPCHandlerScript := preload("res://addons/godot-mcp-bridge/protocol/jsonrpc_handler.gd")
+const EditorControlHandlerScript := preload("res://addons/godot-mcp-bridge/handlers/editor_control_handler.gd")
+const ProjectDiscoveryHandlerScript := preload("res://addons/godot-mcp-bridge/handlers/project_discovery_handler.gd")
 
 const PORT := 7777
 const VERSION := "0.1.0"
