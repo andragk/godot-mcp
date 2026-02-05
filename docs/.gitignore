@@ -2,6 +2,7 @@
 node_modules/
 .vitepress/dist/
 .vitepress/cache/
+.vitepress/.temp/
 .temp/
 
 # Working documents (keep for reference)
