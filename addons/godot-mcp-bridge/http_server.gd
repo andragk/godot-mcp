@@ -18,6 +18,15 @@ extends Node
 ## - EditorControlHandler: Editor control operations
 ## - ProjectDiscoveryHandler: Project discovery and analysis
 
+## WHY: Preload handler scripts to ensure type availability
+## (class_name alone may not be immediately recognized by Godot)
+const MCPLoggerScript := preload("res://addons/godot-mcp-bridge/logger.gd")
+const HTTPRequestParserScript := preload("res://addons/godot-mcp-bridge/http_request_parser.gd")
+const HTTPResponseBuilderScript := preload("res://addons/godot-mcp-bridge/http_response_builder.gd")
+const JSONRPCHandlerScript := preload("res://addons/godot-mcp-bridge/jsonrpc_handler.gd")
+const EditorControlHandlerScript := preload("res://addons/godot-mcp-bridge/editor_control_handler.gd")
+const ProjectDiscoveryHandlerScript := preload("res://addons/godot-mcp-bridge/project_discovery_handler.gd")
+
 const PORT := 7777
 const VERSION := "0.1.0"
 
@@ -62,12 +71,12 @@ func _ready() -> void:
 ## WHY: Separates initialization logic from _ready() for clarity.
 ## Makes dependency injection explicit and testable.
 func _initialize_handlers() -> void:
-	logger = MCPLogger.new()
-	request_parser = HTTPRequestParser.new()
-	response_builder = HTTPResponseBuilder.new()
-	jsonrpc_handler = JSONRPCHandler.new()
-	editor_handler = EditorControlHandler.new(logger)
-	project_handler = ProjectDiscoveryHandler.new(logger)
+	logger = MCPLoggerScript.new()
+	request_parser = HTTPRequestParserScript.new()
+	response_builder = HTTPResponseBuilderScript.new()
+	jsonrpc_handler = JSONRPCHandlerScript.new()
+	editor_handler = EditorControlHandlerScript.new(logger)
+	project_handler = ProjectDiscoveryHandlerScript.new(logger)
 
 
 func _process(_delta: float) -> void:

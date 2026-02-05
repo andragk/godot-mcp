@@ -36,9 +36,13 @@ func _enter_tree() -> void:
 	print("[MCP Bridge] Plugin enabled - HTTP server starting on port 7777")
 
 func _exit_tree() -> void:
+	# WHY: Plugin lifecycle - _exit_tree() is called when plugin is disabled
+	# This is the correct place to clean up plugin resources
+	
 	# Clean up the HTTP server
+	# WHY: Must remove from scene tree and free memory to prevent leaks
 	if http_server:
 		remove_child(http_server)
-		http_server.queue_free()
+		http_server.queue_free()  # WHY: queue_free() safely frees after frame ends
 	
-	print("[MCP Bridge] Plugin disabled")
+	print("[MCP Bridge] Plugin disabled - HTTP server stopped")
