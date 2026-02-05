@@ -1,5 +1,5 @@
 extends RefCounted
-
+class_name ScriptExecutionHandler
 
 ## ScriptExecutionHandler - Executes GDScript code in editor context
 ##
